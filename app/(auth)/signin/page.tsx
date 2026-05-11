@@ -29,8 +29,8 @@ function SignInForm() {
     if (result?.error) {
       setError("Incorrect email or password.")
       setLoading(false)
-    } else if (result?.url) {
-      router.push(result.url)
+    } else {
+      window.location.href = result?.url ?? "/"
     }
   }
 
