@@ -18,22 +18,11 @@ export const userRouter = router({
     }),
 
   completeOnboarding: protectedProcedure
-    .input(z.object({
-      username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores"),
-      sellingEnabled: z.boolean(),
-    }))
+    .input(z.object({ sellingEnabled: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
-      // Check username not taken by someone else
-      const existing = await ctx.prisma.user.findUnique({
-        where: { username: input.username },
-      })
-      if (existing && existing.id !== ctx.session.user.id) {
-        throw new Error("Username already taken")
-      }
       return ctx.prisma.user.update({
         where: { id: ctx.session.user.id },
         data: {
-          username: input.username,
           sellingEnabled: input.sellingEnabled,
           onboardingComplete: true,
         },
