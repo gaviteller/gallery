@@ -29,11 +29,12 @@ export const authOptions: NextAuthOptions = {
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
 
+        // Keep the JWT small — only store what's needed for routing/auth guards.
+        // image/name/email are NOT stored here because base64 profile photos
+        // will blow past Vercel's 8 KB header limit (494 error).
+        // Use trpc.user.me to fetch full profile data instead.
         return {
           id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
           username: user.username,
           sellingEnabled: user.sellingEnabled,
           onboardingComplete: user.onboardingComplete,
@@ -66,6 +67,10 @@ export const authOptions: NextAuthOptions = {
         token.sellingEnabled = (user as any).sellingEnabled ?? false
         token.onboardingComplete = (user as any).onboardingComplete ?? false
       }
+      // Strip fields NextAuth adds by default that we don't need in the cookie
+      delete token.name
+      delete token.email
+      delete token.picture
       return token
     },
     session({ session, token }) {
