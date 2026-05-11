@@ -116,9 +116,25 @@ export default function FeedPage() {
                 />
               </button>
 
+              {/* Like / comment counts */}
+              <div className="flex items-center gap-4 px-4 pt-3">
+                <button onClick={() => setViewPost(post)} className="flex items-center gap-1.5 text-gray-500 hover:text-red-400 transition-colors">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                  </svg>
+                  <span className="text-sm font-medium">{post._count.likes}</span>
+                </button>
+                <button onClick={() => setViewPost(post)} className="flex items-center gap-1.5 text-gray-500 hover:text-blue-500 transition-colors">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                  </svg>
+                  <span className="text-sm font-medium">{post._count.comments}</span>
+                </button>
+              </div>
+
               {/* Caption */}
               {post.description && (
-                <div className="px-4 py-3">
+                <div className="px-4 py-2 pb-3">
                   <p className="text-sm text-gray-800">
                     <Link href={`/@${post.user.username}`} className="font-semibold text-gray-900 hover:underline mr-1">
                       @{post.user.username}

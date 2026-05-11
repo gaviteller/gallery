@@ -78,7 +78,31 @@
       "Bash(taskkill /PID 42236 /F)",
       "Bash(taskkill /PID binoqzhgx /F)",
       "Bash(findstr \":3000 :3001\")",
-      "Bash(taskkill /PID 40884 /F)"
+      "Bash(taskkill /PID 40884 /F)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue })",
+      "Bash(cmd /c \"set DATABASE_URL=postgresql://neondb_owner:npg_Mdl5bVAQhXi3@ep-bitter-glade-a5e3k76m-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require && npx prisma db push 2>&1\")",
+      "Bash(cmd /c \"set DATABASE_URL=postgresql://neondb_owner:npg_Mdl5bVAQhXi3@ep-bitter-glade-a5e3k76m-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require && npx prisma db push\")",
+      "Bash(npx next *)",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\gavri\\\\OneDrive\\\\Documents\\\\Projects\\\\gallery\\\\.next\" -ErrorAction SilentlyContinue)",
+      "Bash(Write-Output \"Cache cleared\")",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_2JUPFn7gYALq@ep-super-sky-apyhuih0-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" npx prisma db execute --stdin)",
+      "Bash(gh --version)",
+      "Bash(vercel --version)",
+      "Bash(gh repo *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(vercel --yes)",
+      "Bash(vercel env *)",
+      "Bash(vercel ls *)",
+      "Bash(vercel domains *)",
+      "Bash(vercel inspect *)",
+      "Read(//c/Users/gavri/.config/vercel/**)",
+      "Bash(curl -s \"https://api.vercel.com/v9/projects/prj_f0HOqkIxVOgizorhXoMP2gwgd7lK/domains\" -H \"Authorization: Bearer $\\(cat ~/.config/vercel/auth.json)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(d['name']\\) for d in data.get\\('domains',[]\\)]\")",
+      "PowerShell($token = \\(Get-Content \"$env:APPDATA\\\\vercel\\\\auth.json\" | ConvertFrom-Json\\).token; $resp = Invoke-RestMethod \"https://api.vercel.com/v9/projects/prj_f0HOqkIxVOgizorhXoMP2gwgd7lK/domains\" -Headers @{Authorization=\"Bearer $token\"}; $resp.domains | Select-Object name)",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\vercel\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName)",
+      "Bash(find /mnt/c/Users/gavri -name \"auth.json\" -path \"*/vercel/*\" 2>/dev/null | head -5)",
+      "Bash(vercel --prod --yes)"
     ]
   }
 }

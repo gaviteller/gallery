@@ -77,6 +77,7 @@ model User {
   sentNotifications     Notification[] @relation("SentNotifications")
   likes                 Like[]
   comments              Comment[]
+  commentLikes          CommentLike[]
 }
 
 model Follow {
@@ -139,13 +140,28 @@ model Like {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   userId    String
   postId    String
   text      String
+  parentId  String?
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]     @relation("CommentReplies")
+  likes     CommentLike[]
+  createdAt DateTime      @default(now())
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@unique([userId, commentId])
 }
 
 enum CommissionStatus {

@@ -21,6 +21,98 @@ type ProfileUser = {
   image: string | null
 }
 
+function Avatar({ image, name, username, size = 8 }: { image?: string | null; name?: string | null; username?: string | null; size?: number }) {
+  if (image) return <img src={image} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} alt="" />
+  return (
+    <div className={`w-${size} h-${size} rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0`}>
+      {(name ?? username ?? "?")[0].toUpperCase()}
+    </div>
+  )
+}
+
+function HeartIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24"
+      fill={filled ? "#ef4444" : "none"}
+      stroke={filled ? "#ef4444" : "currentColor"}
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+    </svg>
+  )
+}
+
+type CommentData = {
+  id: string
+  text: string
+  createdAt: Date
+  parentId: string | null
+  likedByMe: boolean
+  user: { username: string | null; name: string | null; image: string | null }
+  _count: { likes: number; replies: number }
+  replies?: Omit<CommentData, "replies">[]
+}
+
+function CommentRow({
+  comment,
+  postId,
+  sessionUsername,
+  onClose,
+  onReply,
+  onDelete,
+  onToggleLike,
+  isReply = false,
+}: {
+  comment: CommentData
+  postId: string
+  sessionUsername?: string | null
+  onClose: () => void
+  onReply: (commentId: string, username: string) => void
+  onDelete: (id: string) => void
+  onToggleLike: (id: string) => void
+  isReply?: boolean
+}) {
+  return (
+    <div className={`flex items-start gap-2 py-1.5 group ${isReply ? "pl-8" : ""}`}>
+      <Link href={`/@${comment.user.username}`} onClick={onClose}>
+        <Avatar image={comment.user.image} name={comment.user.name} username={comment.user.username} size={isReply ? 6 : 7} />
+      </Link>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-800 leading-snug">
+          <Link href={`/@${comment.user.username}`} onClick={onClose} className="font-semibold mr-1 hover:underline">
+            @{comment.user.username}
+          </Link>
+          <MentionText text={comment.text} />
+        </p>
+        <div className="flex items-center gap-3 mt-1">
+          <button
+            onClick={() => onToggleLike(comment.id)}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-400 transition-colors"
+          >
+            <HeartIcon filled={comment.likedByMe} />
+            {comment._count.likes > 0 && <span>{comment._count.likes}</span>}
+          </button>
+          {!isReply && (
+            <button
+              onClick={() => onReply(comment.id, comment.user.username ?? "")}
+              className="text-xs text-gray-400 hover:text-gray-700 transition-colors font-medium"
+            >
+              Reply
+            </button>
+          )}
+          {comment.user.username === sessionUsername && (
+            <button
+              onClick={() => onDelete(comment.id)}
+              className="text-xs text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PostModal({
   post,
   profileUser,
@@ -36,52 +128,46 @@ export default function PostModal({
 }) {
   const { data: session } = useSession()
   const [comment, setComment] = useState("")
+  const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null)
   const utils = trpc.useUtils()
 
   const { data: postData, isLoading } = trpc.interaction.getPostData.useQuery({ postId: post.id })
 
-  const toggleLike = trpc.interaction.toggleLike.useMutation({
-    onSuccess: () => utils.interaction.getPostData.invalidate({ postId: post.id }),
-  })
+  const invalidate = () => utils.interaction.getPostData.invalidate({ postId: post.id })
+
+  const toggleLike = trpc.interaction.toggleLike.useMutation({ onSuccess: invalidate })
+  const toggleCommentLike = trpc.interaction.toggleCommentLike.useMutation({ onSuccess: invalidate })
 
   const addComment = trpc.interaction.addComment.useMutation({
-    onSuccess: () => {
-      utils.interaction.getPostData.invalidate({ postId: post.id })
-      setComment("")
-    },
+    onSuccess: () => { invalidate(); setComment(""); setReplyTo(null) },
   })
 
-  const deleteComment = trpc.interaction.deleteComment.useMutation({
-    onSuccess: () => utils.interaction.getPostData.invalidate({ postId: post.id }),
-  })
+  const deleteComment = trpc.interaction.deleteComment.useMutation({ onSuccess: invalidate })
+  const deletePost = trpc.post.delete.useMutation({ onSuccess: () => onDelete(post.id) })
 
-  const deletePost = trpc.post.delete.useMutation({
-    onSuccess: () => onDelete(post.id),
-  })
+  function submitComment() {
+    const text = comment.trim()
+    if (!text) return
+    addComment.mutate({ postId: post.id, text, parentId: replyTo?.id })
+  }
 
   const initials = (profileUser.name ?? profileUser.username ?? "?")[0].toUpperCase()
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        {/* Close */}
         <button onClick={onClose} className="absolute -top-10 right-0 text-white/70 hover:text-white text-2xl leading-none z-10">✕</button>
 
         <div className="bg-white rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
           {/* Image */}
           <img src={post.image} alt={post.description ?? ""} className="w-full object-contain max-h-[50vh] bg-black flex-shrink-0" />
 
-          {/* Info + comments */}
           <div className="flex flex-col flex-1 min-h-0">
             {/* Header */}
             <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Link href={`/@${profileUser.username}`} onClick={onClose}>
-                  {profileUser.image ? (
-                    <img src={profileUser.image} className="w-8 h-8 rounded-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">{initials}</div>
-                  )}
+                  <Avatar image={profileUser.image} name={profileUser.name} username={profileUser.username} size={8} />
                 </Link>
                 <Link href={`/@${profileUser.username}`} onClick={onClose} className="text-sm font-semibold text-gray-900 hover:underline">
                   @{profileUser.username}
@@ -112,53 +198,64 @@ export default function PostModal({
             <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
               {isLoading ? (
                 <p className="text-xs text-gray-400 text-center py-4">Loading…</p>
-              ) : postData?.comments.length === 0 ? (
+              ) : !postData?.comments.length ? (
                 <p className="text-xs text-gray-400 text-center py-4">No comments yet</p>
               ) : (
-                postData?.comments.map((c) => (
-                  <div key={c.id} className="flex items-start gap-2 py-2 group">
-                    <Link href={`/@${c.user.username}`} onClick={onClose}>
-                      {c.user.image ? (
-                        <img src={c.user.image} className="w-7 h-7 rounded-full object-cover flex-shrink-0" alt="" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
-                          {(c.user.name ?? c.user.username ?? "?")[0].toUpperCase()}
-                        </div>
-                      )}
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800">
-                        <Link href={`/@${c.user.username}`} onClick={onClose} className="font-semibold mr-1 hover:underline">@{c.user.username}</Link>
-                        <MentionText text={c.text} />
-                      </p>
-                    </div>
-                    {c.user.username === session?.user?.username && (
-                      <button onClick={() => deleteComment.mutate({ id: c.id })}
-                        className="text-xs text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        ✕
-                      </button>
-                    )}
+                postData.comments.map((c) => (
+                  <div key={c.id}>
+                    <CommentRow
+                      comment={c}
+                      postId={post.id}
+                      sessionUsername={session?.user?.username}
+                      onClose={onClose}
+                      onReply={(id, username) => setReplyTo({ id, username })}
+                      onDelete={(id) => deleteComment.mutate({ id })}
+                      onToggleLike={(id) => session && toggleCommentLike.mutate({ commentId: id })}
+                    />
+                    {c.replies?.map((r) => (
+                      <CommentRow
+                        key={r.id}
+                        comment={r as CommentData}
+                        postId={post.id}
+                        sessionUsername={session?.user?.username}
+                        onClose={onClose}
+                        onReply={() => {}}
+                        onDelete={(id) => deleteComment.mutate({ id })}
+                        onToggleLike={(id) => session && toggleCommentLike.mutate({ commentId: id })}
+                        isReply
+                      />
+                    ))}
                   </div>
                 ))
               )}
             </div>
 
-            {/* Like + comment input */}
+            {/* Like row + comment input */}
             <div className="border-t border-gray-100 px-4 py-3 flex-shrink-0">
-              {/* Like row */}
+              {/* Like */}
               <div className="flex items-center gap-3 mb-3">
                 <button
                   onClick={() => session && toggleLike.mutate({ postId: post.id })}
                   disabled={!session || toggleLike.isPending}
                   className="flex items-center gap-1.5 disabled:opacity-40"
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill={postData?.liked ? "#ef4444" : "none"}
-                    stroke={postData?.liked ? "#ef4444" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="22" height="22" viewBox="0 0 24 24"
+                    fill={postData?.liked ? "#ef4444" : "none"}
+                    stroke={postData?.liked ? "#ef4444" : "currentColor"}
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
                   </svg>
                   <span className="text-sm font-medium text-gray-700">{postData?.likeCount ?? 0}</span>
                 </button>
               </div>
+
+              {/* Reply indicator */}
+              {replyTo && (
+                <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-1.5">
+                  <span>Replying to <span className="font-semibold">@{replyTo.username}</span></span>
+                  <button onClick={() => setReplyTo(null)} className="ml-auto text-gray-400 hover:text-gray-600">✕</button>
+                </div>
+              )}
 
               {/* Comment input */}
               {session && (
@@ -167,17 +264,17 @@ export default function PostModal({
                     type="text"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && comment.trim()) addComment.mutate({ postId: post.id, text: comment.trim() }) }}
-                    placeholder="Add a comment…"
+                    onKeyDown={(e) => { if (e.key === "Enter") submitComment() }}
+                    placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment…"}
                     maxLength={500}
                     className="flex-1 text-sm bg-transparent outline-none placeholder-gray-400"
                   />
                   <button
-                    onClick={() => { if (comment.trim()) addComment.mutate({ postId: post.id, text: comment.trim() }) }}
+                    onClick={submitComment}
                     disabled={!comment.trim() || addComment.isPending}
                     className="text-sm font-semibold text-blue-500 hover:text-blue-700 disabled:opacity-40"
                   >
-                    Post
+                    {replyTo ? "Reply" : "Post"}
                   </button>
                 </div>
               )}

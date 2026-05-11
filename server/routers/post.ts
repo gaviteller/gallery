@@ -28,13 +28,9 @@ export const postRouter = router({
         take: 50,
         include: {
           user: {
-            select: {
-              id: true,
-              username: true,
-              name: true,
-              image: true,
-            },
+            select: { id: true, username: true, name: true, image: true },
           },
+          _count: { select: { likes: true, comments: true } },
         },
       })
 
