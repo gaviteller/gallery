@@ -1,7 +1,32 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh auth *)"
+      "Bash(gh auth *)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(extract-text \"C:\\\\Users\\\\gavri\\\\Downloads\\\\Gallery_Business_Plan_v2.docx\")",
+      "Bash(pandoc \"C:\\\\Users\\\\gavri\\\\Downloads\\\\Gallery_Business_Plan_v2.docx\" -o - -t markdown)",
+      "Bash(pip install *)",
+      "Bash(python \"C:\\\\Users\\\\gavri\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\eef1687f-423b-4f22-a56f-24115e3fec7b\\\\ae7d5fb7-dee3-4950-a32a-4e4609ee2119\\\\skills\\\\docx\\\\scripts\\\\office\\\\unpack.py\" \"C:\\\\Users\\\\gavri\\\\Downloads\\\\Gallery_Business_Plan_v2.docx\" \"C:\\\\Users\\\\gavri\\\\Downloads\\\\gallery_bp_unpacked\")",
+      "Bash(dir \"C:\\\\Users\\\\gavri\\\\Downloads\" /b)",
+      "Bash(findstr /i \"market\\\\|gallery\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)",
+      "Bash(ls \"C:\\\\Users\\\\gavri\\\\Downloads\\\\\" 2>/dev/null | grep -i \"market\\\\|gallery\\\\|strategy\" || dir \"C:\\\\Users\\\\gavri\\\\Downloads\" /b 2>/dev/null)",
+      "Bash(python -c ' *)",
+      "WebSearch",
+      "Bash(node -e \"console.log\\('node works'\\)\")",
+      "Bash(npm list *)",
+      "Bash(npm install *)",
+      "Bash(node generate_marketing.js)",
+      "Bash(npm init *)",
+      "Bash(python \"C:\\\\Users\\\\gavri\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\eef1687f-423b-4f22-a56f-24115e3fec7b\\\\ae7d5fb7-dee3-4950-a32a-4e4609ee2119\\\\skills\\\\docx\\\\scripts\\\\office\\\\validate.py\" \"C:\\\\Users\\\\gavri\\\\Downloads\\\\Gallery_Marketing_Strategy_v2.docx\")",
+      "Bash(python -c \"import reportlab; print\\('reportlab ready'\\)\")",
+      "Bash(python generate_tos.py)",
+      "Bash(git -C \"C:/Users/gavri/OneDrive/Documents/Projects/gallery\" add docs/legal/Gallery_Terms_of_Service.pdf)",
+      "Bash(git -C C:/Users/gavri/OneDrive/Documents/Projects/gallery commit -m ' *)",
+      "Bash(xargs cat)",
+      "Bash(git -C \"C:/Users/gavri/OneDrive/Documents/Projects/gallery\" add docs/superpowers/specs/2026-05-11-gallery-platform-design.md)"
     ]
   }
 }
