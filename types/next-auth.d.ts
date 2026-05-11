@@ -16,3 +16,12 @@ declare module "next-auth" {
     onboardingComplete: boolean
   }
 }
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string
+    username: string | null
+    sellingEnabled: boolean
+    onboardingComplete: boolean
+  }
+}
