@@ -8,6 +8,7 @@ export const postRouter = router({
       image: z.string().min(1),
       description: z.string().max(2200).optional(),
       isAiGenerated: z.boolean().optional(),
+      isCommission: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const tags = [
@@ -23,6 +24,7 @@ export const postRouter = router({
           image: input.image,
           description: input.description ?? null,
           isAiGenerated: input.isAiGenerated ?? false,
+          isCommission: input.isCommission ?? false,
           hashtags: tags.length > 0 ? {
             connectOrCreate: tags.map((tag) => ({
               where: { tag },
@@ -87,6 +89,19 @@ export const postRouter = router({
       if (!user) throw new TRPCError({ code: "NOT_FOUND" })
       return ctx.prisma.post.findMany({
         where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+      })
+    }),
+
+  getCommissionsByUsername: publicProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.prisma.user.findFirst({
+        where: { username: { equals: input.username, mode: "insensitive" } },
+      })
+      if (!user) throw new TRPCError({ code: "NOT_FOUND" })
+      return ctx.prisma.post.findMany({
+        where: { userId: user.id, isCommission: true },
         orderBy: { createdAt: "desc" },
       })
     }),

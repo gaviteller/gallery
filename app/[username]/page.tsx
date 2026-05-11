@@ -8,12 +8,46 @@ import PostModal from "@/components/PostModal"
 
 const statusColors = {
   OPEN: "bg-green-100 text-green-700",
+  LIMITED: "bg-yellow-100 text-yellow-700",
   CLOSED: "bg-gray-100 text-gray-500",
 }
 
 const statusLabels = {
   OPEN: "Open for commissions",
+  LIMITED: "Limited slots",
   CLOSED: "Closed for commissions",
+}
+
+type PostItem = {
+  id: string
+  image: string
+  title: string | null
+  description: string | null
+  isAiGenerated: boolean
+  isCommission: boolean
+  createdAt: Date
+}
+
+function processImage(file: File, maxSize: number): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new window.Image()
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = Math.round((height * maxSize) / width); width = maxSize }
+          else { width = Math.round((width * maxSize) / height); height = maxSize }
+        }
+        const canvas = document.createElement("canvas")
+        canvas.width = width; canvas.height = height
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL("image/jpeg", 0.9))
+      }
+      img.src = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
@@ -24,6 +58,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: session } = useSession()
   const { data: profileUser, isLoading: userLoading } = trpc.user.getByUsername.useQuery({ username })
   const { data: posts, isLoading: postsLoading } = trpc.post.getByUsername.useQuery({ username })
+  const { data: commissions, isLoading: commissionsLoading } = trpc.post.getCommissionsByUsername.useQuery({ username })
+  const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
   const { data: followData } = trpc.follow.status.useQuery({ username })
   const utils = trpc.useUtils()
 
@@ -35,49 +71,68 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   })
 
   const [tab, setTab] = useState("Posts")
-  const [showUpload, setShowUpload] = useState(false)
-  const [viewPost, setViewPost] = useState<{ id: string; image: string; title: string | null; description: string | null; isAiGenerated: boolean; createdAt: Date } | null>(null)
+  const [viewPost, setViewPost] = useState<PostItem | null>(null)
 
-  // Upload form state
+  // ── New post modal state ──────────────────────────────────────
+  const [showUpload, setShowUpload] = useState(false)
   const [uploadImage, setUploadImage] = useState<string | null>(null)
   const [uploadDesc, setUploadDesc] = useState("")
   const [uploadIsAi, setUploadIsAi] = useState(false)
+  const [uploadIsCommission, setUploadIsCommission] = useState(false)
   const [imgProcessing, setImgProcessing] = useState(false)
 
   const createPost = trpc.post.create.useMutation({
     onSuccess: () => {
       utils.post.getByUsername.invalidate({ username })
+      utils.post.getCommissionsByUsername.invalidate({ username })
       setShowUpload(false)
       setUploadImage(null)
       setUploadDesc("")
       setUploadIsAi(false)
+      setUploadIsCommission(false)
     },
   })
 
-
-  function handleImageFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setImgProcessing(true)
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const img = new window.Image()
-      img.onload = () => {
-        const MAX = 1200
-        let { width, height } = img
-        if (width > MAX || height > MAX) {
-          if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
-          else { width = Math.round((width * MAX) / height); height = MAX }
-        }
-        const canvas = document.createElement("canvas")
-        canvas.width = width; canvas.height = height
-        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
-        setUploadImage(canvas.toDataURL("image/jpeg", 0.9))
-        setImgProcessing(false)
-      }
-      img.src = event.target?.result as string
-    }
-    reader.readAsDataURL(file)
+    const result = await processImage(file, 1200)
+    setUploadImage(result)
+    setImgProcessing(false)
+  }
+
+  // ── New shop item modal state ─────────────────────────────────
+  const [showShopUpload, setShowShopUpload] = useState(false)
+  const [shopImage, setShopImage] = useState<string | null>(null)
+  const [shopTitle, setShopTitle] = useState("")
+  const [shopDesc, setShopDesc] = useState("")
+  const [shopPrice, setShopPrice] = useState("")
+  const [shopImgProcessing, setShopImgProcessing] = useState(false)
+  const [viewShopItem, setViewShopItem] = useState<{ id: string; image: string; title: string; description: string | null; price: number; createdAt: Date } | null>(null)
+
+  const createShopItem = trpc.shop.create.useMutation({
+    onSuccess: () => {
+      utils.shop.getByUsername.invalidate({ username })
+      setShowShopUpload(false)
+      setShopImage(null)
+      setShopTitle("")
+      setShopDesc("")
+      setShopPrice("")
+    },
+  })
+
+  const deleteShopItem = trpc.shop.delete.useMutation({
+    onSuccess: () => utils.shop.getByUsername.invalidate({ username }),
+  })
+
+  async function handleShopImageFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setShopImgProcessing(true)
+    const result = await processImage(file, 1200)
+    setShopImage(result)
+    setShopImgProcessing(false)
   }
 
   if (userLoading) {
@@ -130,7 +185,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             )}
           </div>
 
-          {/* Follower counts */}
           <div className="flex gap-4 mt-2">
             <span className="text-sm text-gray-600">
               <span className="font-semibold text-gray-900">{followData?.followerCount ?? 0}</span> followers
@@ -187,7 +241,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </nav>
       </div>
 
-      {/* Posts tab */}
+      {/* ── Posts tab ─────────────────────────────────────────── */}
       {tab === "Posts" && (
         <>
           {isOwn && (
@@ -204,12 +258,17 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           ) : posts && posts.length > 0 ? (
             <div className="grid grid-cols-3 gap-0.5">
               {posts.map((post) => (
-                <button key={post.id} onClick={() => setViewPost(post)}
+                <button key={post.id} onClick={() => setViewPost(post as PostItem)}
                   className="relative aspect-square overflow-hidden bg-gray-100 group">
                   <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
-                  {post.isAiGenerated && (
-                    <span className="absolute top-1.5 left-1.5 text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
-                  )}
+                  <div className="absolute top-1.5 left-1.5 flex gap-1">
+                    {post.isAiGenerated && (
+                      <span className="text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
+                    )}
+                    {(post as PostItem).isCommission && (
+                      <span className="text-xs font-medium bg-blue-600/80 text-white px-1.5 py-0.5 rounded-md">Comm</span>
+                    )}
+                  </div>
                   {post.description && (
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                       <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
@@ -230,23 +289,163 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </>
       )}
 
-      {tab !== "Posts" && (
-        <div className="text-center py-16 text-gray-400">
-          <p className="font-medium text-gray-500">Coming soon</p>
+      {/* ── Shop tab ──────────────────────────────────────────── */}
+      {tab === "Shop" && (
+        <>
+          {isOwn && (
+            <div className="mb-4 flex justify-end">
+              <button onClick={() => setShowShopUpload(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
+                + Add item
+              </button>
+            </div>
+          )}
+
+          {shopLoading ? (
+            <div className="text-center py-16 text-gray-400">Loading…</div>
+          ) : shopItems && shopItems.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              {shopItems.map((item) => (
+                <div key={item.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="aspect-square overflow-hidden bg-gray-100">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">{item.title}</p>
+                    {item.description && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{item.description}</p>
+                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm font-bold text-gray-900">${item.price.toFixed(2)}</span>
+                      {isOwn ? (
+                        <button
+                          onClick={() => deleteShopItem.mutate({ id: item.id })}
+                          disabled={deleteShopItem.isPending}
+                          className="text-xs text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <a
+                          href={`mailto:${profileUser.email ?? ""}?subject=Shop inquiry: ${encodeURIComponent(item.title)}`}
+                          className="text-xs bg-gray-900 text-white px-3 py-1 rounded-lg hover:bg-gray-700 transition-colors"
+                        >
+                          Inquire
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-gray-400">
+              <div className="text-4xl mb-3">🛍️</div>
+              <p className="font-medium text-gray-500">No items for sale yet</p>
+              {isOwn && <p className="text-sm mt-1">Add prints, stickers, or other work</p>}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Commissions tab ───────────────────────────────────── */}
+      {tab === "Commissions" && (
+        <>
+          {commissionsLoading ? (
+            <div className="text-center py-16 text-gray-400">Loading…</div>
+          ) : commissions && commissions.length > 0 ? (
+            <>
+              <p className="text-xs text-gray-400 mb-4">Finished commission work — click to view</p>
+              <div className="grid grid-cols-3 gap-0.5">
+                {commissions.map((post) => (
+                  <button key={post.id} onClick={() => setViewPost(post as PostItem)}
+                    className="relative aspect-square overflow-hidden bg-gray-100 group">
+                    <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
+                        {post.description}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-16 text-gray-400">
+              <div className="text-4xl mb-3">🎨</div>
+              <p className="font-medium text-gray-500">No finished commissions posted yet</p>
+              {isOwn && (
+                <p className="text-sm mt-1">
+                  When posting, tick &ldquo;This is a commission&rdquo; to show it here
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── About tab ─────────────────────────────────────────── */}
+      {tab === "About" && (
+        <div className="flex flex-col gap-4 max-w-sm">
+          {profileUser.bio ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Bio</p>
+              <p className="text-sm text-gray-700">{profileUser.bio}</p>
+            </div>
+          ) : null}
+
+          {(profileUser.websiteUrl || profileUser.twitterHandle || profileUser.instagramHandle || profileUser.artstationHandle) && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Links</p>
+              <div className="flex flex-col gap-2">
+                {profileUser.websiteUrl && (
+                  <a href={profileUser.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                    <span>🌐</span> {profileUser.websiteUrl}
+                  </a>
+                )}
+                {profileUser.twitterHandle && (
+                  <a href={`https://x.com/${profileUser.twitterHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                    <span>𝕏</span> {profileUser.twitterHandle}
+                  </a>
+                )}
+                {profileUser.instagramHandle && (
+                  <a href={`https://instagram.com/${profileUser.instagramHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                    <span>📸</span> {profileUser.instagramHandle}
+                  </a>
+                )}
+                {profileUser.artstationHandle && (
+                  <a href={`https://artstation.com/${profileUser.artstationHandle}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                    <span>🎨</span> ArtStation — {profileUser.artstationHandle}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Joined</p>
+            <p className="text-sm text-gray-700">
+              {new Date(profileUser.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </p>
+          </div>
+
+          {isOwn && (
+            <Link href="/settings" className="mt-2 text-sm text-blue-600 hover:underline">
+              Edit profile →
+            </Link>
+          )}
         </div>
       )}
 
-      {/* Upload modal */}
+      {/* ── New post modal ────────────────────────────────────── */}
       {showUpload && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md flex flex-col gap-4 p-6">
+          <div className="bg-white rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">New post</h2>
-              <button onClick={() => { setShowUpload(false); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false) }}
+              <button onClick={() => { setShowUpload(false); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false) }}
                 className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
             </div>
-
-            {/* Image picker */}
 
             {uploadImage ? (
               <div className="relative">
@@ -268,29 +467,107 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               placeholder="Write a caption…" maxLength={500} rows={3}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
-            {/* AI generated toggle */}
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <p className="text-sm font-medium text-gray-900">AI generated</p>
-                <p className="text-xs text-gray-500">Let others know this was made with AI</p>
+            {/* Toggles */}
+            {[
+              { label: "AI generated", sub: "Let others know this was made with AI", value: uploadIsAi, set: setUploadIsAi },
+              { label: "This is a commission", sub: "Show in your Commissions tab", value: uploadIsCommission, set: setUploadIsCommission },
+            ].map(({ label, sub, value, set }) => (
+              <div key={label} className="flex items-center justify-between py-1">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{label}</p>
+                  <p className="text-xs text-gray-500">{sub}</p>
+                </div>
+                <button
+                  onClick={() => set((v: boolean) => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${value ? "bg-blue-600" : "bg-gray-200"}`}
+                  role="switch" aria-checked={value}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${value ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
               </div>
-              <button
-                onClick={() => setUploadIsAi(v => !v)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${uploadIsAi ? "bg-blue-600" : "bg-gray-200"}`}
-                role="switch"
-                aria-checked={uploadIsAi}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${uploadIsAi ? "translate-x-6" : "translate-x-1"}`} />
-              </button>
-            </div>
+            ))}
 
             {createPost.error && <p className="text-sm text-red-500">{createPost.error.message}</p>}
 
             <button
-              onClick={() => { if (uploadImage) createPost.mutate({ image: uploadImage, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi }) }}
+              onClick={() => { if (uploadImage) createPost.mutate({ image: uploadImage, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi, isCommission: uploadIsCommission }) }}
               disabled={createPost.isPending || !uploadImage || imgProcessing}
               className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {createPost.isPending ? "Posting…" : "Share"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── New shop item modal ───────────────────────────────── */}
+      {showShopUpload && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Add shop item</h2>
+              <button onClick={() => { setShowShopUpload(false); setShopImage(null); setShopTitle(""); setShopDesc(""); setShopPrice("") }}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+
+            {shopImage ? (
+              <div className="relative">
+                <img src={shopImage} alt="Preview" className="w-full rounded-xl object-cover max-h-72" />
+                <button onClick={() => setShopImage(null)}
+                  className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70">
+                  Change
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl h-48 cursor-pointer hover:border-gray-400 transition-colors">
+                <span className="text-3xl mb-2">🛍️</span>
+                <span className="text-sm text-gray-500">{shopImgProcessing ? "Processing…" : "Click to choose image"}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleShopImageFile} disabled={shopImgProcessing} />
+              </label>
+            )}
+
+            <input
+              type="text"
+              value={shopTitle}
+              onChange={(e) => setShopTitle(e.target.value)}
+              placeholder="Item title"
+              maxLength={100}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <textarea
+              value={shopDesc}
+              onChange={(e) => setShopDesc(e.target.value)}
+              placeholder="Description (optional)"
+              maxLength={500}
+              rows={2}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">$</span>
+              <input
+                type="number"
+                value={shopPrice}
+                onChange={(e) => setShopPrice(e.target.value)}
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {createShopItem.error && <p className="text-sm text-red-500">{createShopItem.error.message}</p>}
+
+            <button
+              onClick={() => {
+                const price = parseFloat(shopPrice)
+                if (shopImage && shopTitle.trim() && !isNaN(price) && price > 0) {
+                  createShopItem.mutate({ image: shopImage, title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
+                }
+              }}
+              disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing}
+              className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {createShopItem.isPending ? "Adding…" : "Add to shop"}
             </button>
           </div>
         </div>
@@ -304,6 +581,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           onClose={() => setViewPost(null)}
           onDelete={() => {
             utils.post.getByUsername.invalidate({ username })
+            utils.post.getCommissionsByUsername.invalidate({ username })
             setViewPost(null)
           }}
         />

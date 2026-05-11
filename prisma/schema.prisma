@@ -122,6 +122,7 @@ model Post {
   title          String?
   description    String?
   isAiGenerated  Boolean   @default(false)
+  isCommission   Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   likes          Like[]
