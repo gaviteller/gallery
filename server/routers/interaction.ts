@@ -87,16 +87,15 @@ export const interactionRouter = router({
 
   // ── Comments ─────────────────────────────────────────────────────────────
   addComment: protectedProcedure
-    .input(z.object({ postId: z.string(), text: z.string().min(1).max(500), parentId: z.string().optional() }))
+    .input(z.object({ postId: z.string(), text: z.string().min(1).max(500), parentId: z.string().nullish() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.comment.create({
+      await ctx.prisma.comment.create({
         data: {
           userId: ctx.session.user.id,
           postId: input.postId,
           text: input.text,
           parentId: input.parentId ?? null,
         },
-        select: commentSelect,
       })
     }),
 

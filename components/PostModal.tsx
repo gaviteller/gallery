@@ -268,25 +268,30 @@ export default function PostModal({
 
               {/* Comment input */}
               {session && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") submitComment() }}
-                    placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment…"}
-                    maxLength={500}
-                    className="flex-1 text-sm bg-transparent outline-none placeholder-gray-400"
-                    ref={commentInputRef}
-                  />
-                  <button
-                    onClick={submitComment}
-                    disabled={!comment.trim() || addComment.isPending}
-                    className="text-sm font-semibold text-blue-500 hover:text-blue-700 disabled:opacity-40"
-                  >
-                    {replyTo ? "Reply" : "Post"}
-                  </button>
-                </div>
+                <>
+                  {addComment.error && (
+                    <p className="text-xs text-red-500 mb-1">{addComment.error.message}</p>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") submitComment() }}
+                      placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment…"}
+                      maxLength={500}
+                      className="flex-1 text-sm bg-transparent outline-none placeholder-gray-400"
+                      ref={commentInputRef}
+                    />
+                    <button
+                      onClick={submitComment}
+                      disabled={!comment.trim() || addComment.isPending}
+                      className="text-sm font-semibold text-blue-500 hover:text-blue-700 disabled:opacity-40"
+                    >
+                      {addComment.isPending ? "…" : replyTo ? "Reply" : "Post"}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
