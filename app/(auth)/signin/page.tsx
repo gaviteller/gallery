@@ -2,36 +2,29 @@
 
 import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 
 function SignInForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") ?? "/"
+  const authError = searchParams.get("error")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+
+  const error = authError === "CredentialsSignin" ? "Incorrect email or password." : ""
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setError("")
-
-    const result = await signIn("credentials", {
+    await signIn("credentials", {
       email,
       password,
       callbackUrl,
-      redirect: false,
+      redirect: true,
     })
-
-    if (result?.error) {
-      setError("Incorrect email or password.")
-      setLoading(false)
-    } else {
-      window.location.href = result?.url ?? "/"
-    }
+    setLoading(false)
   }
 
   return (
