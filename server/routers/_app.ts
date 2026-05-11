@@ -4,6 +4,7 @@ import { postRouter } from "./post"
 import { followRouter } from "./follow"
 import { notificationRouter } from "./notification"
 import { interactionRouter } from "./interaction"
+import { hashtagRouter } from "./hashtag"
 
 export const appRouter = router({
   user: userRouter,
@@ -11,6 +12,7 @@ export const appRouter = router({
   follow: followRouter,
   notification: notificationRouter,
   interaction: interactionRouter,
+  hashtag: hashtagRouter,
 })
 
 export type AppRouter = typeof appRouter

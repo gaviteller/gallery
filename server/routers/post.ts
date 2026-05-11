@@ -10,12 +10,25 @@ export const postRouter = router({
       isAiGenerated: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const tags = [
+        ...new Set(
+          (input.description ?? "")
+            .match(/#([a-zA-Z0-9_]+)/g)
+            ?.map((t) => t.slice(1).toLowerCase()) ?? []
+        ),
+      ]
       return ctx.prisma.post.create({
         data: {
           userId: ctx.session.user.id,
           image: input.image,
           description: input.description ?? null,
           isAiGenerated: input.isAiGenerated ?? false,
+          hashtags: tags.length > 0 ? {
+            connectOrCreate: tags.map((tag) => ({
+              where: { tag },
+              create: { tag },
+            })),
+          } : undefined,
         },
       })
     }),

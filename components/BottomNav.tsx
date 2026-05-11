@@ -8,11 +8,12 @@ import Link from "next/link"
 
 function SearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("")
-  const { data: results } = trpc.user.search.useQuery(
-    { query },
-    { enabled: query.trim().length > 0 }
-  )
+  const enabled = query.trim().length > 0
+  const { data: users } = trpc.user.search.useQuery({ query }, { enabled })
+  const { data: tags } = trpc.hashtag.search.useQuery({ query }, { enabled })
   const router = useRouter()
+
+  const hasResults = (users && users.length > 0) || (tags && tags.length > 0)
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={onClose}>
@@ -23,35 +24,58 @@ function SearchModal({ onClose }: { onClose: () => void }) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search creators…"
+            placeholder="Search people or #tags…"
             className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-900 outline-none"
           />
           <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-900">Cancel</button>
         </div>
 
-        {results && results.length > 0 ? (
-          <div className="flex flex-col gap-1">
-            {results.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => { onClose(); router.push(`/@${user.username}`) }}
-                className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left"
-              >
-                {user.image ? (
-                  <img src={user.image} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold flex-shrink-0">
-                    {(user.name ?? user.username ?? "?")[0].toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">@{user.username}</p>
-                  {user.name && <p className="text-xs text-gray-500">{user.name}</p>}
-                </div>
-              </button>
-            ))}
+        {hasResults ? (
+          <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
+            {/* Hashtags */}
+            {tags && tags.length > 0 && (
+              <>
+                {tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => { onClose(); router.push(`/hashtag/${tag.tag}`) }}
+                    className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 text-sm font-bold flex-shrink-0">#</div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">#{tag.tag}</p>
+                      <p className="text-xs text-gray-500">{tag._count.posts} {tag._count.posts === 1 ? "post" : "posts"}</p>
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
+            {/* People */}
+            {users && users.length > 0 && (
+              <>
+                {users.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => { onClose(); router.push(`/@${user.username}`) }}
+                    className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                  >
+                    {user.image ? (
+                      <img src={user.image} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold flex-shrink-0">
+                        {(user.name ?? user.username ?? "?")[0].toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">@{user.username}</p>
+                      {user.name && <p className="text-xs text-gray-500">{user.name}</p>}
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
-        ) : query.trim().length > 0 ? (
+        ) : enabled ? (
           <p className="text-sm text-gray-400 text-center py-4">No results for &ldquo;{query}&rdquo;</p>
         ) : null}
       </div>
