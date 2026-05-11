@@ -1,86 +1,95 @@
 "use client"
 
-import { signIn } from "next-auth/react"
 import { useState, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { signIn } from "next-auth/react"
+import { useSearchParams, useRouter } from "next/navigation"
+import Link from "next/link"
 
 function SignInForm() {
-  const [email, setEmail] = useState("")
-  const [name, setName] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") ?? "/"
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError("")
+
     const result = await signIn("credentials", {
       email,
-      name,
+      password,
       callbackUrl,
       redirect: false,
     })
+
     if (result?.error) {
-      setError("Something went wrong. Try again.")
+      setError("Incorrect email or password.")
       setLoading(false)
     } else if (result?.url) {
-      window.location.href = result.url
+      router.push(result.url)
     }
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Gallery</h1>
-        <p className="text-gray-500 mt-1">Create an account or sign in</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+    <div className="space-y-3">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Gallery</h1>
         </div>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email address
-          </label>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
           <input
-            id="email"
             type="email"
+            placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="you@example.com"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading || !email}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "Signing in..." : "Continue"}
-        </button>
-      </form>
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading || !email || !password}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Logging in..." : "Log in"}
+          </button>
+        </form>
+
+        <p className="text-center mt-4">
+          <a href="#" className="text-xs text-blue-600 hover:underline">Forgot password?</a>
+        </p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 text-center">
+        <p className="text-sm text-gray-600">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="text-blue-600 font-semibold hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={<div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center text-gray-400">Loading...</div>}>
+    <Suspense>
       <SignInForm />
     </Suspense>
   )
