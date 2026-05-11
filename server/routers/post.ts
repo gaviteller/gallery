@@ -37,25 +37,31 @@ export const postRouter = router({
       const currentUserId = ctx.session?.user?.id ?? null
 
       if (!currentUserId) {
-        return posts.map((p) => ({ ...p, isFollowing: false, isOwnPost: false }))
+        return posts.map((p) => ({ ...p, isFollowing: false, isOwnPost: false, likedByMe: false }))
       }
 
+      const postIds = posts.map((p) => p.id)
       const userIds = [...new Set(posts.map((p) => p.userId))]
-      let followingSet = new Set<string>()
-      try {
-        const follows = await ctx.prisma.follow.findMany({
+
+      const [follows, myLikes] = await Promise.all([
+        ctx.prisma.follow.findMany({
           where: { followerId: currentUserId, followingId: { in: userIds } },
           select: { followingId: true },
-        })
-        followingSet = new Set(follows.map((f) => f.followingId))
-      } catch {
-        // follow table not available yet, return posts without follow status
-      }
+        }).catch(() => []),
+        ctx.prisma.like.findMany({
+          where: { userId: currentUserId, postId: { in: postIds } },
+          select: { postId: true },
+        }),
+      ])
+
+      const followingSet = new Set(follows.map((f) => f.followingId))
+      const likedSet = new Set(myLikes.map((l) => l.postId))
 
       return posts.map((p) => ({
         ...p,
         isFollowing: followingSet.has(p.userId),
         isOwnPost: p.userId === currentUserId,
+        likedByMe: likedSet.has(p.id),
       }))
     }),
 

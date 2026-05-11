@@ -17,6 +17,8 @@ type FeedPost = {
   createdAt: Date
   isFollowing: boolean
   isOwnPost: boolean
+  likedByMe: boolean
+  _count: { likes: number; comments: number }
   user: {
     id: string
     username: string | null
@@ -31,11 +33,15 @@ export default function FeedPage() {
   const utils = trpc.useUtils()
   const { data: posts, isLoading, error } = trpc.post.getFeed.useQuery()
   const [viewPost, setViewPost] = useState<FeedPost | null>(null)
+  const [focusComment, setFocusComment] = useState(false)
 
   const followMutation = trpc.follow.follow.useMutation({
     onSuccess: () => utils.post.getFeed.invalidate(),
   })
   const unfollowMutation = trpc.follow.unfollow.useMutation({
+    onSuccess: () => utils.post.getFeed.invalidate(),
+  })
+  const toggleLike = trpc.interaction.toggleLike.useMutation({
     onSuccess: () => utils.post.getFeed.invalidate(),
   })
 
@@ -116,16 +122,28 @@ export default function FeedPage() {
                 />
               </button>
 
-              {/* Like / comment counts */}
+              {/* Like / comment buttons */}
               <div className="flex items-center gap-4 px-4 pt-3">
-                <button onClick={() => setViewPost(post)} className="flex items-center gap-1.5 text-gray-500 hover:text-red-400 transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <button
+                  onClick={() => toggleLike.mutate({ postId: post.id })}
+                  disabled={toggleLike.isPending}
+                  className="flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24"
+                    fill={post.likedByMe ? "#ef4444" : "none"}
+                    stroke={post.likedByMe ? "#ef4444" : "#6b7280"}
+                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
                   </svg>
-                  <span className="text-sm font-medium">{post._count.likes}</span>
+                  <span className={`text-sm font-medium ${post.likedByMe ? "text-red-500" : "text-gray-500"}`}>
+                    {post._count.likes}
+                  </span>
                 </button>
-                <button onClick={() => setViewPost(post)} className="flex items-center gap-1.5 text-gray-500 hover:text-blue-500 transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <button
+                  onClick={() => { setFocusComment(true); setViewPost(post) }}
+                  className="flex items-center gap-1.5 text-gray-500 hover:text-blue-500 transition-colors"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                   </svg>
                   <span className="text-sm font-medium">{post._count.comments}</span>
@@ -157,10 +175,12 @@ export default function FeedPage() {
             image: viewPost.user.image,
           }}
           isOwn={viewPost.isOwnPost}
-          onClose={() => setViewPost(null)}
+          autoFocusComment={focusComment}
+          onClose={() => { setViewPost(null); setFocusComment(false) }}
           onDelete={() => {
             utils.post.getFeed.invalidate()
             setViewPost(null)
+            setFocusComment(false)
           }}
         />
       )}

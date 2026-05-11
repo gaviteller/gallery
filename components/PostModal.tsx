@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { trpc } from "@/components/providers"
@@ -119,17 +119,26 @@ export default function PostModal({
   isOwn,
   onClose,
   onDelete,
+  autoFocusComment = false,
 }: {
   post: Post
   profileUser: ProfileUser
   isOwn: boolean
   onClose: () => void
   onDelete: (id: string) => void
+  autoFocusComment?: boolean
 }) {
   const { data: session } = useSession()
   const [comment, setComment] = useState("")
   const [replyTo, setReplyTo] = useState<{ id: string; username: string } | null>(null)
+  const commentInputRef = useRef<HTMLInputElement>(null)
   const utils = trpc.useUtils()
+
+  useEffect(() => {
+    if (autoFocusComment) {
+      setTimeout(() => commentInputRef.current?.focus(), 100)
+    }
+  }, [autoFocusComment])
 
   const { data: postData, isLoading } = trpc.interaction.getPostData.useQuery({ postId: post.id })
 
@@ -268,6 +277,7 @@ export default function PostModal({
                     placeholder={replyTo ? `Reply to @${replyTo.username}…` : "Add a comment…"}
                     maxLength={500}
                     className="flex-1 text-sm bg-transparent outline-none placeholder-gray-400"
+                    ref={commentInputRef}
                   />
                   <button
                     onClick={submitComment}
