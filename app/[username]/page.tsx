@@ -1,8 +1,10 @@
-import { notFound } from "next/navigation"
-import { getServerSession } from "next-auth"
+"use client"
+
+import { useState, use } from "react"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
-import { prisma } from "@/lib/prisma"
-import { authOptions } from "@/lib/auth"
+import { trpc } from "@/components/providers"
+import PostModal from "@/components/PostModal"
 
 const statusColors = {
   OPEN: "bg-green-100 text-green-700",
@@ -14,158 +16,298 @@ const statusLabels = {
   CLOSED: "Closed for commissions",
 }
 
-export default async function ProfilePage({
-  params,
-}: {
-  params: Promise<{ username: string }>
-}) {
-  const { username: rawUsername } = await params
-  const username = rawUsername.startsWith("@") ? rawUsername.slice(1) : rawUsername
+export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const { username: rawUsername } = use(params)
+  const decoded = decodeURIComponent(rawUsername)
+  const username = decoded.startsWith("@") ? decoded.slice(1) : decoded
 
-  const profileUser = await prisma.user.findUnique({
-    where: { username },
+  const { data: session } = useSession()
+  const { data: profileUser, isLoading: userLoading } = trpc.user.getByUsername.useQuery({ username })
+  const { data: posts, isLoading: postsLoading } = trpc.post.getByUsername.useQuery({ username })
+  const { data: followData } = trpc.follow.status.useQuery({ username })
+  const utils = trpc.useUtils()
+
+  const followMutation = trpc.follow.follow.useMutation({
+    onSuccess: () => utils.follow.status.invalidate({ username }),
+  })
+  const unfollowMutation = trpc.follow.unfollow.useMutation({
+    onSuccess: () => utils.follow.status.invalidate({ username }),
   })
 
-  if (!profileUser) notFound()
+  const [tab, setTab] = useState("Posts")
+  const [showUpload, setShowUpload] = useState(false)
+  const [viewPost, setViewPost] = useState<{ id: string; image: string; title: string | null; description: string | null; isAiGenerated: boolean; createdAt: Date } | null>(null)
 
-  const session = await getServerSession(authOptions)
+  // Upload form state
+  const [uploadImage, setUploadImage] = useState<string | null>(null)
+  const [uploadDesc, setUploadDesc] = useState("")
+  const [uploadIsAi, setUploadIsAi] = useState(false)
+  const [imgProcessing, setImgProcessing] = useState(false)
+
+  const createPost = trpc.post.create.useMutation({
+    onSuccess: () => {
+      utils.post.getByUsername.invalidate({ username })
+      setShowUpload(false)
+      setUploadImage(null)
+      setUploadDesc("")
+      setUploadIsAi(false)
+    },
+  })
+
+
+  function handleImageFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImgProcessing(true)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new window.Image()
+      img.onload = () => {
+        const MAX = 1200
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
+          else { width = Math.round((width * MAX) / height); height = MAX }
+        }
+        const canvas = document.createElement("canvas")
+        canvas.width = width; canvas.height = height
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
+        setUploadImage(canvas.toDataURL("image/jpeg", 0.9))
+        setImgProcessing(false)
+      }
+      img.src = event.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+
+  if (userLoading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="text-gray-400">Loading…</div></div>
+  }
+
+  if (!profileUser) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="text-gray-400">User not found</div></div>
+  }
+
   const isOwn = session?.user?.id === profileUser.id
 
   const initials = (profileUser.name ?? profileUser.username ?? "?")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
+    .split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="flex items-start gap-6 mb-8">
-        {/* Avatar — show uploaded photo if available */}
         {profileUser.image ? (
-          <img
-            src={profileUser.image}
-            alt={profileUser.name ?? profileUser.username ?? "Profile"}
-            className="w-20 h-20 rounded-full object-cover flex-shrink-0"
-          />
+          <img src={profileUser.image} alt={profileUser.name ?? profileUser.username ?? "Profile"} className="w-20 h-20 rounded-full object-cover flex-shrink-0" />
         ) : (
           <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-2xl font-bold flex-shrink-0">
             {initials}
           </div>
         )}
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-gray-900">
-              {profileUser.name ?? profileUser.username}
-            </h1>
-            {isOwn && (
-              <Link
-                href="/settings"
-                className="text-sm px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
-              >
+            <h1 className="text-xl font-bold text-gray-900">@{profileUser.username}</h1>
+            {isOwn ? (
+              <Link href="/settings" className="text-sm px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
                 Edit profile
               </Link>
+            ) : session && (
+              <button
+                onClick={() => followData?.following
+                  ? unfollowMutation.mutate({ username })
+                  : followMutation.mutate({ username })
+                }
+                disabled={followMutation.isPending || unfollowMutation.isPending}
+                className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                  followData?.following
+                    ? "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {followData?.following ? "Following" : "Follow"}
+              </button>
             )}
           </div>
 
-          <p className="text-gray-500 text-sm mt-0.5">@{profileUser.username}</p>
+          {/* Follower counts */}
+          <div className="flex gap-4 mt-2">
+            <span className="text-sm text-gray-600">
+              <span className="font-semibold text-gray-900">{followData?.followerCount ?? 0}</span> followers
+            </span>
+            <span className="text-sm text-gray-600">
+              <span className="font-semibold text-gray-900">{followData?.followingCount ?? 0}</span> following
+            </span>
+          </div>
+
+          {profileUser.name && (
+            <p className="text-gray-700 text-sm font-medium mt-0.5">{profileUser.name}</p>
+          )}
 
           {profileUser.bio && (
             <p className="text-gray-700 text-sm mt-3">{profileUser.bio}</p>
           )}
 
-          {/* Social links */}
-          {(profileUser.websiteUrl ||
-            profileUser.twitterHandle ||
-            profileUser.instagramHandle ||
-            profileUser.artstationHandle) && (
+          {(profileUser.websiteUrl || profileUser.twitterHandle || profileUser.instagramHandle || profileUser.artstationHandle) && (
             <div className="flex flex-wrap gap-3 mt-3">
               {profileUser.websiteUrl && (
-                <a
-                  href={profileUser.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  🌐 Website
-                </a>
+                <a href={profileUser.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">🌐 Website</a>
               )}
               {profileUser.twitterHandle && (
-                <a
-                  href={`https://x.com/${profileUser.twitterHandle.replace("@", "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  𝕏 {profileUser.twitterHandle}
-                </a>
+                <a href={`https://x.com/${profileUser.twitterHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">𝕏 {profileUser.twitterHandle}</a>
               )}
               {profileUser.instagramHandle && (
-                <a
-                  href={`https://instagram.com/${profileUser.instagramHandle.replace("@", "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  📸 {profileUser.instagramHandle}
-                </a>
+                <a href={`https://instagram.com/${profileUser.instagramHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">📸 {profileUser.instagramHandle}</a>
               )}
               {profileUser.artstationHandle && (
-                <a
-                  href={`https://artstation.com/${profileUser.artstationHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  🎨 {profileUser.artstationHandle}
-                </a>
+                <a href={`https://artstation.com/${profileUser.artstationHandle}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">🎨 {profileUser.artstationHandle}</a>
               )}
             </div>
           )}
 
-          <div className="mt-3">
-            <span
-              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                statusColors[profileUser.commissionStatus as keyof typeof statusColors] ??
-                "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {statusLabels[profileUser.commissionStatus as keyof typeof statusLabels] ??
-                "Closed for commissions"}
-            </span>
-          </div>
+          {profileUser.sellingEnabled && (
+            <div className="mt-3">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusColors[profileUser.commissionStatus as keyof typeof statusColors] ?? "bg-gray-100 text-gray-500"}`}>
+                {statusLabels[profileUser.commissionStatus as keyof typeof statusLabels] ?? "Closed for commissions"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex gap-6">
-          {["Posts", "Shop", "Commissions", "About"].map((tab) => (
-            <button
-              key={tab}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                tab === "Posts"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              {tab}
+          {["Posts", "Shop", "Commissions", "About"].map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${tab === t ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
+              {t}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Posts tab — empty state */}
-      <div className="text-center py-16 text-gray-400">
-        <div className="text-4xl mb-3">🖼️</div>
-        <p className="font-medium text-gray-500">No posts yet</p>
-        {isOwn && (
-          <p className="text-sm mt-1">Share your first piece of art</p>
-        )}
-      </div>
+      {/* Posts tab */}
+      {tab === "Posts" && (
+        <>
+          {isOwn && (
+            <div className="mb-4 flex justify-end">
+              <button onClick={() => setShowUpload(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
+                + New post
+              </button>
+            </div>
+          )}
+
+          {postsLoading ? (
+            <div className="text-center py-16 text-gray-400">Loading…</div>
+          ) : posts && posts.length > 0 ? (
+            <div className="grid grid-cols-3 gap-0.5">
+              {posts.map((post) => (
+                <button key={post.id} onClick={() => setViewPost(post)}
+                  className="relative aspect-square overflow-hidden bg-gray-100 group">
+                  <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
+                  {post.isAiGenerated && (
+                    <span className="absolute top-1.5 left-1.5 text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
+                  )}
+                  {post.description && (
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
+                        {post.description}
+                      </span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 text-gray-400">
+              <div className="text-4xl mb-3">🖼️</div>
+              <p className="font-medium text-gray-500">No posts yet</p>
+              {isOwn && <p className="text-sm mt-1">Share your first piece of art</p>}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab !== "Posts" && (
+        <div className="text-center py-16 text-gray-400">
+          <p className="font-medium text-gray-500">Coming soon</p>
+        </div>
+      )}
+
+      {/* Upload modal */}
+      {showUpload && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md flex flex-col gap-4 p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">New post</h2>
+              <button onClick={() => { setShowUpload(false); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false) }}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+
+            {/* Image picker */}
+
+            {uploadImage ? (
+              <div className="relative">
+                <img src={uploadImage} alt="Preview" className="w-full rounded-xl object-cover max-h-72" />
+                <button onClick={() => setUploadImage(null)}
+                  className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70">
+                  Change
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl h-48 cursor-pointer hover:border-gray-400 transition-colors">
+                <span className="text-3xl mb-2">🖼️</span>
+                <span className="text-sm text-gray-500">{imgProcessing ? "Processing…" : "Click to choose image"}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageFile} disabled={imgProcessing} />
+              </label>
+            )}
+
+            <textarea value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
+              placeholder="Write a caption…" maxLength={500} rows={3}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+            {/* AI generated toggle */}
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm font-medium text-gray-900">AI generated</p>
+                <p className="text-xs text-gray-500">Let others know this was made with AI</p>
+              </div>
+              <button
+                onClick={() => setUploadIsAi(v => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${uploadIsAi ? "bg-blue-600" : "bg-gray-200"}`}
+                role="switch"
+                aria-checked={uploadIsAi}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${uploadIsAi ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+
+            {createPost.error && <p className="text-sm text-red-500">{createPost.error.message}</p>}
+
+            <button
+              onClick={() => { if (uploadImage) createPost.mutate({ image: uploadImage, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi }) }}
+              disabled={createPost.isPending || !uploadImage || imgProcessing}
+              className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {createPost.isPending ? "Posting…" : "Share"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {viewPost && (
+        <PostModal
+          post={viewPost}
+          profileUser={{ username: profileUser.username, name: profileUser.name, image: profileUser.image }}
+          isOwn={isOwn}
+          onClose={() => setViewPost(null)}
+          onDelete={() => {
+            utils.post.getByUsername.invalidate({ username })
+            setViewPost(null)
+          }}
+        />
+      )}
     </div>
   )
 }

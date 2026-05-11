@@ -12,19 +12,27 @@ function SignInForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [localError, setLocalError] = useState("")
 
-  const error = authError === "CredentialsSignin" ? "Incorrect email or password." : ""
+  const error = localError || (authError === "CredentialsSignin" ? "Incorrect email or password." : "")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    await signIn("credentials", {
-      email,
-      password,
-      callbackUrl,
-      redirect: true,
-    })
-    setLoading(false)
+    setLocalError("")
+    try {
+      const result = await signIn("credentials", { email, password, redirect: false })
+      if (result?.error) {
+        setLocalError("Incorrect email or password.")
+        setLoading(false)
+      } else {
+        window.location.href = "/"
+      }
+    } catch {
+      // NextAuth v4 + Next.js 16 may throw on the internal session fetch,
+      // but the auth cookie is already set server-side — navigate anyway.
+      window.location.href = callbackUrl
+    }
   }
 
   return (

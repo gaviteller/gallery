@@ -67,8 +67,85 @@ model User {
   instagramHandle    String?
   artstationHandle   String?
 
-  accounts           Account[]
-  sessions           Session[]
+  accounts              Account[]
+  sessions              Session[]
+  posts                 Post[]
+  shopItems             ShopItem[]
+  followers             Follow[]       @relation("Following")
+  following             Follow[]       @relation("Follower")
+  notifications         Notification[] @relation("ReceivedNotifications")
+  sentNotifications     Notification[] @relation("SentNotifications")
+  likes                 Like[]
+  comments              Comment[]
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  fromUserId String
+  type       String   // "follow"
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User     @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  fromUser   User     @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: Cascade)
+}
+
+model ShopItem {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image       String   @db.Text
+  title       String
+  description String?
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Post {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image          String    @db.Text
+  title          String?
+  description    String?
+  isAiGenerated  Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  likes          Like[]
+  comments       Comment[]
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  text      String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 enum CommissionStatus {

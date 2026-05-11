@@ -1,16 +1,35 @@
 "use client"
 
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState, Suspense } from "react"
 import { trpc } from "@/components/providers"
 
-export default function SettingsPage() {
+function SettingsForm() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const utils = trpc.useUtils()
   const { data: user, isLoading } = trpc.user.me.useQuery()
 
-  const [tab, setTab] = useState<"profile" | "account">("profile")
+  const [tab, setTab] = useState<"profile" | "account">(() =>
+    searchParams.get("tab") === "account" ? "account" : "profile"
+  )
+
+  // Account tab state
+  const [accountSection, setAccountSection] = useState<"username" | "password" | null>(null)
+  const [newUsername, setNewUsername] = useState("")
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  function closeSection() {
+    setAccountSection(null)
+    setNewUsername("")
+    setCurrentPassword("")
+    setNewPassword("")
+    setConfirmPassword("")
+  }
   const [name, setName] = useState("")
   const [bio, setBio] = useState("")
   const [image, setImage] = useState<string | null>(null)
@@ -46,7 +65,26 @@ export default function SettingsPage() {
   })
 
   const updateSelling = trpc.user.updateSellingEnabled.useMutation({
-    onSuccess: () => update(),
+    onSuccess: () => {
+      utils.user.me.invalidate()
+      update()
+    },
+  })
+
+
+  const changeUsername = trpc.user.changeUsername.useMutation({
+    onSuccess: async () => {
+      await update()
+      setNewUsername("")
+    },
+  })
+
+  const changePassword = trpc.user.changePassword.useMutation({
+    onSuccess: () => {
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    },
   })
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -105,7 +143,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-12">
       <button
-        onClick={() => router.push(username ? `/${username}` : "/")}
+        onClick={() => router.push(username ? `/@${username}` : "/")}
         className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-6"
       >
         ← Back to profile
@@ -227,18 +265,20 @@ export default function SettingsPage() {
 
       {/* ── Account tab ─────────────────────────────────────── */}
       {tab === "account" && (
-      <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
+      <div className="flex flex-col gap-4">
 
         {/* Commission toggle */}
-        <div className="p-5 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium text-gray-900">Open for commissions</div>
-            <div className="text-xs text-gray-500 mt-0.5">Let people know you're available</div>
+            <div className="text-sm font-medium text-gray-900">Commissions</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {user?.sellingEnabled ? "Visible on your profile" : "Not shown on your profile"}
+            </div>
           </div>
           <button
             onClick={() => updateSelling.mutate({ enabled: !user?.sellingEnabled })}
             disabled={updateSelling.isPending}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
               user?.sellingEnabled ? "bg-blue-600" : "bg-gray-200"
             }`}
             role="switch"
@@ -248,16 +288,109 @@ export default function SettingsPage() {
           </button>
         </div>
 
+        {/* Change username */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {accountSection !== "username" ? (
+            <button
+              onClick={() => setAccountSection("username")}
+              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+            >
+              <div className="text-left">
+                <div className="text-sm font-medium text-gray-900">Username</div>
+                <div className="text-xs text-gray-500 mt-0.5">@{user?.username}</div>
+              </div>
+              <span className="text-gray-400 text-lg">›</span>
+            </button>
+          ) : (
+            <div className="p-5 flex flex-col gap-3">
+              <button onClick={closeSection} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-1">
+                ← Back
+              </button>
+              <div className="text-sm font-medium text-gray-900">Change username</div>
+              <input
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder={`Current: @${user?.username}`}
+                maxLength={30}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {changeUsername.error && <p className="text-xs text-red-500">{changeUsername.error.message}</p>}
+              {changeUsername.isSuccess && <p className="text-xs text-green-600">Username updated!</p>}
+              <button
+                onClick={() => changeUsername.mutate({ username: newUsername.trim() })}
+                disabled={changeUsername.isPending || !newUsername.trim()}
+                className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {changeUsername.isPending ? "Saving…" : "Save username"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Change password */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {accountSection !== "password" ? (
+            <button
+              onClick={() => setAccountSection("password")}
+              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+            >
+              <div className="text-sm font-medium text-gray-900">Password</div>
+              <span className="text-gray-400 text-lg">›</span>
+            </button>
+          ) : (
+            <div className="p-5 flex flex-col gap-3">
+              <button onClick={closeSection} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-1">
+                ← Back
+              </button>
+              <div className="text-sm font-medium text-gray-900">Change password</div>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Current password"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New password (min 8 characters)"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-xs text-red-500">Passwords don&apos;t match.</p>
+              )}
+              {changePassword.error && <p className="text-xs text-red-500">{changePassword.error.message}</p>}
+              {changePassword.isSuccess && <p className="text-xs text-green-600">Password updated!</p>}
+              <button
+                onClick={() => changePassword.mutate({ currentPassword, newPassword })}
+                disabled={changePassword.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {changePassword.isPending ? "Saving…" : "Update password"}
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Email */}
-        <div className="p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <div className="text-sm font-medium text-gray-900">Email</div>
           <div className="text-sm text-gray-500 mt-0.5">{user?.email}</div>
         </div>
 
         {/* Sign out */}
-        <div className="p-5">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <button
-            onClick={() => router.push("/api/auth/signout")}
+            onClick={() => signOut({ callbackUrl: "/signin" })}
             className="text-sm text-red-500 hover:text-red-600 font-medium transition-colors"
           >
             Sign out
@@ -266,5 +399,13 @@ export default function SettingsPage() {
       </div>
       )}
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsForm />
+    </Suspense>
   )
 }
