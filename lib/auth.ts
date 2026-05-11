@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import AppleProvider from "next-auth/providers/apple"
 import EmailProvider from "next-auth/providers/email"
+import bcrypt from "bcryptjs"
 import { prisma } from "./prisma"
 
 export const authOptions: NextAuthOptions = {
@@ -14,18 +15,20 @@ export const authOptions: NextAuthOptions = {
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        name: { label: "Name", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null
-        const user = await prisma.user.upsert({
+        if (!credentials?.email || !credentials?.password) return null
+
+        const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          update: {},
-          create: {
-            email: credentials.email,
-            name: credentials.name || credentials.email.split("@")[0],
-          },
         })
+
+        if (!user || !user.password) return null
+
+        const valid = await bcrypt.compare(credentials.password, user.password)
+        if (!valid) return null
+
         return {
           id: user.id,
           email: user.email,
@@ -48,7 +51,15 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      if (trigger === "update" && token.id) {
+        const fresh = await prisma.user.findUnique({ where: { id: token.id as string } })
+        if (fresh) {
+          token.username = fresh.username
+          token.sellingEnabled = fresh.sellingEnabled
+          token.onboardingComplete = fresh.onboardingComplete
+        }
+      }
       if (user) {
         token.id = user.id
         token.username = (user as any).username ?? null
