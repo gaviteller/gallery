@@ -4,13 +4,13 @@ import type { NextRequest } from "next/server"
 // The old cookie name used before we renamed it. Browsers that signed in
 // before the fix will be sending this giant base64-image-stuffed cookie
 // with every request, causing Vercel's 494 REQUEST_HEADER_TOO_LARGE error.
-// This middleware immediately expires it so the browser stops sending it.
+// This proxy clears it immediately so the browser stops sending it.
 const OLD_COOKIE_NAMES = [
   "next-auth.session-token",
   "__Secure-next-auth.session-token",
 ]
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const response = NextResponse.next()
 
   let cleared = false
@@ -27,9 +27,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // If we had to clear an old cookie, redirect so the browser sends the
-  // cleaned-up request immediately rather than processing this one with
-  // the bloated headers still in memory.
+  // Redirect so the browser sends a clean request without the old cookie
   if (cleared) {
     return NextResponse.redirect(request.url, { headers: response.headers })
   }
