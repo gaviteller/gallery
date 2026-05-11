@@ -69,12 +69,12 @@ describe("user.completeOnboarding", () => {
     const updated = { ...mockUser, onboardingComplete: true, sellingEnabled: true }
     mockPrisma.user.update.mockResolvedValue(updated)
     const caller = getCaller()
-    const result = await caller.user.completeOnboarding({ sellingEnabled: true })
+    const result = await caller.user.completeOnboarding({ username: "testuser", sellingEnabled: true })
     expect(result.onboardingComplete).toBe(true)
     expect(result.sellingEnabled).toBe(true)
     expect(mockPrisma.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      data: { sellingEnabled: true, onboardingComplete: true },
+      data: { username: "testuser", sellingEnabled: true, onboardingComplete: true },
     })
   })
 })
