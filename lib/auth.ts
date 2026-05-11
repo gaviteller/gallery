@@ -83,6 +83,17 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
+  cookies: {
+    sessionToken: {
+      name: "gallery.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   pages: {
     signIn: "/signin",
     newUser: "/onboarding",
