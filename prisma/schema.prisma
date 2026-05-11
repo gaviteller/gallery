@@ -62,6 +62,11 @@ model User {
   onboardingComplete Boolean          @default(false)
   commissionStatus   CommissionStatus @default(CLOSED)
 
+  websiteUrl         String?
+  twitterHandle      String?
+  instagramHandle    String?
+  artstationHandle   String?
+
   accounts           Account[]
   sessions           Session[]
 }
