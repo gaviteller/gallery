@@ -13,8 +13,7 @@ export default function OnboardingPage() {
   const completeOnboarding = trpc.user.completeOnboarding.useMutation({
     onSuccess: async () => {
       await update()
-      const username = session?.user?.username
-      router.push(username ? `/@${username}` : "/")
+      router.push("/")
     },
   })
 

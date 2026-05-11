@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { useUploadThing } from "@/lib/uploadthing"
 import { trpc } from "@/components/providers"
 
 export default function EditProfilePage() {
@@ -19,6 +18,7 @@ export default function EditProfilePage() {
   const [instagramHandle, setInstagramHandle] = useState("")
   const [artstationHandle, setArtstationHandle] = useState("")
   const [saved, setSaved] = useState(false)
+  const [photoProcessing, setPhotoProcessing] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -44,15 +44,30 @@ export default function EditProfilePage() {
     },
   })
 
-  const { startUpload, isUploading } = useUploadThing("profileImage", {
-    onClientUploadComplete: (res) => {
-      if (res?.[0]?.ufsUrl) setImage(res[0].ufsUrl)
-    },
-  })
-
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) startUpload([file])
+    if (!file) return
+    setPhotoProcessing(true)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new window.Image()
+      img.onload = () => {
+        const MAX = 400
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
+          else { width = Math.round((width * MAX) / height); height = MAX }
+        }
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
+        setImage(canvas.toDataURL("image/jpeg", 0.85))
+        setPhotoProcessing(false)
+      }
+      img.src = event.target?.result as string
+    }
+    reader.readAsDataURL(file)
   }
 
   function handleSave() {
@@ -109,13 +124,13 @@ export default function EditProfilePage() {
             <p className="text-sm font-semibold text-gray-900">Profile photo</p>
             <div className="flex gap-2 mt-2">
               <label className="cursor-pointer text-sm px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                {isUploading ? "Uploading…" : "Upload photo"}
+                {photoProcessing ? "Processing…" : "Upload photo"}
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handlePhotoChange}
-                  disabled={isUploading}
+                  disabled={photoProcessing}
                 />
               </label>
               {image && (
@@ -190,7 +205,7 @@ export default function EditProfilePage() {
 
         <button
           onClick={handleSave}
-          disabled={updateProfile.isPending || isUploading}
+          disabled={updateProfile.isPending || photoProcessing}
           className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saved ? "✓ Saved" : updateProfile.isPending ? "Saving…" : "Save changes"}

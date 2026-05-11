@@ -1,0 +1,19 @@
+{
+  "files.exclude": {
+    "node_modules": true,
+    ".next": true,
+    ".claude": true,
+    ".superpowers": true,
+    "docs/superpowers": true,
+    "tsconfig.tsbuildinfo": true,
+    "next-env.d.ts": true,
+    "public/*.svg": true
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json, .eslintrc*, .prettierrc*, next.config*, postcss.config*, vitest.config*, tsconfig*, eslint.config*",
+    "prisma/schema.prisma": "prisma/migrations/**",
+    "app/layout.tsx": "app/globals.css, app/favicon.ico",
+    "README.md": "CLAUDE.md, AGENTS.md, .gitignore, .env*"
+  }
+}

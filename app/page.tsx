@@ -8,5 +8,5 @@ export default async function HomePage() {
   if (!session) redirect("/signin")
   if (!session.user.onboardingComplete || !session.user.username) redirect("/onboarding")
 
-  redirect(`/@${session.user.username}`)
+  redirect(`/${session.user.username}`)
 }
