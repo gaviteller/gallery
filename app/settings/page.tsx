@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { data: user, isLoading } = trpc.user.me.useQuery()
 
+  const [tab, setTab] = useState<"profile" | "account">("profile")
   const [name, setName] = useState("")
   const [bio, setBio] = useState("")
   const [image, setImage] = useState<string | null>(null)
@@ -110,10 +111,27 @@ export default function SettingsPage() {
         ← Back to profile
       </button>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
 
-      {/* ── Profile ─────────────────────────────────────────── */}
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Profile</h2>
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex gap-6">
+          {(["profile", "account"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors capitalize ${
+                tab === t ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* ── Profile tab ─────────────────────────────────────── */}
+      {tab === "profile" && (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-6 mb-6">
 
         {/* Photo */}
@@ -205,9 +223,10 @@ export default function SettingsPage() {
           {updateProfile.isPending ? "Saving…" : "Save changes"}
         </button>
       </div>
+      )}
 
-      {/* ── Account ─────────────────────────────────────────── */}
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Account</h2>
+      {/* ── Account tab ─────────────────────────────────────── */}
+      {tab === "account" && (
       <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
 
         {/* Commission toggle */}
@@ -245,6 +264,7 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+      )}
     </div>
   )
 }

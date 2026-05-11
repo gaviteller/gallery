@@ -71,7 +71,14 @@
       "Bash(node -e ' *)",
       "Bash(xargs grep -l \"updateProfile\")",
       "Bash(xargs grep -A 30 \"model User\")",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(taskkill /PID 42236 /F)",
+      "Bash(taskkill /PID binoqzhgx /F)",
+      "Bash(findstr \":3000 :3001\")",
+      "Bash(taskkill /PID 40884 /F)"
     ]
   }
 }
