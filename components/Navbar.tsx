@@ -119,7 +119,17 @@ export default function Navbar() {
             >
               Account settings
             </button>
-            <div className="border-t border-gray-100 mt-1" />
+
+            <div className="border-t border-gray-100 mx-3 my-1" />
+            <p className="px-4 pt-1 pb-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Site info</p>
+            <button
+              onClick={() => { setMenuOpen(false); router.push("/terms") }}
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Terms of Service
+            </button>
+
+            <div className="border-t border-gray-100 mx-3 my-1" />
             <button
               onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/signin" }) }}
               className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-gray-50 transition-colors"
