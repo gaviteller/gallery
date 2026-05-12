@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { trpc } from "@/components/providers"
 import PostModal from "@/components/PostModal"
+import CommissionRequestModal from "@/components/CommissionRequestModal"
 
 const statusColors = {
   OPEN: "bg-green-100 text-green-700",
@@ -61,6 +62,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: commissions, isLoading: commissionsLoading } = trpc.post.getCommissionsByUsername.useQuery({ username })
   const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
   const { data: followData } = trpc.follow.status.useQuery({ username })
+  const { data: commissionProfile } = trpc.commission.getProfile.useQuery({ username })
+  const { data: commissionCategories } = trpc.commission.getCategories.useQuery({ username })
   const utils = trpc.useUtils()
 
   const followMutation = trpc.follow.follow.useMutation({
@@ -72,6 +75,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
   const [tab, setTab] = useState("Posts")
   const [viewPost, setViewPost] = useState<PostItem | null>(null)
+  const [showCommissionRequest, setShowCommissionRequest] = useState(false)
 
   // ── New post modal state ──────────────────────────────────────
   const [showUpload, setShowUpload] = useState(false)
@@ -150,6 +154,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
+      {showCommissionRequest && commissionProfile && commissionCategories && (
+        <CommissionRequestModal
+          artistId={commissionProfile.id}
+          artistUsername={username}
+          categories={commissionCategories}
+          onClose={() => setShowCommissionRequest(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-start gap-6 mb-8">
         {profileUser.image ? (
@@ -351,6 +364,37 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── Commissions tab ───────────────────────────────────── */}
       {tab === "Commissions" && (
         <>
+          {/* Request Commission button — show to non-owners when artist is open */}
+          {!isOwn && commissionProfile && commissionProfile.commissionStatus !== "CLOSED" && (
+            <div className="mb-6 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    commissionProfile.commissionStatus === "OPEN"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}>
+                    {commissionProfile.commissionStatus === "OPEN" ? "Open for commissions" : "Limited slots"}
+                  </span>
+                  {commissionProfile.commissionTurnaround && (
+                    <p className="text-xs text-gray-400 mt-1">Turnaround: {commissionProfile.commissionTurnaround}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowCommissionRequest(true)}
+                  className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Request Commission
+                </button>
+              </div>
+              {commissionProfile.commissionDescription && (
+                <p className="text-sm text-gray-600 bg-gray-50 rounded-xl px-4 py-3">
+                  {commissionProfile.commissionDescription}
+                </p>
+              )}
+            </div>
+          )}
+
           {commissionsLoading ? (
             <div className="text-center py-16 text-gray-400">Loading…</div>
           ) : commissions && commissions.length > 0 ? (
