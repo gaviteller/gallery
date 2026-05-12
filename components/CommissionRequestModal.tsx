@@ -140,22 +140,28 @@ export default function CommissionRequestModal({ artistId, artistUsername, categ
             />
           </div>
 
-          {/* Artist-defined dropdowns */}
+          {/* Artist-defined option groups */}
           {categories.map(cat => (
             <div key={cat.name}>
-              <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+              <label className="text-xs font-semibold text-gray-600 block mb-2">
                 {cat.name} <span className="text-red-400">*</span>
               </label>
-              <select
-                value={selections[cat.name] ?? ""}
-                onChange={e => setSelection(cat.name, e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="" disabled>Select {cat.name.toLowerCase()}…</option>
+              <div className="flex flex-wrap gap-2">
                 {cat.options.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setSelection(cat.name, opt)}
+                    className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                      selections[cat.name] === opt
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                    }`}
+                  >
+                    {opt}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
           ))}
 

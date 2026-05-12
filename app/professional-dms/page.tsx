@@ -52,7 +52,7 @@ function CommissionRow({ commission, otherParty, role }: {
   return (
     <button
       onClick={() => router.push(`/professional-dms/${commission.id}`)}
-      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 last:border-0"
+      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-0"
     >
       {otherParty?.image ? (
         <img src={otherParty.image} className="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="" />
@@ -62,12 +62,17 @@ function CommissionRow({ commission, otherParty, role }: {
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 truncate">
-          @{otherParty?.username ?? "unknown"}
-        </p>
-        <p className="text-xs text-gray-400 mt-0.5">
-          {role === "buyer" ? "You commissioned" : "Commission request"} · {timeAgo(commission.updatedAt)}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold text-gray-900 truncate">
+            @{otherParty?.username ?? "unknown"}
+          </p>
+          <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+            role === "artist" ? "bg-purple-100 text-purple-600" : "bg-gray-100 text-gray-500"
+          }`}>
+            {role === "artist" ? "client" : "you commissioned"}
+          </span>
+        </div>
+        <p className="text-xs text-gray-400 mt-0.5">{timeAgo(commission.updatedAt)}</p>
       </div>
       <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${statusColor[commission.status] ?? "bg-gray-100 text-gray-500"}`}>
         {statusLabel[commission.status] ?? commission.status}
@@ -110,50 +115,33 @@ function ProfessionalDMsInner() {
 
   const asBuyer = data?.asBuyer ?? []
   const asArtist = data?.asArtist ?? []
-  const hasAny = asBuyer.length > 0 || asArtist.length > 0
+
+  // Merge into a single list sorted by most recently updated
+  type ThreadItem = { commission: CommissionItem; otherParty: CommissionItem["artist"] | CommissionItem["buyer"]; role: "buyer" | "artist" }
+  const threads: ThreadItem[] = [
+    ...asArtist.map(c => ({ commission: c, otherParty: c.buyer, role: "artist" as const })),
+    ...asBuyer.map(c => ({ commission: c, otherParty: c.artist, role: "buyer" as const })),
+  ].sort((a, b) => new Date(b.commission.updatedAt).getTime() - new Date(a.commission.updatedAt).getTime())
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
       <h1 className="text-xl font-bold text-gray-900 mb-6">Professional DMs</h1>
 
-      {!hasAny ? (
+      {threads.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 font-medium">No commission threads yet</p>
           <p className="text-xs text-gray-400 mt-1">Request a commission from the Commissions tab to get started</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
-          {asArtist.length > 0 && (
-            <section>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">As artist</p>
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                {asArtist.map(c => (
-                  <CommissionRow
-                    key={c.id}
-                    commission={c}
-                    otherParty={c.buyer}
-                    role="artist"
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {asBuyer.length > 0 && (
-            <section>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-1">As buyer</p>
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                {asBuyer.map(c => (
-                  <CommissionRow
-                    key={c.id}
-                    commission={c}
-                    otherParty={c.artist}
-                    role="buyer"
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {threads.map(({ commission, otherParty, role }) => (
+            <CommissionRow
+              key={commission.id}
+              commission={commission}
+              otherParty={otherParty}
+              role={role}
+            />
+          ))}
         </div>
       )}
     </div>

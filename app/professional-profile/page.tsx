@@ -60,10 +60,12 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
   // New category inputs
   const [newCatName, setNewCatName] = useState("")
-  const [newCatOptions, setNewCatOptions] = useState("")
+  const [newCatOptionsList, setNewCatOptionsList] = useState<string[]>([])
+  const [newCatOptionInput, setNewCatOptionInput] = useState("")
   const [editingCat, setEditingCat] = useState<string | null>(null)
   const [editCatName, setEditCatName] = useState("")
-  const [editCatOptions, setEditCatOptions] = useState("")
+  const [editCatOptionsList, setEditCatOptionsList] = useState<string[]>([])
+  const [editCatOptionInput, setEditCatOptionInput] = useState("")
 
   const updateProfile = trpc.commission.updateProfile.useMutation({
     onSuccess: () => {
@@ -80,7 +82,8 @@ function ProfessionalProfileInner({ username }: { username: string }) {
     onSuccess: () => {
       utils.commission.getCategories.invalidate({ username })
       setNewCatName("")
-      setNewCatOptions("")
+      setNewCatOptionsList([])
+      setNewCatOptionInput("")
     },
   })
 
@@ -114,19 +117,36 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   function startEditCat(id: string, name: string, options: string[]) {
     setEditingCat(id)
     setEditCatName(name)
-    setEditCatOptions(options.join(", "))
+    setEditCatOptionsList(options)
+    setEditCatOptionInput("")
   }
 
   function saveEditCat(id: string) {
-    const opts = editCatOptions.split(",").map(o => o.trim()).filter(Boolean)
-    if (!editCatName.trim() || opts.length === 0) return
-    updateCategory.mutate({ id, name: editCatName.trim(), options: opts })
+    if (!editCatName.trim() || editCatOptionsList.length === 0) return
+    updateCategory.mutate({ id, name: editCatName.trim(), options: editCatOptionsList })
   }
 
   function addCategory() {
-    const opts = newCatOptions.split(",").map(o => o.trim()).filter(Boolean)
-    if (!newCatName.trim() || opts.length === 0) return
-    createCategory.mutate({ name: newCatName.trim(), options: opts })
+    if (!newCatName.trim() || newCatOptionsList.length === 0) return
+    createCategory.mutate({ name: newCatName.trim(), options: newCatOptionsList })
+    setNewCatOptionsList([])
+    setNewCatOptionInput("")
+  }
+
+  function addNewChip() {
+    const trimmed = newCatOptionInput.trim()
+    if (trimmed && !newCatOptionsList.includes(trimmed)) {
+      setNewCatOptionsList(prev => [...prev, trimmed])
+    }
+    setNewCatOptionInput("")
+  }
+
+  function addEditChip() {
+    const trimmed = editCatOptionInput.trim()
+    if (trimmed && !editCatOptionsList.includes(trimmed)) {
+      setEditCatOptionsList(prev => [...prev, trimmed])
+    }
+    setEditCatOptionInput("")
   }
 
   const statusColors = {
@@ -335,13 +355,27 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                       className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Category name"
                     />
-                    <input
-                      value={editCatOptions}
-                      onChange={e => setEditCatOptions(e.target.value)}
-                      className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Options, comma separated"
-                    />
+                    {editCatOptionsList.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {editCatOptionsList.map(opt => (
+                          <span key={opt} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                            {opt}
+                            <button type="button" onClick={() => setEditCatOptionsList(prev => prev.filter(o => o !== opt))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex gap-2">
+                      <input
+                        value={editCatOptionInput}
+                        onChange={e => setEditCatOptionInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEditChip() } }}
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Add option, press Enter"
+                      />
+                      <button type="button" onClick={addEditChip} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors">Add</button>
+                    </div>
+                    <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => saveEditCat(cat.id)}
                         className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors"
@@ -358,9 +392,13 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                   </div>
                 ) : (
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{cat.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{cat.options.join(", ")}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 mb-1.5">{cat.name}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.options.map(opt => (
+                          <span key={opt} className="text-xs bg-white border border-gray-200 text-gray-600 px-2.5 py-0.5 rounded-full">{opt}</span>
+                        ))}
+                      </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                       <button
@@ -385,7 +423,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
         {/* Add new category */}
         <div className="flex flex-col gap-2 pt-3 border-t border-gray-100">
-          <p className="text-xs font-semibold text-gray-600">Add a dropdown category</p>
+          <p className="text-xs font-semibold text-gray-600">Add a category</p>
           <input
             type="text"
             value={newCatName}
@@ -393,19 +431,33 @@ function ProfessionalProfileInner({ username }: { username: string }) {
             placeholder="Category name (e.g. Art Style)"
             className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <input
-            type="text"
-            value={newCatOptions}
-            onChange={e => setNewCatOptions(e.target.value)}
-            placeholder="Options, comma separated (e.g. Anime, Realistic, Chibi)"
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          {newCatOptionsList.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {newCatOptionsList.map(opt => (
+                <span key={opt} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                  {opt}
+                  <button type="button" onClick={() => setNewCatOptionsList(prev => prev.filter(o => o !== opt))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newCatOptionInput}
+              onChange={e => setNewCatOptionInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addNewChip() } }}
+              placeholder="Add option, press Enter (e.g. Anime)"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button type="button" onClick={addNewChip} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors">Add</button>
+          </div>
           <button
             onClick={addCategory}
-            disabled={createCategory.isPending}
-            className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50"
+            disabled={createCategory.isPending || !newCatName.trim() || newCatOptionsList.length === 0}
+            className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-40"
           >
-            {createCategory.isPending ? "Adding…" : "Add category"}
+            {createCategory.isPending ? "Adding…" : "Save category"}
           </button>
         </div>
       </section>

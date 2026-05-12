@@ -102,7 +102,20 @@
       "PowerShell($token = \\(Get-Content \"$env:APPDATA\\\\vercel\\\\auth.json\" | ConvertFrom-Json\\).token; $resp = Invoke-RestMethod \"https://api.vercel.com/v9/projects/prj_f0HOqkIxVOgizorhXoMP2gwgd7lK/domains\" -Headers @{Authorization=\"Bearer $token\"}; $resp.domains | Select-Object name)",
       "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\vercel\" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName)",
       "Bash(find /mnt/c/Users/gavri -name \"auth.json\" -path \"*/vercel/*\" 2>/dev/null | head -5)",
-      "Bash(vercel --prod --yes)"
+      "Bash(vercel --prod --yes)",
+      "Bash(ls app/terms)",
+      "Bash(find app/ -name \"*terms*\" -o -name \"*tos*\")",
+      "Bash(xargs grep -l \"NextAuth\\\\|authOptions\")",
+      "Bash(git rm *)",
+      "Bash(Get-Content .env.local)",
+      "Bash(Select-String \"DATABASE_URL\")",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(gh run *)",
+      "Bash(findstr /i \"vercel\\\\|deploy\\\\|build\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in d.get\\('scripts',{}\\).items\\(\\)]\")",
+      "Bash(npx vercel *)",
+      "Bash(dir C:\\\\Users\\\\gavri\\\\OneDrive\\\\Documents\\\\Projects\\\\gallery\\\\*.config*)"
     ]
   }
 }

@@ -85,8 +85,12 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
   const utils = trpc.useUtils()
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [requestCardOpen, setRequestCardOpen] = useState(true)
 
-  const { data: commission, isLoading } = trpc.commission.getById.useQuery({ id })
+  const { data: commission, isLoading } = trpc.commission.getById.useQuery({ id }, {
+    refetchInterval: 8000,
+    refetchIntervalInBackground: false,
+  })
 
   // Check auto-release on mount for DELIVERED commissions
   const autoRelease = trpc.commission.checkAutoRelease.useMutation({
@@ -228,33 +232,43 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1">
 
         {/* Pinned request card */}
-        <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Commission request</p>
-          <p className="text-sm text-gray-800 mb-3 leading-relaxed">{commission.description}</p>
-          {Object.entries(dropdownSelections).length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {Object.entries(dropdownSelections).map(([k, v]) => (
-                <span key={k} className="text-xs bg-white border border-gray-200 rounded-full px-3 py-1 text-gray-600">
-                  <span className="text-gray-400">{k}: </span>{v}
-                </span>
-              ))}
+        <div className="bg-gray-50 rounded-2xl border border-gray-100 mb-4 overflow-hidden">
+          <button
+            onClick={() => setRequestCardOpen(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100/60 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Commission request</p>
+              {commission.agreedPrice !== null && commission.agreedPrice !== undefined && (
+                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">${commission.agreedPrice}</span>
+              )}
             </div>
-          )}
-          {refPhotos.length > 0 && (
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Reference photos</p>
-              <div className="flex gap-2 flex-wrap">
-                {refPhotos.map((p, i) => (
-                  <img key={i} src={p} alt="" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
-                ))}
-              </div>
-            </div>
-          )}
-          {commission.agreedPrice !== null && commission.agreedPrice !== undefined && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="text-sm font-semibold text-gray-900">
-                Agreed price: <span className="text-blue-600">${commission.agreedPrice}</span>
-              </p>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${requestCardOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {requestCardOpen && (
+            <div className="px-4 pb-4">
+              <p className="text-sm text-gray-800 mb-3 leading-relaxed">{commission.description}</p>
+              {Object.entries(dropdownSelections).length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {Object.entries(dropdownSelections).map(([k, v]) => (
+                    <span key={k} className="text-xs bg-white border border-gray-200 rounded-full px-3 py-1 text-gray-600">
+                      <span className="text-gray-400">{k}: </span>{v}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {refPhotos.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Reference photos</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {refPhotos.map((p, i) => (
+                      <img key={i} src={p} alt="" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

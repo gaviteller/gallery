@@ -12,6 +12,8 @@ type DiscoveryUser = {
   name: string | null
   image: string | null
   commissionStatus: "OPEN" | "LIMITED" | "CLOSED"
+  commissionDescription: string | null
+  commissionTurnaround: string | null
   priceRanges: { label: string; price: number }[] | null
   posts: { id: string; image: string }[]
   commissionCategories: { name: string; options: string[] }[]
@@ -97,15 +99,21 @@ function ArtistCard({
 
       {/* Bottom bar */}
       <div className="px-3 py-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1.5">
           <p className="text-sm font-semibold text-gray-900 truncate">@{artist.username}</p>
-          <div className="flex items-center gap-1">
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusBadge[artist.commissionStatus]}`}>
-              {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
-            </span>
-          </div>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${statusBadge[artist.commissionStatus]}`}>
+            {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
+          </span>
         </div>
-        <p className="text-xs text-gray-400 mb-3">{avgPrice(artist.priceRanges)}</p>
+        {artist.commissionDescription && (
+          <p className="text-xs text-gray-500 leading-relaxed mb-1.5 line-clamp-2">{artist.commissionDescription}</p>
+        )}
+        <div className="flex items-center gap-2 mb-3">
+          <p className="text-xs text-gray-400">{avgPrice(artist.priceRanges)}</p>
+          {artist.commissionTurnaround && (
+            <p className="text-xs text-gray-400">· {artist.commissionTurnaround}</p>
+          )}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={handleFollow}
