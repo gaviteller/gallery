@@ -49,7 +49,7 @@ export default function FeedPage() {
   if (status === "loading" || status === "unauthenticated") return null
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-8">
+    <div className="max-w-lg mx-auto pb-24">
       {isLoading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
       ) : error ? (
@@ -61,9 +61,9 @@ export default function FeedPage() {
           <p className="text-sm text-gray-400 mt-1">Follow artists to see their work here</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="divide-y divide-gray-100">
           {posts.map((post) => (
-            <article key={post.id} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <article key={post.id} className="bg-white">
               {/* Post header */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <Link href={`/@${post.user.username}`}>
@@ -76,22 +76,20 @@ export default function FeedPage() {
                   )}
                 </Link>
                 <div className="flex-1 min-w-0">
-                  <Link href={`/@${post.user.username}`} className="text-sm font-semibold text-gray-900 hover:underline">
+                  <Link href={`/@${post.user.username}`} className="text-sm font-semibold text-gray-900">
                     @{post.user.username}
                   </Link>
                   {post.user.name && (
                     <p className="text-xs text-gray-500 truncate">{post.user.name}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  {post.isAiGenerated && (
-                    <span className="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">AI</span>
-                  )}
-                  </div>
+                {post.isAiGenerated && (
+                  <span className="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">AI</span>
+                )}
               </div>
 
-              {/* Image — click to open modal */}
-              <button className="w-full text-left" onClick={() => setViewPost(post)}>
+              {/* Full-bleed image */}
+              <button className="w-full block" onClick={() => setViewPost(post)}>
                 <img
                   src={post.image}
                   alt={post.description ?? ""}
@@ -99,39 +97,39 @@ export default function FeedPage() {
                 />
               </button>
 
-              {/* Like / comment buttons */}
-              <div className="flex items-center gap-4 px-4 pt-3">
+              {/* Actions */}
+              <div className="flex items-center gap-4 px-4 pt-3 pb-1">
                 <button
                   onClick={() => toggleLike.mutate({ postId: post.id })}
                   disabled={toggleLike.isPending}
                   className="flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24"
+                  <svg width="24" height="24" viewBox="0 0 24 24"
                     fill={post.likedByMe ? "#ef4444" : "none"}
-                    stroke={post.likedByMe ? "#ef4444" : "#6b7280"}
+                    stroke={post.likedByMe ? "#ef4444" : "#262626"}
                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
                   </svg>
-                  <span className={`text-sm font-medium ${post.likedByMe ? "text-red-500" : "text-gray-500"}`}>
+                  <span className={`text-sm font-semibold ${post.likedByMe ? "text-red-500" : "text-gray-900"}`}>
                     {post._count.likes}
                   </span>
                 </button>
                 <button
                   onClick={() => { setFocusComment(true); setViewPost(post) }}
-                  className="flex items-center gap-1.5 text-gray-500 hover:text-blue-500 transition-colors"
+                  className="flex items-center gap-1.5 text-gray-900 transition-colors"
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                   </svg>
-                  <span className="text-sm font-medium">{post._count.comments}</span>
+                  <span className="text-sm font-semibold">{post._count.comments}</span>
                 </button>
               </div>
 
               {/* Caption */}
               {post.description && (
-                <div className="px-4 py-2 pb-3">
-                  <p className="text-sm text-gray-800">
-                    <Link href={`/@${post.user.username}`} className="font-semibold text-gray-900 hover:underline mr-1">
+                <div className="px-4 py-1.5 pb-3">
+                  <p className="text-sm text-gray-900 leading-snug">
+                    <Link href={`/@${post.user.username}`} className="font-semibold mr-1">
                       @{post.user.username}
                     </Link>
                     <MentionText text={post.description} />
