@@ -119,6 +119,18 @@ export default function Navbar() {
             >
               Account settings
             </button>
+            <button
+              onClick={() => { setMenuOpen(false); router.push("/professional-profile") }}
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Professional profile
+            </button>
+            <button
+              onClick={() => { setMenuOpen(false); router.push("/professional-dms") }}
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Professional DMs
+            </button>
 
             <div className="border-t border-gray-100 mx-3 my-1" />
             <p className="px-4 pt-1 pb-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Site info</p>
