@@ -379,19 +379,6 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
               </div>
             )}
 
-            {/* Buyer: cancel an ACCEPTED commission */}
-            {isBuyer && commission.status === "ACCEPTED" && (
-              <div className="mt-3 flex justify-end">
-                <button
-                  onClick={() => cancelMutation.mutate({ id })}
-                  disabled={cancelMutation.isPending}
-                  className="text-xs text-red-400 hover:text-red-600 underline transition-colors disabled:opacity-50"
-                >
-                  {cancelMutation.isPending ? "Cancelling…" : "Cancel commission"}
-                </button>
-              </div>
-            )}
-
             {/* Buyer: confirm payment on ACCEPTED commission */}
             {isBuyer && commission.status === "ACCEPTED" && (
               <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mt-3">
@@ -406,6 +393,19 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                   className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   {confirmPaymentMutation.isPending ? "Processing…" : `Confirm payment · $${commission.agreedPrice}`}
+                </button>
+              </div>
+            )}
+
+            {/* Buyer: cancel an ACCEPTED commission */}
+            {isBuyer && commission.status === "ACCEPTED" && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={() => cancelMutation.mutate({ id })}
+                  disabled={cancelMutation.isPending}
+                  className="text-xs text-red-400 hover:text-red-600 underline transition-colors disabled:opacity-50"
+                >
+                  {cancelMutation.isPending ? "Cancelling…" : "Cancel commission"}
                 </button>
               </div>
             )}
@@ -464,18 +464,16 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
               </div>
             )}
 
-            {/* Complete banner */}
-            {commission.status === "COMPLETE" && (
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
-                <p className="text-sm font-semibold text-green-700">Commission complete ✓</p>
-                <p className="text-xs text-green-600 mt-1">Payment has been released to the artist.</p>
-              </div>
-            )}
-
           </div>
         )}
 
         {/* Closed banners */}
+        {commission.status === "COMPLETE" && (
+          <div className="mb-4 bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
+            <p className="text-sm font-semibold text-green-700">Commission complete ✓</p>
+            <p className="text-xs text-green-600 mt-1">Payment has been released to the artist.</p>
+          </div>
+        )}
         {commission.status === "DECLINED" && (
           <div className="mb-4 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-center">
             <p className="text-sm font-semibold text-gray-600">This request was declined</p>
