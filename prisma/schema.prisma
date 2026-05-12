@@ -205,7 +205,7 @@ model Commission {
   artist             User                    @relation("ArtistCommissions", fields: [artistId], references: [id], onDelete: Cascade)
   status             CommissionRequestStatus @default(PENDING)
   description        String                  @db.Text
-  dropdownSelections Json
+  dropdownSelections Json @default("{}")
   referencePhotos    Json                    @default("[]")
   agreedPrice        Float?
   deliveredAt        DateTime?
@@ -222,6 +222,8 @@ model CommissionDropdownCategory {
   options   String[]
   order     Int      @default(0)
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model ProfessionalMessage {
@@ -233,4 +235,6 @@ model ProfessionalMessage {
   text         String?    @db.Text
   fileUrl      String?    @db.Text
   createdAt    DateTime   @default(now())
+
+  @@index([commissionId])
 }
