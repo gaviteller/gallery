@@ -40,9 +40,31 @@ function ArtistCard({
 }) {
   const router = useRouter()
   const { data: session } = useSession()
+  const utils = trpc.useUtils()
+
+  const { data: followData } = trpc.follow.status.useQuery(
+    { username: artist.username! },
+    { enabled: !!artist.username }
+  )
+  const followMutation = trpc.follow.follow.useMutation({
+    onSuccess: () => utils.follow.status.invalidate({ username: artist.username! }),
+  })
+  const unfollowMutation = trpc.follow.unfollow.useMutation({
+    onSuccess: () => utils.follow.status.invalidate({ username: artist.username! }),
+  })
 
   function handleCardClick() {
     router.push(`/@${artist.username}?tab=Commissions`)
+  }
+
+  function handleFollow(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!session) { router.push("/signin"); return }
+    if (followData?.following) {
+      unfollowMutation.mutate({ username: artist.username! })
+    } else {
+      followMutation.mutate({ username: artist.username! })
+    }
   }
 
   function handleRequest(e: React.MouseEvent) {
@@ -92,12 +114,21 @@ function ArtistCard({
             <p className="text-xs text-gray-400">· {artist.commissionTurnaround}</p>
           )}
         </div>
-        <button
-          onClick={handleRequest}
-          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-        >
-          Request commission
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleFollow}
+            disabled={followMutation.isPending || unfollowMutation.isPending}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            {followData?.following ? "Following" : "Follow"}
+          </button>
+          <button
+            onClick={handleRequest}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            Request
+          </button>
+        </div>
       </div>
     </div>
   )
