@@ -71,7 +71,7 @@ function ArtistCard({
     onRequest(artist)
   }
 
-  const photos = artist.posts.slice(0, 6)
+  const photos = artist.posts.slice(0, 4)
 
   return (
     <div

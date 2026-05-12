@@ -14,10 +14,12 @@ type Props = {
 }
 
 function processImage(file: File): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader()
+    reader.onerror = () => reject(new Error("Failed to read file"))
     reader.onload = (e) => {
       const img = new window.Image()
+      img.onerror = () => reject(new Error("Failed to load image"))
       img.onload = () => {
         let { width, height } = img
         const maxSize = 1200
@@ -27,7 +29,9 @@ function processImage(file: File): Promise<string> {
         }
         const canvas = document.createElement("canvas")
         canvas.width = width; canvas.height = height
-        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
+        const ctx = canvas.getContext("2d")
+        if (!ctx) { reject(new Error("Canvas not available")); return }
+        ctx.drawImage(img, 0, 0, width, height)
         resolve(canvas.toDataURL("image/jpeg", 0.85))
       }
       img.src = e.target?.result as string
@@ -66,9 +70,14 @@ export default function CommissionRequestModal({ artistId, artistUsername, categ
       return
     }
     setUploading(true)
-    const processed = await Promise.all(files.map(f => processImage(f)))
-    setRefPhotos(prev => [...prev, ...processed])
-    setUploading(false)
+    try {
+      const processed = await Promise.all(files.map(f => processImage(f)))
+      setRefPhotos(prev => [...prev, ...processed])
+    } catch (err) {
+      setError("Failed to process image. Please try a different file.")
+    } finally {
+      setUploading(false)
+    }
   }
 
   function removeRefPhoto(i: number) {
