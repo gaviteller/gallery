@@ -259,214 +259,6 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
           )}
         </div>
 
-        {/* Action panel — status-specific */}
-        {!isClosed && (
-          <div className="mb-4">
-
-            {/* Artist: accept or decline a PENDING commission */}
-            {isArtist && commission.status === "PENDING" && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
-                <p className="text-sm font-semibold text-yellow-800 mb-3">New commission request</p>
-                {showAcceptForm ? (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2 items-center">
-                      <span className="text-sm text-gray-600">Price: $</span>
-                      <input
-                        type="number"
-                        value={acceptPrice}
-                        onChange={e => setAcceptPrice(e.target.value)}
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          const price = parseFloat(acceptPrice)
-                          if (!isNaN(price) && price > 0) {
-                            acceptMutation.mutate({ id, price })
-                          }
-                        }}
-                        disabled={acceptMutation.isPending}
-                        className="flex-1 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
-                      >
-                        {acceptMutation.isPending ? "Accepting…" : "Accept & set price"}
-                      </button>
-                      <button
-                        onClick={() => setShowAcceptForm(false)}
-                        className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowAcceptForm(true)}
-                      className="flex-1 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => declineMutation.mutate({ id })}
-                      disabled={declineMutation.isPending}
-                      className="flex-1 py-2 border border-red-200 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50"
-                    >
-                      {declineMutation.isPending ? "Declining…" : "Decline"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Buyer: cancel a PENDING commission */}
-            {isBuyer && commission.status === "PENDING" && (
-              <div className="mt-3 flex justify-end">
-                <button
-                  onClick={() => cancelMutation.mutate({ id })}
-                  disabled={cancelMutation.isPending}
-                  className="text-xs text-red-400 hover:text-red-600 underline transition-colors disabled:opacity-50"
-                >
-                  {cancelMutation.isPending ? "Cancelling…" : "Cancel request"}
-                </button>
-              </div>
-            )}
-
-            {/* Artist: update price on ACCEPTED commission */}
-            {isArtist && commission.status === "ACCEPTED" && (
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-                <p className="text-sm font-semibold text-blue-800 mb-1">Waiting for buyer payment</p>
-                <p className="text-xs text-blue-600 mb-3">
-                  Price set to <strong>${commission.agreedPrice}</strong>.
-                  You can update it before the buyer pays.
-                </p>
-                {showUpdatePrice ? (
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm text-gray-600">New price: $</span>
-                    <input
-                      type="number"
-                      value={newPrice}
-                      onChange={e => setNewPrice(e.target.value)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={() => {
-                        const price = parseFloat(newPrice)
-                        if (!isNaN(price) && price > 0) updatePriceMutation.mutate({ id, price })
-                      }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Update
-                    </button>
-                    <button onClick={() => setShowUpdatePrice(false)} className="text-sm text-gray-400 hover:text-gray-600">
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => { setNewPrice(String(commission.agreedPrice ?? "")); setShowUpdatePrice(true) }}
-                    className="text-xs text-blue-600 underline hover:text-blue-800"
-                  >
-                    Update price
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Buyer: confirm payment on ACCEPTED commission */}
-            {isBuyer && commission.status === "ACCEPTED" && (
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mt-3">
-                <p className="text-sm font-semibold text-blue-800 mb-1">Ready to pay</p>
-                <p className="text-xs text-blue-600 mb-3">
-                  The artist has set the price at <strong>${commission.agreedPrice}</strong>.
-                  Confirm payment to start the commission.
-                </p>
-                <button
-                  onClick={() => confirmPaymentMutation.mutate({ id })}
-                  disabled={confirmPaymentMutation.isPending}
-                  className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {confirmPaymentMutation.isPending ? "Processing…" : `Confirm payment · $${commission.agreedPrice}`}
-                </button>
-              </div>
-            )}
-
-            {/* Buyer: cancel an ACCEPTED commission */}
-            {isBuyer && commission.status === "ACCEPTED" && (
-              <div className="mt-3 flex justify-end">
-                <button
-                  onClick={() => cancelMutation.mutate({ id })}
-                  disabled={cancelMutation.isPending}
-                  className="text-xs text-red-400 hover:text-red-600 underline transition-colors disabled:opacity-50"
-                >
-                  {cancelMutation.isPending ? "Cancelling…" : "Cancel commission"}
-                </button>
-              </div>
-            )}
-
-            {/* Artist: mark delivered on IN_PROGRESS commission */}
-            {isArtist && commission.status === "IN_PROGRESS" && (
-              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4">
-                <p className="text-sm font-semibold text-purple-800 mb-3">Upload your finished work</p>
-                {deliveryUploadError && <p className="text-xs text-red-500 mb-2">{deliveryUploadError}</p>}
-                {deliveryFile ? (
-                  <div className="flex flex-col gap-3">
-                    <div className="relative w-full rounded-xl overflow-hidden border border-gray-200">
-                      <img src={deliveryFile} alt="Delivery preview" className="w-full max-h-64 object-contain bg-gray-50" />
-                      <button
-                        onClick={() => setDeliveryFile(null)}
-                        className="absolute top-2 right-2 w-7 h-7 bg-black/60 text-white rounded-full flex items-center justify-center text-sm hover:bg-black/80 transition-colors"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => markDeliveredMutation.mutate({ id, fileUrl: deliveryFile })}
-                      disabled={markDeliveredMutation.isPending}
-                      className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
-                    >
-                      {markDeliveredMutation.isPending ? "Delivering…" : "Mark as delivered"}
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex items-center justify-center gap-2 w-full py-3 border border-dashed border-purple-300 rounded-xl cursor-pointer hover:border-purple-400 hover:bg-purple-50/50 transition-colors">
-                    <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="text-sm text-purple-600">{uploadingDelivery ? "Processing…" : "Upload finished artwork"}</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleDeliveryFileUpload} disabled={uploadingDelivery} />
-                  </label>
-                )}
-              </div>
-            )}
-
-            {/* Buyer: confirm delivery on DELIVERED commission */}
-            {isBuyer && commission.status === "DELIVERED" && (
-              <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4">
-                <p className="text-sm font-semibold text-purple-800 mb-1">Work delivered!</p>
-                <p className="text-xs text-purple-600 mb-3">
-                  Review the delivered file below. Confirm receipt to release payment to the artist.
-                  If you don&apos;t respond within 5 days, payment releases automatically.
-                </p>
-                <button
-                  onClick={() => confirmDeliveryMutation.mutate({ id })}
-                  disabled={confirmDeliveryMutation.isPending}
-                  className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
-                >
-                  {confirmDeliveryMutation.isPending ? "Confirming…" : "Confirm receipt & release payment"}
-                </button>
-              </div>
-            )}
-
-          </div>
-        )}
-
         {/* Closed banners */}
         {commission.status === "COMPLETE" && (
           <div className="mb-4 bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
@@ -515,6 +307,178 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Action bar — status-specific, fixed at bottom */}
+      {!isClosed && (
+        <div className="flex-shrink-0 border-t border-gray-100 bg-white px-4 py-3">
+
+          {/* Artist: accept or decline a PENDING commission */}
+          {isArtist && commission.status === "PENDING" && (
+            <div>
+              {showAcceptForm ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs font-semibold text-gray-600">Set your price</p>
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm text-gray-600">$</span>
+                    <input
+                      type="number"
+                      value={acceptPrice}
+                      onChange={e => setAcceptPrice(e.target.value)}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={() => {
+                        const price = parseFloat(acceptPrice)
+                        if (!isNaN(price) && price > 0) acceptMutation.mutate({ id, price })
+                      }}
+                      disabled={acceptMutation.isPending}
+                      className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {acceptMutation.isPending ? "…" : "Accept"}
+                    </button>
+                    <button onClick={() => setShowAcceptForm(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowAcceptForm(true)}
+                    className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => declineMutation.mutate({ id })}
+                    disabled={declineMutation.isPending}
+                    className="flex-1 py-2.5 border border-red-200 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50"
+                  >
+                    {declineMutation.isPending ? "…" : "Decline"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Artist: update price on ACCEPTED commission */}
+          {isArtist && commission.status === "ACCEPTED" && (
+            <div>
+              {showUpdatePrice ? (
+                <div className="flex gap-2 items-center">
+                  <span className="text-xs text-gray-500">New price: $</span>
+                  <input
+                    type="number"
+                    value={newPrice}
+                    onChange={e => setNewPrice(e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => {
+                      const price = parseFloat(newPrice)
+                      if (!isNaN(price) && price > 0) updatePriceMutation.mutate({ id, price })
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Update
+                  </button>
+                  <button onClick={() => setShowUpdatePrice(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">Price: <span className="font-semibold text-gray-900">${commission.agreedPrice}</span> · Awaiting buyer payment</p>
+                  <button
+                    onClick={() => { setNewPrice(String(commission.agreedPrice ?? "")); setShowUpdatePrice(true) }}
+                    className="text-xs text-blue-600 underline hover:text-blue-800"
+                  >
+                    Update price
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Buyer: confirm payment on ACCEPTED */}
+          {isBuyer && commission.status === "ACCEPTED" && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => confirmPaymentMutation.mutate({ id })}
+                disabled={confirmPaymentMutation.isPending}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {confirmPaymentMutation.isPending ? "Processing…" : `Confirm payment · $${commission.agreedPrice}`}
+              </button>
+              <button
+                onClick={() => cancelMutation.mutate({ id })}
+                disabled={cancelMutation.isPending}
+                className="text-xs text-red-400 hover:text-red-600 underline transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Buyer: cancel PENDING */}
+          {isBuyer && commission.status === "PENDING" && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => cancelMutation.mutate({ id })}
+                disabled={cancelMutation.isPending}
+                className="text-xs text-red-400 hover:text-red-600 underline transition-colors disabled:opacity-50"
+              >
+                {cancelMutation.isPending ? "Cancelling…" : "Cancel request"}
+              </button>
+            </div>
+          )}
+
+          {/* Artist: mark delivered on IN_PROGRESS */}
+          {isArtist && commission.status === "IN_PROGRESS" && (
+            <div>
+              {deliveryUploadError && <p className="text-xs text-red-500 mb-2">{deliveryUploadError}</p>}
+              {deliveryFile ? (
+                <div className="flex gap-2 items-center">
+                  <img src={deliveryFile} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-200 flex-shrink-0" />
+                  <button
+                    onClick={() => markDeliveredMutation.mutate({ id, fileUrl: deliveryFile })}
+                    disabled={markDeliveredMutation.isPending}
+                    className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  >
+                    {markDeliveredMutation.isPending ? "Delivering…" : "Mark as delivered"}
+                  </button>
+                  <button onClick={() => setDeliveryFile(null)} className="text-xs text-gray-400 hover:text-gray-600">Remove</button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 w-full py-2.5 border border-dashed border-purple-300 rounded-xl cursor-pointer hover:border-purple-400 hover:bg-purple-50/50 transition-colors">
+                  <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="text-sm text-purple-600">{uploadingDelivery ? "Processing…" : "Upload & mark delivered"}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleDeliveryFileUpload} disabled={uploadingDelivery} />
+                </label>
+              )}
+            </div>
+          )}
+
+          {/* Buyer: confirm delivery on DELIVERED */}
+          {isBuyer && commission.status === "DELIVERED" && (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-xs text-gray-500">Work delivered — auto-releases in 5 days if no response</p>
+              <button
+                onClick={() => confirmDeliveryMutation.mutate({ id })}
+                disabled={confirmDeliveryMutation.isPending}
+                className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {confirmDeliveryMutation.isPending ? "Confirming…" : "Confirm receipt & release payment"}
+              </button>
+            </div>
+          )}
+
+        </div>
+      )}
 
       {/* Message input — hidden for closed threads */}
       {!isClosed && (

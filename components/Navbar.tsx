@@ -27,24 +27,46 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
         {!notifications || notifications.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">No notifications yet</p>
         ) : (
-          notifications.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => { onClose(); router.push(`/@${n.fromUser.username}`) }}
-              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${!n.read ? "bg-blue-50/50" : ""}`}
-            >
-              {n.fromUser.image ? (
-                <img src={n.fromUser.image} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
-                  {(n.fromUser.name ?? n.fromUser.username ?? "?")[0].toUpperCase()}
-                </div>
-              )}
-              <p className="text-sm text-gray-800">
-                <span className="font-semibold">@{n.fromUser.username}</span> started following you
-              </p>
-            </button>
-          ))
+          notifications.map((n) => {
+            function getNotificationLink(type: string): string {
+              if (type === "follow") return `/@${n.fromUser.username}`
+              const [, id] = type.split(":")
+              return `/professional-dms/${id}`
+            }
+            function getNotificationText(type: string): string {
+              const prefix = type.split(":")[0]
+              const map: Record<string, string> = {
+                follow: "started following you",
+                commission_request: "sent you a commission request",
+                commission_message: "sent you a message",
+                commission_accepted: "accepted your commission request",
+                commission_declined: "declined your commission request",
+                commission_cancelled: "cancelled their commission",
+                commission_paid: "confirmed payment for their commission",
+                commission_delivered: "delivered your commission",
+                commission_complete: "confirmed commission receipt",
+              }
+              return map[prefix] ?? type
+            }
+            return (
+              <button
+                key={n.id}
+                onClick={() => { onClose(); router.push(getNotificationLink(n.type)) }}
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${!n.read ? "bg-blue-50/50" : ""}`}
+              >
+                {n.fromUser.image ? (
+                  <img src={n.fromUser.image} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
+                    {(n.fromUser.name ?? n.fromUser.username ?? "?")[0].toUpperCase()}
+                  </div>
+                )}
+                <p className="text-sm text-gray-800">
+                  <span className="font-semibold">@{n.fromUser.username}</span> {getNotificationText(n.type)}
+                </p>
+              </button>
+            )
+          })
         )}
       </div>
     </div>

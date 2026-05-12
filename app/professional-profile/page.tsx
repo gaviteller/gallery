@@ -33,6 +33,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   const { data: profile, isLoading } = trpc.commission.getProfile.useQuery({ username })
   const { data: stats } = trpc.commission.getMyStats.useQuery()
   const { data: categories } = trpc.commission.getCategories.useQuery({ username })
+  const { data: myCommissions } = trpc.commission.getMine.useQuery()
 
   // Settings form state
   const [status, setStatus] = useState<"OPEN" | "LIMITED" | "CLOSED">("CLOSED")
@@ -146,6 +147,56 @@ function ProfessionalProfileInner({ username }: { username: string }) {
     <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Professional Profile</h1>
       <p className="text-sm text-gray-500 mb-8">Manage your commission settings and view your business overview.</p>
+
+      {/* ── Active Commissions ── */}
+      {myCommissions?.asArtist && myCommissions.asArtist.filter(c => !["COMPLETE","DECLINED","CANCELLED"].includes(c.status)).length > 0 && (
+        <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Active Commissions</h2>
+          </div>
+          {myCommissions.asArtist
+            .filter(c => !["COMPLETE","DECLINED","CANCELLED"].includes(c.status))
+            .map(c => {
+              const statusColors: Record<string, string> = {
+                PENDING: "bg-yellow-100 text-yellow-700",
+                ACCEPTED: "bg-blue-100 text-blue-700",
+                IN_PROGRESS: "bg-blue-100 text-blue-700",
+                DELIVERED: "bg-purple-100 text-purple-700",
+              }
+              const statusLabels: Record<string, string> = {
+                PENDING: "Pending",
+                ACCEPTED: "Accepted",
+                IN_PROGRESS: "In progress",
+                DELIVERED: "Delivered",
+              }
+              return (
+                <a
+                  key={c.id}
+                  href={`/professional-dms/${c.id}`}
+                  className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                >
+                  {c.buyer?.image ? (
+                    <img src={c.buyer.image} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold flex-shrink-0">
+                      {((c.buyer?.name ?? c.buyer?.username ?? "?")[0] ?? "?").toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">@{c.buyer?.username ?? "unknown"}</p>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{c.description}</p>
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${statusColors[c.status] ?? "bg-gray-100 text-gray-500"}`}>
+                    {statusLabels[c.status] ?? c.status}
+                  </span>
+                  <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              )
+            })}
+        </section>
+      )}
 
       {/* ── Business Overview ── */}
       <section className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">

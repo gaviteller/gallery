@@ -26,7 +26,7 @@ export const commissionMessageRouter = router({
       if (CLOSED_STATUSES.includes(commission.status)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "This commission thread is closed" })
       }
-      return ctx.prisma.professionalMessage.create({
+      const message = await ctx.prisma.professionalMessage.create({
         data: {
           commissionId: input.commissionId,
           senderId: ctx.session.user.id,
@@ -34,5 +34,12 @@ export const commissionMessageRouter = router({
           fileUrl: input.fileUrl ?? null,
         },
       })
+      const otherPartyId = commission.buyerId === ctx.session.user.id
+        ? commission.artistId
+        : commission.buyerId
+      await ctx.prisma.notification.create({
+        data: { userId: otherPartyId, fromUserId: ctx.session.user.id, type: `commission_message:${input.commissionId}` },
+      })
+      return message
     }),
 })
