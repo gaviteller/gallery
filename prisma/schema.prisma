@@ -67,6 +67,15 @@ model User {
   instagramHandle    String?
   artstationHandle   String?
 
+  commissionDescription    String?                      @db.Text
+  commissionTurnaround     String?
+  priceRanges              Json?
+
+  buyerCommissions         Commission[]                 @relation("BuyerCommissions")
+  artistCommissions        Commission[]                 @relation("ArtistCommissions")
+  commissionCategories     CommissionDropdownCategory[]
+  sentProfessionalMessages ProfessionalMessage[]        @relation("SentProfessionalMessages")
+
   accounts              Account[]
   sessions              Session[]
   posts                 Post[]
@@ -176,4 +185,52 @@ enum CommissionStatus {
   OPEN
   LIMITED
   CLOSED
+}
+
+enum CommissionRequestStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  DELIVERED
+  COMPLETE
+  DECLINED
+  CANCELLED
+}
+
+model Commission {
+  id                 String                  @id @default(cuid())
+  buyerId            String
+  artistId           String
+  buyer              User                    @relation("BuyerCommissions", fields: [buyerId], references: [id], onDelete: Cascade)
+  artist             User                    @relation("ArtistCommissions", fields: [artistId], references: [id], onDelete: Cascade)
+  status             CommissionRequestStatus @default(PENDING)
+  description        String                  @db.Text
+  dropdownSelections Json
+  referencePhotos    Json                    @default("[]")
+  agreedPrice        Float?
+  deliveredAt        DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  messages           ProfessionalMessage[]
+}
+
+model CommissionDropdownCategory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  options   String[]
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model ProfessionalMessage {
+  id           String     @id @default(cuid())
+  commissionId String
+  commission   Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  senderId     String
+  sender       User       @relation("SentProfessionalMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  text         String?    @db.Text
+  fileUrl      String?    @db.Text
+  createdAt    DateTime   @default(now())
 }
