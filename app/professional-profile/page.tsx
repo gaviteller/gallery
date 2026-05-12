@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
@@ -11,12 +11,13 @@ export default function ProfessionalProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  if (status === "unauthenticated") {
-    router.push("/signin")
-    return null
-  }
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/signin")
+    }
+  }, [status, router])
 
-  if (status === "loading" || !session?.user?.username) {
+  if (status === "unauthenticated" || status === "loading" || !session?.user?.username) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-400">Loading…</p>
@@ -42,13 +43,15 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   const [initialized, setInitialized] = useState(false)
 
   // Initialize form from loaded profile
-  if (profile && !initialized) {
-    setStatus(profile.commissionStatus as "OPEN" | "LIMITED" | "CLOSED")
-    setDescription(profile.commissionDescription ?? "")
-    setTurnaround(profile.commissionTurnaround ?? "")
-    setPriceRanges((profile.priceRanges as PriceRange[]) ?? [])
-    setInitialized(true)
-  }
+  useEffect(() => {
+    if (profile && !initialized) {
+      setStatus(profile.commissionStatus as "OPEN" | "LIMITED" | "CLOSED")
+      setDescription(profile.commissionDescription ?? "")
+      setTurnaround(profile.commissionTurnaround ?? "")
+      setPriceRanges((profile.priceRanges as PriceRange[]) ?? [])
+      setInitialized(true)
+    }
+  }, [profile, initialized])
 
   // New price range inputs
   const [newRangeLabel, setNewRangeLabel] = useState("")
@@ -66,6 +69,9 @@ function ProfessionalProfileInner({ username }: { username: string }) {
       utils.commission.getProfile.invalidate({ username })
       setSettingsSaved(true)
       setTimeout(() => setSettingsSaved(false), 2000)
+    },
+    onError: () => {
+      alert("Failed to save settings. Please try again.")
     },
   })
 
