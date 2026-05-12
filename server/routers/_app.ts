@@ -6,6 +6,8 @@ import { notificationRouter } from "./notification"
 import { interactionRouter } from "./interaction"
 import { hashtagRouter } from "./hashtag"
 import { shopRouter } from "./shop"
+import { commissionRouter } from "./commission"
+import { commissionMessageRouter } from "./commissionMessage"
 
 export const appRouter = router({
   user: userRouter,
@@ -15,6 +17,8 @@ export const appRouter = router({
   interaction: interactionRouter,
   hashtag: hashtagRouter,
   shop: shopRouter,
+  commission: commissionRouter,
+  commissionMessage: commissionMessageRouter,
 })
 
 export type AppRouter = typeof appRouter
