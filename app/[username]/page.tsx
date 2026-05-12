@@ -61,17 +61,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: posts, isLoading: postsLoading } = trpc.post.getByUsername.useQuery({ username })
   const { data: commissions, isLoading: commissionsLoading } = trpc.post.getCommissionsByUsername.useQuery({ username })
   const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
-  const { data: followData } = trpc.follow.status.useQuery({ username })
   const { data: commissionProfile } = trpc.commission.getProfile.useQuery({ username })
   const { data: commissionCategories } = trpc.commission.getCategories.useQuery({ username })
   const utils = trpc.useUtils()
-
-  const followMutation = trpc.follow.follow.useMutation({
-    onSuccess: () => utils.follow.status.invalidate({ username }),
-  })
-  const unfollowMutation = trpc.follow.unfollow.useMutation({
-    onSuccess: () => utils.follow.status.invalidate({ username }),
-  })
 
   const [tab, setTab] = useState("Posts")
   const [viewPost, setViewPost] = useState<PostItem | null>(null)
@@ -176,35 +168,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900">@{profileUser.username}</h1>
-            {isOwn ? (
+            {isOwn && (
               <Link href="/settings" className="text-sm px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
                 Edit profile
               </Link>
-            ) : session && (
-              <button
-                onClick={() => followData?.following
-                  ? unfollowMutation.mutate({ username })
-                  : followMutation.mutate({ username })
-                }
-                disabled={followMutation.isPending || unfollowMutation.isPending}
-                className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${
-                  followData?.following
-                    ? "border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                {followData?.following ? "Following" : "Follow"}
-              </button>
             )}
-          </div>
-
-          <div className="flex gap-4 mt-2">
-            <span className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">{followData?.followerCount ?? 0}</span> followers
-            </span>
-            <span className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">{followData?.followingCount ?? 0}</span> following
-            </span>
           </div>
 
           {profileUser.name && (

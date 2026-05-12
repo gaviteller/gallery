@@ -35,12 +35,6 @@ export default function FeedPage() {
   const [viewPost, setViewPost] = useState<FeedPost | null>(null)
   const [focusComment, setFocusComment] = useState(false)
 
-  const followMutation = trpc.follow.follow.useMutation({
-    onSuccess: () => utils.post.getFeed.invalidate(),
-  })
-  const unfollowMutation = trpc.follow.unfollow.useMutation({
-    onSuccess: () => utils.post.getFeed.invalidate(),
-  })
   const toggleLike = trpc.interaction.toggleLike.useMutation({
     onSuccess: () => utils.post.getFeed.invalidate(),
   })
@@ -93,24 +87,7 @@ export default function FeedPage() {
                   {post.isAiGenerated && (
                     <span className="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">AI</span>
                   )}
-                  {!post.isOwnPost && (
-                    <button
-                      onClick={() =>
-                        post.isFollowing
-                          ? unfollowMutation.mutate({ username: post.user.username! })
-                          : followMutation.mutate({ username: post.user.username! })
-                      }
-                      disabled={followMutation.isPending || unfollowMutation.isPending}
-                      className={`text-xs px-3 py-1 rounded-lg font-medium transition-colors disabled:opacity-50 ${
-                        post.isFollowing
-                          ? "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                          : "bg-blue-600 text-white hover:bg-blue-700"
-                      }`}
-                    >
-                      {post.isFollowing ? "Following" : "Follow"}
-                    </button>
-                  )}
-                </div>
+                  </div>
               </div>
 
               {/* Image — click to open modal */}
