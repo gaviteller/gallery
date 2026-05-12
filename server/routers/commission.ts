@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
+import { Prisma } from "@prisma/client"
 
 const priceRangeSchema = z.array(z.object({
   label: z.string().min(1).max(100),
@@ -153,7 +154,7 @@ export const commissionRouter = router({
     .input(z.object({
       artistId: z.string(),
       description: z.string().min(1).max(5000),
-      dropdownSelections: z.record(z.string()),
+      dropdownSelections: z.record(z.string(), z.string()),
       referencePhotos: z.array(z.string()).max(5).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
@@ -173,7 +174,7 @@ export const commissionRouter = router({
           buyerId: ctx.session.user.id,
           artistId: input.artistId,
           description: input.description,
-          dropdownSelections: input.dropdownSelections,
+          dropdownSelections: input.dropdownSelections as unknown as Prisma.InputJsonValue,
           referencePhotos: input.referencePhotos ?? [],
         },
       })
