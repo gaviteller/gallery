@@ -165,6 +165,9 @@ export const commissionRouter = router({
       if (artist.commissionStatus === "CLOSED") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "This artist is not accepting commissions" })
       }
+      if (!artist.sellingEnabled) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This artist is not accepting commissions" })
+      }
       return ctx.prisma.commission.create({
         data: {
           buyerId: ctx.session.user.id,
@@ -274,24 +277,27 @@ export const commissionRouter = router({
     }),
 
   markDelivered: protectedProcedure
-    .input(z.object({ id: z.string(), fileUrl: z.string().min(1) }))
+    .input(z.object({ id: z.string(), fileUrl: z.string().url() }))
     .mutation(async ({ ctx, input }) => {
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "IN_PROGRESS") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not in progress" })
-      await ctx.prisma.professionalMessage.create({
-        data: {
-          commissionId: input.id,
-          senderId: ctx.session.user.id,
-          text: "✅ Work delivered! Please review and confirm receipt.",
-          fileUrl: input.fileUrl,
-        },
-      })
-      return ctx.prisma.commission.update({
-        where: { id: input.id },
-        data: { status: "DELIVERED", deliveredAt: new Date() },
-      })
+      const [, updatedCommission] = await ctx.prisma.$transaction([
+        ctx.prisma.professionalMessage.create({
+          data: {
+            commissionId: input.id,
+            senderId: ctx.session.user.id,
+            text: "✅ Work delivered! Please review and confirm receipt.",
+            fileUrl: input.fileUrl,
+          },
+        }),
+        ctx.prisma.commission.update({
+          where: { id: input.id },
+          data: { status: "DELIVERED", deliveredAt: new Date() },
+        }),
+      ])
+      return updatedCommission
     }),
 
   confirmDelivery: protectedProcedure
@@ -307,11 +313,29 @@ export const commissionRouter = router({
       })
     }),
 
+  cancel: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      if (!["PENDING", "ACCEPTED"].includes(commission.status)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Commission cannot be cancelled at this stage" })
+      }
+      return ctx.prisma.commission.update({
+        where: { id: input.id },
+        data: { status: "CANCELLED" },
+      })
+    }),
+
   checkAutoRelease: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission || commission.status !== "DELIVERED" || !commission.deliveredAt) return null
+      if (commission.buyerId !== ctx.session.user.id && commission.artistId !== ctx.session.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN" })
+      }
       const fiveDaysMs = 5 * 24 * 60 * 60 * 1000
       if (Date.now() - commission.deliveredAt.getTime() >= fiveDaysMs) {
         return ctx.prisma.commission.update({
@@ -368,6 +392,7 @@ export const commissionRouter = router({
             select: { name: true, options: true },
           },
         },
+        take: 50,
         orderBy: { createdAt: "desc" },
       })
 
