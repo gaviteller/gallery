@@ -288,6 +288,17 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
 
         {/* Messages */}
         {commission.messages.map(msg => {
+          // System messages: centred status pill
+          if (msg.isSystem) {
+            return (
+              <div key={msg.id} className="flex justify-center my-3">
+                <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                  {msg.text}
+                </span>
+              </div>
+            )
+          }
+
           const isMe = msg.senderId === userId
           return (
             <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} mb-1`}>

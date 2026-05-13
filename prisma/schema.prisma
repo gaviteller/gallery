@@ -234,6 +234,7 @@ model ProfessionalMessage {
   sender       User       @relation("SentProfessionalMessages", fields: [senderId], references: [id], onDelete: Cascade)
   text         String?    @db.Text
   fileUrl      String?    @db.Text
+  isSystem     Boolean    @default(false)
   createdAt    DateTime   @default(now())
 
   @@index([commissionId])

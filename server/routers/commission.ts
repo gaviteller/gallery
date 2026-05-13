@@ -243,6 +243,14 @@ export const commissionRouter = router({
       await ctx.prisma.notification.create({
         data: { userId: commission.buyerId, fromUserId: ctx.session.user.id, type: `commission_accepted:${input.id}` },
       })
+      await ctx.prisma.professionalMessage.create({
+        data: {
+          commissionId: input.id,
+          senderId: ctx.session.user.id,
+          text: `Commission accepted at $${input.price}. Awaiting payment.`,
+          isSystem: true,
+        },
+      })
       return updated
     }),
 
@@ -259,6 +267,9 @@ export const commissionRouter = router({
       })
       await ctx.prisma.notification.create({
         data: { userId: commission.buyerId, fromUserId: ctx.session.user.id, type: `commission_declined:${input.id}` },
+      })
+      await ctx.prisma.professionalMessage.create({
+        data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Commission request declined.", isSystem: true },
       })
       return updated
     }),
@@ -290,6 +301,9 @@ export const commissionRouter = router({
       await ctx.prisma.notification.create({
         data: { userId: commission.artistId, fromUserId: ctx.session.user.id, type: `commission_paid:${input.id}` },
       })
+      await ctx.prisma.professionalMessage.create({
+        data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Payment confirmed. Commission is now in progress.", isSystem: true },
+      })
       return updated
     }),
 
@@ -317,6 +331,9 @@ export const commissionRouter = router({
       await ctx.prisma.notification.create({
         data: { userId: commission.buyerId, fromUserId: ctx.session.user.id, type: `commission_delivered:${input.id}` },
       })
+      await ctx.prisma.professionalMessage.create({
+        data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Delivery submitted. Please review and approve.", isSystem: true },
+      })
       return updatedCommission
     }),
 
@@ -333,6 +350,9 @@ export const commissionRouter = router({
       })
       await ctx.prisma.notification.create({
         data: { userId: commission.artistId, fromUserId: ctx.session.user.id, type: `commission_complete:${input.id}` },
+      })
+      await ctx.prisma.professionalMessage.create({
+        data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Commission complete. Payment released to the artist.", isSystem: true },
       })
       return updated
     }),
@@ -352,6 +372,9 @@ export const commissionRouter = router({
       })
       await ctx.prisma.notification.create({
         data: { userId: commission.artistId, fromUserId: ctx.session.user.id, type: `commission_cancelled:${input.id}` },
+      })
+      await ctx.prisma.professionalMessage.create({
+        data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Commission cancelled.", isSystem: true },
       })
       return updated
     }),
