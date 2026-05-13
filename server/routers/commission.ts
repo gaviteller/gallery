@@ -25,6 +25,8 @@ export const commissionRouter = router({
           commissionStatus: true,
           commissionDescription: true,
           commissionTurnaround: true,
+          commissionCardImages: true,
+          artStyles: true,
           priceRanges: true,
           commissionCategories: { orderBy: { order: "asc" } },
         },
@@ -39,6 +41,8 @@ export const commissionRouter = router({
       commissionDescription: z.string().max(2000).optional(),
       commissionTurnaround: z.string().max(100).optional(),
       priceRanges: priceRangeSchema.optional(),
+      commissionCardImages: z.array(z.string()).max(5).optional(),
+      artStyles: z.array(z.string().min(1).max(50)).max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.user.update({
@@ -48,6 +52,8 @@ export const commissionRouter = router({
           commissionDescription: input.commissionDescription ?? null,
           commissionTurnaround: input.commissionTurnaround ?? null,
           priceRanges: input.priceRanges ?? [],
+          ...(input.commissionCardImages !== undefined && { commissionCardImages: input.commissionCardImages }),
+          ...(input.artStyles !== undefined && { artStyles: input.artStyles }),
         },
       })
     }),
@@ -441,6 +447,8 @@ export const commissionRouter = router({
           commissionStatus: true,
           commissionDescription: true,
           commissionTurnaround: true,
+          commissionCardImages: true,
+          artStyles: true,
           priceRanges: true,
           posts: {
             where: { isCommission: true },
@@ -470,5 +478,39 @@ export const commissionRouter = router({
       }
 
       return users
+    }),
+
+  getCompletedWork: publicProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.prisma.user.findFirst({
+        where: { username: { equals: input.username, mode: "insensitive" } },
+        select: { id: true },
+      })
+      if (!user) return []
+
+      const commissions = await ctx.prisma.commission.findMany({
+        where: { artistId: user.id, status: "COMPLETE" },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+        include: {
+          messages: {
+            where: { fileUrl: { not: null } },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { fileUrl: true },
+          },
+          buyer: { select: { username: true, name: true, image: true } },
+        },
+      })
+
+      return commissions
+        .filter(c => c.messages.length > 0)
+        .map(c => ({
+          id: c.id,
+          fileUrl: c.messages[0].fileUrl!,
+          buyer: c.buyer,
+          completedAt: c.updatedAt,
+        }))
     }),
 })
