@@ -88,6 +88,11 @@ export default function BottomNav() {
   const pathname = usePathname()
   const [searchOpen, setSearchOpen] = useState(false)
 
+  const { data: dmUnread } = trpc.dm.getUnreadCount.useQuery(undefined, {
+    enabled: status === "authenticated",
+    refetchInterval: 30000,
+  })
+
   if (status === "loading" || status === "unauthenticated") return null
 
   const username = session?.user?.username
@@ -100,7 +105,7 @@ export default function BottomNav() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex items-center justify-around px-2 h-16 safe-area-pb">
         {/* Feed */}
-        <Link href="/" className={`flex flex-col items-center gap-1 px-4 py-2 ${pathname === "/" ? "text-gray-900" : "text-gray-400"}`}>
+        <Link href="/" className={`flex flex-col items-center gap-1 px-3 py-2 ${pathname === "/" ? "text-gray-900" : "text-gray-400"}`}>
           <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
             <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -111,7 +116,7 @@ export default function BottomNav() {
         </Link>
 
         {/* Shop */}
-        <Link href="/shop" className={`flex flex-col items-center gap-1 px-4 py-2 ${isActive("/shop") ? "text-gray-900" : "text-gray-400"}`}>
+        <Link href="/shop" className={`flex flex-col items-center gap-1 px-3 py-2 ${isActive("/shop") ? "text-gray-900" : "text-gray-400"}`}>
           <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
             <line x1="3" y1="6" x2="21" y2="6"/>
@@ -132,7 +137,7 @@ export default function BottomNav() {
         </button>
 
         {/* Commissions */}
-        <Link href="/commissions" className={`flex flex-col items-center gap-1 px-4 py-2 ${isActive("/commissions") ? "text-gray-900" : "text-gray-400"}`}>
+        <Link href="/commissions" className={`flex flex-col items-center gap-1 px-3 py-2 ${isActive("/commissions") ? "text-gray-900" : "text-gray-400"}`}>
           <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <path d="M12 20h9"/>
             <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
@@ -140,8 +145,26 @@ export default function BottomNav() {
           <span className="text-[10px] font-medium">Commissions</span>
         </Link>
 
+        {/* Messages */}
+        <Link
+          href="/messages"
+          className={`flex flex-col items-center gap-0.5 px-3 py-2 ${isActive("/messages") ? "text-gray-900" : "text-gray-400"}`}
+        >
+          <div className="relative">
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            {dmUnread && dmUnread.count > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                {dmUnread.count > 9 ? "9+" : dmUnread.count}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-medium">Messages</span>
+        </Link>
+
         {/* Profile */}
-        <Link href={username ? `/@${username}` : "/"} className={`flex flex-col items-center gap-1 px-4 py-2 ${username && isActive(`/@${username}`) ? "text-gray-900" : "text-gray-400"}`}>
+        <Link href={username ? `/@${username}` : "/"} className={`flex flex-col items-center gap-1 px-3 py-2 ${username && isActive(`/@${username}`) ? "text-gray-900" : "text-gray-400"}`}>
           <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
