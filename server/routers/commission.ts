@@ -379,10 +379,18 @@ export const commissionRouter = router({
   getDiscovery: publicProcedure
     .input(z.object({
       search: z.string().optional(),
-      minPrice: z.number().optional(),
-      maxPrice: z.number().optional(),
+      sortBy: z.enum(["default", "top", "new", "affordable"]).optional(),
     }))
     .query(async ({ ctx, input }) => {
+      const sortBy = input.sortBy ?? "default"
+
+      const orderBy: Prisma.UserOrderByWithRelationInput =
+        sortBy === "top"
+          ? { artistCommissions: { _count: "desc" } }
+          : sortBy === "new"
+          ? { createdAt: "desc" }
+          : { createdAt: "desc" }
+
       const users = await ctx.prisma.user.findMany({
         where: {
           commissionStatus: { in: ["OPEN", "LIMITED"] },
@@ -408,10 +416,12 @@ export const commissionRouter = router({
           name: true,
           image: true,
           commissionStatus: true,
+          commissionDescription: true,
+          commissionTurnaround: true,
           priceRanges: true,
           posts: {
             where: { isCommission: true },
-            take: 6,
+            take: 4,
             orderBy: { createdAt: "desc" },
             select: { id: true, image: true },
           },
@@ -421,20 +431,21 @@ export const commissionRouter = router({
           },
         },
         take: 50,
-        orderBy: { createdAt: "desc" },
+        orderBy,
       })
 
-      // Client-side price filter (avg of price ranges)
-      if (input.minPrice !== undefined || input.maxPrice !== undefined) {
-        return users.filter(u => {
-          const ranges = u.priceRanges as { label: string; price: number }[] | null
-          if (!ranges || ranges.length === 0) return false
-          const avg = ranges.reduce((s, r) => s + r.price, 0) / ranges.length
-          if (input.minPrice !== undefined && avg < input.minPrice) return false
-          if (input.maxPrice !== undefined && avg > input.maxPrice) return false
-          return true
+      // Affordable: sort client-side by avg price ascending
+      if (sortBy === "affordable") {
+        return [...users].sort((a, b) => {
+          const avg = (u: typeof a) => {
+            const ranges = u.priceRanges as { label: string; price: number }[] | null
+            if (!ranges || ranges.length === 0) return Infinity
+            return ranges.reduce((s, r) => s + r.price, 0) / ranges.length
+          }
+          return avg(a) - avg(b)
         })
       }
+
       return users
     }),
 })

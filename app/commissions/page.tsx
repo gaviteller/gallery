@@ -19,6 +19,14 @@ type DiscoveryUser = {
   commissionCategories: { name: string; options: string[] }[]
 }
 
+type SortBy = "default" | "top" | "new" | "affordable"
+
+const FILTER_CHIPS: { label: string; value: SortBy }[] = [
+  { label: "Top Rated", value: "top" },
+  { label: "Hidden Gems", value: "new" },
+  { label: "Affordable", value: "affordable" },
+]
+
 const statusBadge = {
   OPEN: "bg-green-100 text-green-700",
   LIMITED: "bg-yellow-100 text-yellow-700",
@@ -102,10 +110,14 @@ function ArtistCard({
 
 export default function CommissionsPage() {
   const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState<SortBy>("default")
   const [requestTarget, setRequestTarget] = useState<DiscoveryUser | null>(null)
+  const { data: session } = useSession()
+  const router = useRouter()
 
   const { data: artists, isLoading } = trpc.commission.getDiscovery.useQuery({
     search: search.trim() || undefined,
+    sortBy: sortBy === "default" ? undefined : sortBy,
   })
 
   return (
@@ -120,15 +132,61 @@ export default function CommissionsPage() {
       )}
 
       <div className="max-w-2xl mx-auto pb-24">
-        {/* Search bar */}
-        <div className="px-4 pt-4 pb-3">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search artists…"
-            className="w-full px-4 py-2.5 bg-gray-100 rounded-xl text-sm text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition"
-          />
+        {/* Search bar with avatar + filter icon */}
+        <div className="px-3 pt-4 pb-2 flex items-center gap-2">
+          {/* Avatar */}
+          <button
+            onClick={() => session ? router.push("/profile") : router.push("/signin")}
+            className="flex-shrink-0"
+          >
+            {session?.user?.image ? (
+              <img src={session.user.image} className="w-8 h-8 rounded-full object-cover" alt="" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            )}
+          </button>
+
+          {/* Search input */}
+          <div className="flex-1 relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search artists…"
+              className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-xl text-sm text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition"
+            />
+          </div>
+
+          {/* Filter icon */}
+          <button className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Horizontal filter chips */}
+        <div className="flex gap-2 px-3 pb-3 overflow-x-auto scrollbar-none">
+          {FILTER_CHIPS.map(chip => (
+            <button
+              key={chip.value}
+              onClick={() => setSortBy(prev => prev === chip.value ? "default" : chip.value)}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                sortBy === chip.value
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              {chip.label}
+            </button>
+          ))}
         </div>
 
         {/* Grid */}
