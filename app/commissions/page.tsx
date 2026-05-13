@@ -78,28 +78,34 @@ function ArtistCard({
       className="cursor-pointer bg-white overflow-hidden"
     >
       {/* Image carousel — native CSS scroll-snap */}
-      <div className="aspect-square bg-gray-100 relative overflow-hidden">
+      <div className="aspect-square bg-gray-100 relative">
         {images.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-xs text-gray-400">No examples</p>
           </div>
         ) : (
           <>
+            {/* Scroll container: absolute inset-0 gives it the exact same size as the aspect-square parent */}
             <div
               ref={scrollRef}
               onScroll={handleScroll}
               onClick={e => e.stopPropagation()}
-              className="flex h-full overflow-x-auto snap-x snap-mandatory"
-              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+              className="absolute inset-0 flex overflow-x-scroll snap-x snap-mandatory"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
             >
               {images.map((img, i) => (
-                <div key={i} className="flex-shrink-0 w-full h-full snap-center">
-                  <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
+                <div key={i} className="relative flex-shrink-0 snap-center" style={{ width: "100%", height: "100%" }}>
+                  <img
+                    src={img}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                    draggable={false}
+                  />
                 </div>
               ))}
             </div>
             {images.length > 1 && (
-              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 pointer-events-none">
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 pointer-events-none z-10">
                 {images.map((_, i) => (
                   <span
                     key={i}
