@@ -232,6 +232,34 @@ export const commissionRouter = router({
       if (commission.buyerId !== ctx.session.user.id && commission.artistId !== ctx.session.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" })
       }
+
+      // Approaching-deadline notification (within 48 h, not yet sent)
+      if (
+        commission.deadline &&
+        !commission.deadlineNotificationSent &&
+        !["COMPLETE", "DECLINED", "CANCELLED"].includes(commission.status)
+      ) {
+        const msUntil = new Date(commission.deadline).getTime() - Date.now()
+        const fortyEightHours = 48 * 60 * 60 * 1000
+        if (msUntil > 0 && msUntil <= fortyEightHours) {
+          await ctx.prisma.commission.update({
+            where: { id: input.id },
+            data: { deadlineNotificationSent: true },
+          })
+          const callerIsArtist = commission.artistId === ctx.session?.user?.id
+          const notifyUserId = callerIsArtist ? commission.buyerId : commission.artistId
+          if (ctx.session?.user?.id) {
+            await ctx.prisma.notification.create({
+              data: {
+                userId: notifyUserId,
+                fromUserId: ctx.session.user.id,
+                type: `commission_deadline_approaching:${input.id}`,
+              },
+            })
+          }
+        }
+      }
+
       return commission
     }),
 
@@ -291,6 +319,50 @@ export const commissionRouter = router({
         where: { id: input.id },
         data: { agreedPrice: input.price },
       })
+    }),
+
+  setDeadline: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      deadline: z.string().datetime(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const commission = await ctx.prisma.commission.findUnique({
+        where: { id: input.id },
+        select: { artistId: true, buyerId: true, status: true, deadline: true },
+      })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      const CLOSED = ["COMPLETE", "DECLINED", "CANCELLED"]
+      if (CLOSED.includes(commission.status)) throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is closed" })
+
+      const newDeadline = new Date(input.deadline)
+      const isUpdate = commission.deadline !== null
+      const formatted = newDeadline.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+
+      await ctx.prisma.commission.update({
+        where: { id: input.id },
+        data: { deadline: newDeadline, deadlineNotificationSent: false },
+      })
+
+      await ctx.prisma.professionalMessage.create({
+        data: {
+          commissionId: input.id,
+          senderId: ctx.session.user.id,
+          text: isUpdate ? `Deadline updated to ${formatted}.` : `Deadline set: ${formatted}.`,
+          isSystem: true,
+        },
+      })
+
+      await ctx.prisma.notification.create({
+        data: {
+          userId: commission.buyerId,
+          fromUserId: ctx.session.user.id,
+          type: isUpdate ? `commission_deadline_updated:${input.id}` : `commission_deadline_set:${input.id}`,
+        },
+      })
+
+      return { deadline: newDeadline }
     }),
 
   confirmPayment: protectedProcedure

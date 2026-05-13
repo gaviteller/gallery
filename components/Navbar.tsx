@@ -46,6 +46,9 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                 commission_paid: "confirmed payment for their commission",
                 commission_delivered: "delivered your commission",
                 commission_complete: "confirmed commission receipt",
+                commission_deadline_set: "set a deadline for your commission",
+                commission_deadline_updated: "updated the commission deadline",
+                commission_deadline_approaching: "commission deadline is approaching",
               }
               return map[prefix] ?? type
             }
