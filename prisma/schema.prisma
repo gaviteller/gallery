@@ -211,6 +211,8 @@ model Commission {
   referencePhotos    Json                    @default("[]")
   agreedPrice        Float?
   deliveredAt        DateTime?
+  deadline                  DateTime?
+  deadlineNotificationSent  Boolean   @default(false)
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
   messages           ProfessionalMessage[]
