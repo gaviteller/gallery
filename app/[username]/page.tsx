@@ -2,6 +2,7 @@
 
 import { useState, use } from "react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { trpc } from "@/components/providers"
 import PostModal from "@/components/PostModal"
@@ -57,6 +58,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const username = decoded.startsWith("@") ? decoded.slice(1) : decoded
 
   const { data: session } = useSession()
+  const router = useRouter()
   const { data: profileUser, isLoading: userLoading } = trpc.user.getByUsername.useQuery({ username })
   const { data: posts, isLoading: postsLoading } = trpc.post.getByUsername.useQuery({ username })
   const { data: commissions, isLoading: commissionsLoading } = trpc.post.getCommissionsByUsername.useQuery({ username })
@@ -77,6 +79,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [uploadIsAi, setUploadIsAi] = useState(false)
   const [uploadIsCommission, setUploadIsCommission] = useState(false)
   const [imgProcessing, setImgProcessing] = useState(false)
+
+  const getOrCreateDM = trpc.dm.getOrCreate.useMutation({
+    onSuccess: (convo) => router.push(`/messages/${convo.id}`),
+  })
 
   const createPost = trpc.post.create.useMutation({
     onSuccess: () => {
@@ -169,10 +175,18 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900">@{profileUser.username}</h1>
-            {isOwn && (
+            {isOwn ? (
               <Link href="/settings" className="text-sm px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
                 Edit profile
               </Link>
+            ) : session && (
+              <button
+                onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
+                disabled={getOrCreateDM.isPending}
+                className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                {getOrCreateDM.isPending ? "Opening…" : "Message"}
+              </button>
             )}
           </div>
 
