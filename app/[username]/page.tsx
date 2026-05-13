@@ -63,6 +63,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
   const { data: commissionProfile } = trpc.commission.getProfile.useQuery({ username })
   const { data: commissionCategories } = trpc.commission.getCategories.useQuery({ username })
+  const { data: completedWork } = trpc.commission.getCompletedWork.useQuery({ username })
   const utils = trpc.useUtils()
 
   const [tab, setTab] = useState("Posts")
@@ -213,9 +214,14 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex gap-6">
-          {["Posts", "Shop", "Commissions", "About"].map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${tab === t ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
+          {["Posts", "Shop", "Commissions", ...(completedWork && completedWork.length > 0 ? ["Completed Work"] : []), "About"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+                tab === t ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
+            >
               {t}
             </button>
           ))}
@@ -445,6 +451,23 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <Link href="/settings" className="mt-2 text-sm text-blue-600 hover:underline">
               Edit profile →
             </Link>
+          )}
+        </div>
+      )}
+
+      {/* ── Completed Work tab ───────────────────────────────── */}
+      {tab === "Completed Work" && (
+        <div>
+          {!completedWork || completedWork.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">No completed commissions yet</div>
+          ) : (
+            <div className="grid grid-cols-3 gap-0.5">
+              {completedWork.map(item => (
+                <div key={item.id} className="aspect-square overflow-hidden bg-gray-100">
+                  <img src={item.fileUrl} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
