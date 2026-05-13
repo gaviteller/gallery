@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { trpc } from "@/components/providers"
 import Link from "next/link"
+import Avatar from "@/components/Avatar"
 
 function NotificationPanel({ onClose }: { onClose: () => void }) {
   const { data: notifications } = trpc.notification.getAll.useQuery()
@@ -54,13 +55,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                 onClick={() => { onClose(); router.push(getNotificationLink(n.type)) }}
                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${!n.read ? "bg-blue-50/50" : ""}`}
               >
-                {n.fromUser.image ? (
-                  <img src={n.fromUser.image} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
-                    {(n.fromUser.name ?? n.fromUser.username ?? "?")[0].toUpperCase()}
-                  </div>
-                )}
+                <Avatar src={n.fromUser.image} name={n.fromUser.name} username={n.fromUser.username} size={32} />
                 <p className="text-sm text-gray-800">
                   <span className="font-semibold">@{n.fromUser.username}</span> {getNotificationText(n.type)}
                 </p>

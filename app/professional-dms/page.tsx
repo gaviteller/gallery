@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
+import Avatar from "@/components/Avatar"
 
 const statusLabel: Record<string, string> = {
   PENDING: "Pending",
@@ -54,13 +55,7 @@ function CommissionRow({ commission, otherParty, role }: {
       onClick={() => router.push(`/professional-dms/${commission.id}`)}
       className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-0"
     >
-      {otherParty?.image ? (
-        <img src={otherParty.image} className="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="" />
-      ) : (
-        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold flex-shrink-0">
-          {initials}
-        </div>
-      )}
+      <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={40} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-semibold text-gray-900 truncate">

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
+import Avatar from "@/components/Avatar"
 
 type PriceRange = { label: string; price: number }
 
@@ -195,13 +196,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                   href={`/professional-dms/${c.id}`}
                   className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
                 >
-                  {c.buyer?.image ? (
-                    <img src={c.buyer.image} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold flex-shrink-0">
-                      {((c.buyer?.name ?? c.buyer?.username ?? "?")[0] ?? "?").toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar src={c.buyer?.image} name={c.buyer?.name} username={c.buyer?.username} size={36} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">@{c.buyer?.username ?? "unknown"}</p>
                     <p className="text-xs text-gray-400 truncate mt-0.5">{c.description}</p>

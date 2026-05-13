@@ -4,6 +4,7 @@ import { useState, use, useRef, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
+import Avatar from "@/components/Avatar"
 
 function processImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -214,13 +215,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
           </svg>
         </button>
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {otherParty?.image ? (
-            <img src={otherParty.image} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="" />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
-              {((otherParty?.name ?? otherParty?.username ?? "?")[0] ?? "?").toUpperCase()}
-            </div>
-          )}
+          <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={32} />
           <p className="text-sm font-semibold text-gray-900 truncate">@{otherParty?.username}</p>
         </div>
         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border flex-shrink-0 ${statusColor[commission.status] ?? "bg-gray-50 text-gray-500 border-gray-200"}`}>

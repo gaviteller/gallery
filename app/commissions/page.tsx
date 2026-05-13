@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { trpc } from "@/components/providers"
 import CommissionRequestModal from "@/components/CommissionRequestModal"
+import Avatar from "@/components/Avatar"
 
 type DiscoveryUser = {
   id: string
@@ -82,13 +83,7 @@ function ArtistCard({
       {/* Info row */}
       <div className="px-2 pt-2 pb-3">
         <div className="flex items-center gap-1.5 mb-1">
-          {artist.image ? (
-            <img src={artist.image} className="w-5 h-5 rounded-full object-cover flex-shrink-0" alt="" />
-          ) : (
-            <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[10px] font-bold flex-shrink-0">
-              {((artist.name ?? artist.username ?? "?")[0] ?? "?").toUpperCase()}
-            </div>
-          )}
+          <Avatar src={artist.image} name={artist.name} username={artist.username} size={20} />
           <p className="text-xs font-semibold text-gray-900 truncate flex-1">@{artist.username}</p>
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusBadge[artist.commissionStatus]}`}>
             {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
