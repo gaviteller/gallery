@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
@@ -12,6 +12,77 @@ function timeAgo(date: Date): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
   return `${Math.floor(seconds / 86400)}d ago`
+}
+
+// Modal for starting a new conversation — search users, pick one, open thread
+function NewMessageModal({ onClose }: { onClose: () => void }) {
+  const [query, setQuery] = useState("")
+  const router = useRouter()
+  const enabled = query.trim().length > 0
+
+  const { data: users } = trpc.user.search.useQuery({ query }, { enabled })
+  const getOrCreate = trpc.dm.getOrCreate.useMutation({
+    onSuccess: (convo) => {
+      onClose()
+      router.push(`/messages/${convo.id}`)
+    },
+  })
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-lg rounded-t-2xl pb-8"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+        </div>
+
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+          <p className="flex-1 text-sm font-semibold text-gray-900">New Message</p>
+          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-900">Cancel</button>
+        </div>
+
+        <div className="px-4 pt-3 pb-2">
+          <input
+            autoFocus
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search people…"
+            className="w-full bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition"
+          />
+        </div>
+
+        <div className="max-h-64 overflow-y-auto">
+          {users && users.length > 0 ? (
+            users.map(user => (
+              <button
+                key={user.id}
+                onClick={() => getOrCreate.mutate({ otherUserId: user.id })}
+                disabled={getOrCreate.isPending}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+              >
+                <Avatar src={user.image} name={user.name} username={user.username} size={40} />
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">@{user.username}</p>
+                  {user.name && <p className="text-xs text-gray-500">{user.name}</p>}
+                </div>
+              </button>
+            ))
+          ) : enabled ? (
+            <p className="text-sm text-gray-400 text-center py-6">No results for &ldquo;{query}&rdquo;</p>
+          ) : (
+            <p className="text-xs text-gray-400 text-center py-6">Search for someone to message</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function MessagesPage() {
@@ -30,48 +101,78 @@ export default function MessagesPage() {
 }
 
 function MessagesInner({ userId }: { userId: string }) {
-  const { data: convos, isLoading } = trpc.dm.getConversations.useQuery()
+  const { data: convos, isLoading } = trpc.dm.getConversations.useQuery(undefined, {
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
+  })
   const router = useRouter()
+  const [composing, setComposing] = useState(false)
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Loading…</p></div>
   }
 
   return (
-    <div className="max-w-lg mx-auto pb-24">
-      <div className="px-4 pt-6 pb-3">
-        <h1 className="text-xl font-bold text-gray-900">Messages</h1>
-      </div>
+    <>
+      {composing && <NewMessageModal onClose={() => setComposing(false)} />}
 
-      {!convos || convos.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 font-medium">No messages yet</p>
-          <p className="text-xs text-gray-400 mt-1">Visit someone's profile to start a conversation</p>
+      <div className="max-w-lg mx-auto pb-24">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-6 pb-3">
+          <h1 className="text-xl font-bold text-gray-900">Messages</h1>
+          {/* Compose / new message button */}
+          <button
+            onClick={() => setComposing(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors text-gray-700"
+            aria-label="New message"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
         </div>
-      ) : (
-        <div className="divide-y divide-gray-100 bg-white">
-          {convos.map(c => (
+
+        {!convos || convos.length === 0 ? (
+          <div className="text-center py-20 px-6">
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </div>
+            <p className="text-gray-800 font-semibold mb-1">Your messages</p>
+            <p className="text-sm text-gray-400 mb-5">Send a message to start a conversation</p>
             <button
-              key={c.id}
-              onClick={() => router.push(`/messages/${c.id}`)}
-              className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left"
+              onClick={() => setComposing(true)}
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
             >
-              <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={44} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">@{c.other.username ?? "unknown"}</p>
-                {c.lastMsg && (
-                  <p className="text-xs text-gray-400 truncate mt-0.5">
-                    {c.lastMsg.senderId === userId ? "You: " : ""}{c.lastMsg.text}
-                  </p>
-                )}
-              </div>
-              {c.lastMsg && (
-                <p className="text-[10px] text-gray-400 flex-shrink-0">{timeAgo(c.lastMsg.createdAt)}</p>
-              )}
+              Send message
             </button>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 bg-white">
+            {convos.map(c => (
+              <button
+                key={c.id}
+                onClick={() => router.push(`/messages/${c.id}`)}
+                className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left"
+              >
+                <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={48} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">@{c.other.username ?? "unknown"}</p>
+                  {c.lastMsg && (
+                    <p className="text-xs text-gray-400 truncate mt-0.5">
+                      {c.lastMsg.senderId === userId ? "You: " : ""}{c.lastMsg.text}
+                    </p>
+                  )}
+                </div>
+                {c.lastMsg && (
+                  <p className="text-[10px] text-gray-400 flex-shrink-0">{timeAgo(c.lastMsg.createdAt)}</p>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   )
 }

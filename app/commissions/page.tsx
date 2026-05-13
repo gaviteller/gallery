@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { trpc } from "@/components/providers"
@@ -52,14 +52,19 @@ function ArtistCard({
   const router = useRouter()
   const { data: session } = useSession()
   const [imgIndex, setImgIndex] = useState(0)
-  const touchStartX = useRef<number | null>(null)
-  const touchStartY = useRef<number | null>(null)
-  const didSwipe = useRef(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  function handleCardClick() {
-    if (didSwipe.current) { didSwipe.current = false; return }
-    router.push(`/@${artist.username}?tab=Commissions`)
-  }
+  const images: string[] =
+    artist.commissionCardImages.length > 0
+      ? artist.commissionCardImages
+      : artist.posts.map(p => p.image)
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el || images.length < 2) return
+    const idx = Math.round(el.scrollLeft / el.offsetWidth)
+    setImgIndex(idx)
+  }, [images.length])
 
   function handleRequest(e: React.MouseEvent) {
     e.stopPropagation()
@@ -67,55 +72,34 @@ function ArtistCard({
     onRequest(artist)
   }
 
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
-    didSwipe.current = false
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null || touchStartY.current === null) return
-    const dx = e.changedTouches[0].clientX - touchStartX.current
-    const dy = e.changedTouches[0].clientY - touchStartY.current
-    // Horizontal swipe: must be >30px and more horizontal than vertical
-    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
-      didSwipe.current = true
-      if (dx < 0) {
-        setImgIndex(i => (i + 1) % images.length)
-      } else {
-        setImgIndex(i => (i - 1 + images.length) % images.length)
-      }
-    }
-    touchStartX.current = null
-    touchStartY.current = null
-  }
-
-  const images: string[] =
-    artist.commissionCardImages.length > 0
-      ? artist.commissionCardImages
-      : artist.posts.map(p => p.image)
-
   return (
-    <div onClick={handleCardClick} className="cursor-pointer bg-white overflow-hidden">
-      <div
-        className="aspect-square bg-gray-100 overflow-hidden relative select-none"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+    <div
+      onClick={() => router.push(`/@${artist.username}?tab=Commissions`)}
+      className="cursor-pointer bg-white overflow-hidden"
+    >
+      {/* Image carousel — native CSS scroll-snap */}
+      <div className="aspect-square bg-gray-100 relative overflow-hidden">
         {images.length === 0 ? (
           <div className="w-full h-full flex items-center justify-center">
             <p className="text-xs text-gray-400">No examples</p>
           </div>
         ) : (
           <>
-            <img
-              src={images[imgIndex]}
-              alt=""
-              className="w-full h-full object-cover pointer-events-none"
-              draggable={false}
-            />
+            <div
+              ref={scrollRef}
+              onScroll={handleScroll}
+              onClick={e => e.stopPropagation()}
+              className="flex h-full overflow-x-auto snap-x snap-mandatory"
+              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+            >
+              {images.map((img, i) => (
+                <div key={i} className="flex-shrink-0 w-full h-full snap-center">
+                  <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
+                </div>
+              ))}
+            </div>
             {images.length > 1 && (
-              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 pointer-events-none">
                 {images.map((_, i) => (
                   <span
                     key={i}
@@ -164,6 +148,7 @@ function ArtistCard({
 export default function CommissionsPage() {
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState<SortBy>("default")
+  const [filtersOpen, setFiltersOpen] = useState(true)
   const [requestTarget, setRequestTarget] = useState<DiscoveryUser | null>(null)
   const { data: session } = useSession()
   const router = useRouter()
@@ -217,30 +202,41 @@ export default function CommissionsPage() {
             />
           </div>
 
-          {/* Filter icon */}
-          <button className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
-            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {/* Filter toggle — highlights when a filter is active */}
+          <button
+            onClick={() => setFiltersOpen(o => !o)}
+            className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl transition-colors ${
+              sortBy !== "default"
+                ? "bg-gray-900 text-white"
+                : filtersOpen
+                ? "bg-gray-200 text-gray-700"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
             </svg>
           </button>
         </div>
 
-        {/* Horizontal filter chips */}
-        <div className="flex gap-2 px-3 pb-3 overflow-x-auto scrollbar-none">
-          {FILTER_CHIPS.map(chip => (
-            <button
-              key={chip.value}
-              onClick={() => setSortBy(prev => prev === chip.value ? "default" : chip.value)}
-              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                sortBy === chip.value
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
+        {/* Horizontal filter chips — shown when filters are open */}
+        {filtersOpen && (
+          <div className="flex gap-2 px-3 pb-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {FILTER_CHIPS.map(chip => (
+              <button
+                key={chip.value}
+                onClick={() => setSortBy(prev => prev === chip.value ? "default" : chip.value)}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  sortBy === chip.value
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Grid */}
         {isLoading ? (
