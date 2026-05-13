@@ -166,8 +166,8 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Professional Profile</h1>
-      <p className="text-sm text-gray-500 mb-8">Manage your commission settings and view your business overview.</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">Artist Dashboard</h1>
+      <p className="text-sm text-gray-500 mb-8">Manage your commission settings and track your business.</p>
 
       {/* ── Active Commissions ── */}
       {myCommissions?.asArtist && myCommissions.asArtist.filter(c => !["COMPLETE","DECLINED","CANCELLED"].includes(c.status)).length > 0 && (

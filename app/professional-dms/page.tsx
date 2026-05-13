@@ -120,7 +120,7 @@ function ProfessionalDMsInner() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Professional DMs</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-6">Commission Chats</h1>
 
       {threads.length === 0 ? (
         <div className="text-center py-20">

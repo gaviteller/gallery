@@ -233,7 +233,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
             className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100/60 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Commission request</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Brief</p>
               {commission.agreedPrice !== null && commission.agreedPrice !== undefined && (
                 <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">${commission.agreedPrice}</span>
               )}
@@ -256,7 +256,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
               )}
               {refPhotos.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Reference photos</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Reference Images</p>
                   <div className="flex gap-2 flex-wrap">
                     {refPhotos.map((p, i) => (
                       <img key={i} src={p} alt="" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
@@ -399,7 +399,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500">Price: <span className="font-semibold text-gray-900">${commission.agreedPrice}</span> · Awaiting buyer payment</p>
+                  <p className="text-xs text-gray-500">Price: <span className="font-semibold text-gray-900">${commission.agreedPrice}</span> · Awaiting Payment</p>
                   <button
                     onClick={() => { setNewPrice(String(commission.agreedPrice ?? "")); setShowUpdatePrice(true) }}
                     className="text-xs text-blue-600 underline hover:text-blue-800"
@@ -439,7 +439,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                 disabled={cancelMutation.isPending}
                 className="text-xs text-red-400 hover:text-red-600 underline transition-colors disabled:opacity-50"
               >
-                {cancelMutation.isPending ? "Cancelling…" : "Cancel request"}
+                {cancelMutation.isPending ? "Withdrawing…" : "Withdraw Request"}
               </button>
             </div>
           )}
@@ -456,7 +456,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                     disabled={markDeliveredMutation.isPending}
                     className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
                   >
-                    {markDeliveredMutation.isPending ? "Delivering…" : "Mark as delivered"}
+                    {markDeliveredMutation.isPending ? "Delivering…" : "Submit Delivery"}
                   </button>
                   <button onClick={() => setDeliveryFile(null)} className="text-xs text-gray-400 hover:text-gray-600">Remove</button>
                 </div>
@@ -465,7 +465,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                   <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  <span className="text-sm text-purple-600">{uploadingDelivery ? "Processing…" : "Upload & mark delivered"}</span>
+                  <span className="text-sm text-purple-600">{uploadingDelivery ? "Processing…" : "Upload & Submit Delivery"}</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleDeliveryFileUpload} disabled={uploadingDelivery} />
                 </label>
               )}
@@ -481,7 +481,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                 disabled={confirmDeliveryMutation.isPending}
                 className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
               >
-                {confirmDeliveryMutation.isPending ? "Confirming…" : "Confirm receipt & release payment"}
+                {confirmDeliveryMutation.isPending ? "Confirming…" : "Approve & Release Payment"}
               </button>
             </div>
           )}
@@ -513,7 +513,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
       )}
       {isClosed && (
         <div className="flex-shrink-0 border-t border-gray-100 px-4 py-3 bg-gray-50 text-center">
-          <p className="text-xs text-gray-400">This thread is closed</p>
+          <p className="text-xs text-gray-400">This commission is closed</p>
         </div>
       )}
     </div>

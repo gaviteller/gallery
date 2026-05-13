@@ -140,13 +140,13 @@ export default function Navbar() {
               onClick={() => { setMenuOpen(false); router.push("/professional-profile") }}
               className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              Professional profile
+              Artist Dashboard
             </button>
             <button
               onClick={() => { setMenuOpen(false); router.push("/professional-dms") }}
               className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              Professional DMs
+              Commission Chats
             </button>
 
             <div className="border-t border-gray-100 mx-3 my-1" />
