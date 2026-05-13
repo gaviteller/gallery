@@ -31,13 +31,15 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
           notifications.map((n) => {
             function getNotificationLink(type: string): string {
               if (type === "follow") return `/@${n.fromUser.username}`
-              const [, id] = type.split(":")
+              const [prefix, id] = type.split(":")
+              if (prefix === "dm") return `/messages/${id}`
               return `/professional-dms/${id}`
             }
             function getNotificationText(type: string): string {
               const prefix = type.split(":")[0]
               const map: Record<string, string> = {
                 follow: "started following you",
+                dm: "sent you a message",
                 commission_request: "sent you a commission request",
                 commission_message: "sent you a message",
                 commission_accepted: "accepted your commission request",
