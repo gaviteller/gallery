@@ -173,6 +173,18 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     onSuccess: () => utils.commission.getById.invalidate({ id }),
   })
 
+  // Deadline
+  const [showDeadlinePicker, setShowDeadlinePicker] = useState(false)
+  const [deadlineInput, setDeadlineInput] = useState("")
+
+  const setDeadlineMutation = trpc.commission.setDeadline.useMutation({
+    onSuccess: () => {
+      utils.commission.getById.invalidate({ id })
+      setShowDeadlinePicker(false)
+      setDeadlineInput("")
+    },
+  })
+
   async function handleDeliveryFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -262,6 +274,22 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                       <img key={i} src={p} alt="" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
                     ))}
                   </div>
+                </div>
+              )}
+              {commission.deadline && (
+                <div className="mt-2 pt-2 border-t border-gray-100 flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-xs text-gray-600">
+                    Deadline: <span className="font-semibold">{new Date(commission.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  </p>
+                  {(() => {
+                    const msLeft = new Date(commission.deadline).getTime() - Date.now()
+                    if (msLeft < 0) return <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">Overdue</span>
+                    if (msLeft < 48 * 60 * 60 * 1000) return <span className="text-[10px] font-semibold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full">Due soon</span>
+                    return null
+                  })()}
                 </div>
               )}
             </div>
@@ -494,6 +522,46 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
               >
                 {confirmDeliveryMutation.isPending ? "Confirming…" : "Approve & Release Payment"}
               </button>
+            </div>
+          )}
+
+          {/* Deadline control */}
+          {isArtist && !isClosed && (
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              {showDeadlinePicker ? (
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="date"
+                    value={deadlineInput}
+                    onChange={e => setDeadlineInput(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!deadlineInput) return
+                      setDeadlineMutation.mutate({ id, deadline: new Date(deadlineInput).toISOString() })
+                    }}
+                    disabled={setDeadlineMutation.isPending || !deadlineInput}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {setDeadlineMutation.isPending ? "…" : "Set"}
+                  </button>
+                  <button onClick={() => setShowDeadlinePicker(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (commission.deadline) {
+                      setDeadlineInput(new Date(commission.deadline).toISOString().split("T")[0])
+                    }
+                    setShowDeadlinePicker(true)
+                  }}
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  {commission.deadline ? "Update deadline" : "Set deadline"}
+                </button>
+              )}
             </div>
           )}
 
