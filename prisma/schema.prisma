@@ -78,6 +78,10 @@ model User {
   commissionCategories     CommissionDropdownCategory[]
   sentProfessionalMessages ProfessionalMessage[]        @relation("SentProfessionalMessages")
 
+  conversationsAsA     Conversation[]  @relation("ConversationA")
+  conversationsAsB     Conversation[]  @relation("ConversationB")
+  sentDirectMessages   DirectMessage[] @relation("SentDirectMessages")
+
   accounts              Account[]
   sessions              Session[]
   posts                 Post[]
@@ -242,4 +246,29 @@ model ProfessionalMessage {
   createdAt    DateTime   @default(now())
 
   @@index([commissionId])
+}
+
+model Conversation {
+  id           String          @id @default(cuid())
+  participantA String
+  participantB String
+  userA        User            @relation("ConversationA", fields: [participantA], references: [id], onDelete: Cascade)
+  userB        User            @relation("ConversationB", fields: [participantB], references: [id], onDelete: Cascade)
+  messages     DirectMessage[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([participantA, participantB])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("SentDirectMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  text           String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
 }
