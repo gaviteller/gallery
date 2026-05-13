@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { router, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
+import { sendPushToUser } from "@/lib/sendPush"
 
 export const dmRouter = router({
 
@@ -99,6 +100,20 @@ export const dmRouter = router({
       await ctx.prisma.notification.create({
         data: { userId: otherId, fromUserId: me, type: `dm:${input.conversationId}` },
       })
+
+      // Fire push notification to recipient (non-blocking)
+      const sender = await ctx.prisma.user.findUnique({
+        where: { id: me },
+        select: { username: true, name: true },
+      })
+      const senderName = sender?.username ? `@${sender.username}` : (sender?.name ?? "Someone")
+      const preview = input.text.length > 80 ? input.text.slice(0, 77) + "…" : input.text
+      sendPushToUser(ctx.prisma, otherId, {
+        title: senderName,
+        body: preview,
+        url: `/messages/${input.conversationId}`,
+        tag: `dm-${input.conversationId}`,
+      }).catch(() => {/* ignore push errors */})
 
       return msg
     }),

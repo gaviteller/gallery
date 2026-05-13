@@ -77,10 +77,13 @@ model User {
   artistCommissions        Commission[]                 @relation("ArtistCommissions")
   commissionCategories     CommissionDropdownCategory[]
   sentProfessionalMessages ProfessionalMessage[]        @relation("SentProfessionalMessages")
+  commissionFavorites      CommissionFavorite[]         @relation("UserFavorites")
+  favoritedByUsers         CommissionFavorite[]         @relation("ArtistFavorited")
 
   conversationsAsA     Conversation[]  @relation("ConversationA")
   conversationsAsB     Conversation[]  @relation("ConversationB")
   sentDirectMessages   DirectMessage[] @relation("SentDirectMessages")
+  pushSubscriptions    PushSubscription[]
 
   accounts              Account[]
   sessions              Session[]
@@ -259,6 +262,31 @@ model Conversation {
   updatedAt    DateTime        @updatedAt
 
   @@unique([participantA, participantB])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique @db.Text
+  p256dh    String   @db.Text
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CommissionFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  artistId  String
+  user      User     @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
+  artist    User     @relation("ArtistFavorited", fields: [artistId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, artistId])
+  @@index([userId])
+  @@index([artistId])
 }
 
 model DirectMessage {

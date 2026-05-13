@@ -475,6 +475,173 @@ export const commissionRouter = router({
       return null
     }),
 
+  // ── For You feed + favorites ─────────────────────────────────────────────
+
+  toggleFavorite: protectedProcedure
+    .input(z.object({ artistId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
+      const existing = await ctx.prisma.commissionFavorite.findUnique({
+        where: { userId_artistId: { userId, artistId: input.artistId } },
+      })
+      if (existing) {
+        await ctx.prisma.commissionFavorite.delete({ where: { id: existing.id } })
+        return { favorited: false }
+      }
+      await ctx.prisma.commissionFavorite.create({ data: { userId, artistId: input.artistId } })
+      return { favorited: true }
+    }),
+
+  getForYouFeed: publicProcedure
+    .input(z.object({ cursor: z.number().int().min(0).default(0) }))
+    .query(async ({ ctx, input }) => {
+      const PAGE_SIZE = 8
+      const userId = ctx.session?.user?.id ?? null
+
+      // Gather style preferences from followed artists
+      let preferredStyles: string[] = []
+      let followedIds: string[] = []
+      let favoritedIds: string[] = []
+
+      if (userId) {
+        const [follows, favorites] = await Promise.all([
+          ctx.prisma.follow.findMany({
+            where: { followerId: userId },
+            select: { followingId: true },
+          }),
+          ctx.prisma.commissionFavorite.findMany({
+            where: { userId },
+            select: { artistId: true },
+          }),
+        ])
+        followedIds = follows.map(f => f.followingId)
+        favoritedIds = favorites.map(f => f.artistId)
+
+        if (followedIds.length > 0) {
+          const followedArtists = await ctx.prisma.user.findMany({
+            where: {
+              id: { in: followedIds },
+              sellingEnabled: true,
+              commissionStatus: { in: ["OPEN", "LIMITED"] },
+            },
+            select: { artStyles: true },
+          })
+          const styleSet = new Set<string>()
+          for (const a of followedArtists) a.artStyles.forEach(s => styleSet.add(s))
+          preferredStyles = Array.from(styleSet)
+        }
+      }
+
+      // Fetch candidate pool
+      const pool = await ctx.prisma.user.findMany({
+        where: {
+          commissionStatus: { in: ["OPEN", "LIMITED"] },
+          sellingEnabled: true,
+          username: { not: null },
+          id: { not: userId ?? undefined },
+        },
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+          commissionStatus: true,
+          commissionDescription: true,
+          commissionTurnaround: true,
+          commissionCardImages: true,
+          artStyles: true,
+          priceRanges: true,
+          createdAt: true,
+          posts: {
+            where: { isCommission: true },
+            take: 4,
+            orderBy: { createdAt: "desc" },
+            select: { id: true, image: true },
+          },
+          commissionCategories: {
+            orderBy: { order: "asc" },
+            select: { name: true, options: true },
+          },
+          artistCommissions: {
+            where: { status: "COMPLETE" },
+            select: { id: true },
+          },
+          _count: {
+            select: { favoritedByUsers: true },
+          },
+        },
+        take: 200,
+        orderBy: { createdAt: "desc" },
+      })
+
+      // Score each artist
+      const now = Date.now()
+      const scored = pool.map(artist => {
+        const ageHours = (now - artist.createdAt.getTime()) / 3_600_000
+        const completedCount = artist.artistCommissions.length
+        const favoriteCount = artist._count.favoritedByUsers
+
+        // Recency for new artists (rising star boost)
+        const risingBoost = ageHours < 168 ? 30 * Math.exp(-ageHours / 72) : 0
+
+        // Popularity signal (completions + favorites)
+        const popularity = Math.log1p(completedCount * 2 + favoriteCount) * 12
+
+        // Style match
+        const styleMatch = preferredStyles.length > 0
+          ? artist.artStyles.filter(s => preferredStyles.includes(s)).length * 20
+          : 0
+
+        // Follow boost
+        const followBoost = followedIds.includes(artist.id) ? 60 : 0
+
+        // Favorite boost
+        const favoriteBoost = favoritedIds.includes(artist.id) ? 40 : 0
+
+        // Small random shuffle so feed varies
+        const jitter = Math.random() * 8
+
+        const score = risingBoost + popularity + styleMatch + followBoost + favoriteBoost + jitter
+        return { artist, score }
+      })
+
+      scored.sort((a, b) => b.score - a.score)
+
+      // Beyond what we scored highly, append the rest for end-of-feed
+      const page = scored.slice(input.cursor, input.cursor + PAGE_SIZE)
+      const nextCursor = input.cursor + PAGE_SIZE < scored.length ? input.cursor + PAGE_SIZE : null
+
+      // Build favorited set for this user
+      const returnedIds = page.map(p => p.artist.id)
+      let favoritedSet = new Set<string>()
+      if (userId && returnedIds.length > 0) {
+        const favs = await ctx.prisma.commissionFavorite.findMany({
+          where: { userId, artistId: { in: returnedIds } },
+          select: { artistId: true },
+        })
+        favoritedSet = new Set(favs.map(f => f.artistId))
+      }
+
+      // Build followed set for this user
+      let followedSet = new Set<string>()
+      if (userId && returnedIds.length > 0) {
+        const follows = await ctx.prisma.follow.findMany({
+          where: { followerId: userId, followingId: { in: returnedIds } },
+          select: { followingId: true },
+        })
+        followedSet = new Set(follows.map(f => f.followingId))
+      }
+
+      return {
+        artists: page.map(({ artist }) => ({
+          ...artist,
+          isFavorited: favoritedSet.has(artist.id),
+          isFollowed: followedSet.has(artist.id),
+        })),
+        nextCursor,
+      }
+    }),
+
   // ── Discovery feed ────────────────────────────────────────────────────────
 
   getDiscovery: publicProcedure

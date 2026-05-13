@@ -9,6 +9,7 @@ import { shopRouter } from "./shop"
 import { commissionRouter } from "./commission"
 import { commissionMessageRouter } from "./commissionMessage"
 import { dmRouter } from "./dm"
+import { pushRouter } from "./push"
 
 export const appRouter = router({
   user: userRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   commission: commissionRouter,
   commissionMessage: commissionMessageRouter,
   dm: dmRouter,
+  push: pushRouter,
 })
 
 export type AppRouter = typeof appRouter

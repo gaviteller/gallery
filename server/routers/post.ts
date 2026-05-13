@@ -36,48 +36,83 @@ export const postRouter = router({
     }),
 
   getFeed: publicProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({ cursor: z.number().int().min(0).default(0) }))
+    .query(async ({ ctx, input }) => {
+      const PAGE_SIZE = 12
+      const POOL = 300
+
+      // Pull a large recent pool to rank from
       const posts = await ctx.prisma.post.findMany({
         where: { user: { username: { not: null } } },
         orderBy: { createdAt: "desc" },
-        take: 50,
+        take: POOL,
         include: {
-          user: {
-            select: { id: true, username: true, name: true, image: true },
-          },
+          user: { select: { id: true, username: true, name: true, image: true } },
           _count: { select: { likes: true, comments: true } },
         },
       })
 
-      const currentUserId = ctx.session?.user?.id ?? null
+      const userId = ctx.session?.user?.id ?? null
+      let followingSet = new Set<string>()
+      let likedSet = new Set<string>()
+      let likedArtistSet = new Set<string>()
 
-      if (!currentUserId) {
-        return posts.map((p) => ({ ...p, isFollowing: false, isOwnPost: false, likedByMe: false }))
+      if (userId) {
+        const postIds = posts.map((p) => p.id)
+        const userIds = [...new Set(posts.map((p) => p.userId))]
+
+        const [follows, myLikes, myRecentLikes] = await Promise.all([
+          ctx.prisma.follow.findMany({
+            where: { followerId: userId, followingId: { in: userIds } },
+            select: { followingId: true },
+          }),
+          ctx.prisma.like.findMany({
+            where: { userId, postId: { in: postIds } },
+            select: { postId: true },
+          }),
+          // Which artists has this user liked in the past? (interest graph)
+          ctx.prisma.like.findMany({
+            where: { userId },
+            select: { post: { select: { userId: true } } },
+            orderBy: { createdAt: "desc" },
+            take: 300,
+          }),
+        ])
+
+        followingSet = new Set(follows.map((f) => f.followingId))
+        likedSet = new Set(myLikes.map((l) => l.postId))
+        likedArtistSet = new Set(myRecentLikes.map((l) => l.post.userId))
       }
 
-      const postIds = posts.map((p) => p.id)
-      const userIds = [...new Set(posts.map((p) => p.userId))]
+      // Score every post
+      const now = Date.now()
+      const scored = posts.map((post) => {
+        const ageHours = (now - new Date(post.createdAt).getTime()) / 3_600_000
+        // Recency: 30-point bonus decaying with a 72-hour half-life
+        const recency = 30 * Math.exp(-ageHours / 72)
+        // Engagement: likes + weighted comments, dampened by age
+        const engagement = ((post._count.likes + post._count.comments * 2) / Math.pow(ageHours + 2, 1.1)) * 8
+        // Social signals
+        const followBoost = followingSet.has(post.userId) ? 45 : 0
+        const interestBoost = likedArtistSet.has(post.userId) && !followingSet.has(post.userId) ? 18 : 0
 
-      const [follows, myLikes] = await Promise.all([
-        ctx.prisma.follow.findMany({
-          where: { followerId: currentUserId, followingId: { in: userIds } },
-          select: { followingId: true },
-        }).catch(() => []),
-        ctx.prisma.like.findMany({
-          where: { userId: currentUserId, postId: { in: postIds } },
-          select: { postId: true },
-        }),
-      ])
+        return {
+          ...post,
+          isFollowing: followingSet.has(post.userId),
+          isOwnPost: post.userId === userId,
+          likedByMe: likedSet.has(post.id),
+          _score: recency + engagement + followBoost + interestBoost,
+        }
+      })
 
-      const followingSet = new Set(follows.map((f) => f.followingId))
-      const likedSet = new Set(myLikes.map((l) => l.postId))
+      scored.sort((a, b) => b._score - a._score)
 
-      return posts.map((p) => ({
-        ...p,
-        isFollowing: followingSet.has(p.userId),
-        isOwnPost: p.userId === currentUserId,
-        likedByMe: likedSet.has(p.id),
-      }))
+      const slice = scored.slice(input.cursor, input.cursor + PAGE_SIZE)
+      const nextCursor = input.cursor + PAGE_SIZE < scored.length
+        ? input.cursor + PAGE_SIZE
+        : null
+
+      return { posts: slice, nextCursor }
     }),
 
   getByUsername: publicProcedure

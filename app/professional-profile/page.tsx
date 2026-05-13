@@ -17,7 +17,7 @@ function processImage(file: File): Promise<string> {
       img.onerror = () => reject(new Error("Failed to load image"))
       img.onload = () => {
         let { width, height } = img
-        const maxSize = 1200
+        const maxSize = 600 // cards are small — 600px is plenty, keeps base64 size tiny
         if (width > maxSize || height > maxSize) {
           if (width > height) { height = Math.round((height * maxSize) / width); width = maxSize }
           else { width = Math.round((width * maxSize) / height); height = maxSize }
@@ -27,7 +27,7 @@ function processImage(file: File): Promise<string> {
         const ctx = canvas.getContext("2d")
         if (!ctx) { reject(new Error("Canvas not available")); return }
         ctx.drawImage(img, 0, 0, width, height)
-        resolve(canvas.toDataURL("image/jpeg", 0.85))
+        resolve(canvas.toDataURL("image/jpeg", 0.75))
       }
       img.src = e.target?.result as string
     }
@@ -47,8 +47,8 @@ export default function ProfessionalProfilePage() {
 
   if (status === "unauthenticated" || status === "loading" || !session?.user?.username) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+        <p className="text-white/50">Loading…</p>
       </div>
     )
   }
@@ -73,6 +73,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   const [cardImages, setCardImages] = useState<string[]>([])
   const [uploadingCard, setUploadingCard] = useState(false)
   const [cardUploadError, setCardUploadError] = useState("")
+  const [cardImagesSaved, setCardImagesSaved] = useState(false)
   const [artStyles, setArtStyles] = useState<string[]>([])
   const [artStyleInput, setArtStyleInput] = useState("")
 
@@ -113,6 +114,25 @@ function ProfessionalProfileInner({ username }: { username: string }) {
     },
   })
 
+  // Separate mutation for card images so it doesn't bundle large base64 with other settings
+  const saveCardImages = trpc.commission.updateProfile.useMutation({
+    onSuccess: () => {
+      utils.commission.getProfile.invalidate({ username })
+      setCardImagesSaved(true)
+      setTimeout(() => setCardImagesSaved(false), 2000)
+    },
+    onError: () => {
+      setCardUploadError("Failed to save images. Please try again.")
+    },
+  })
+
+  function doSaveCardImages(images: string[]) {
+    saveCardImages.mutate({
+      commissionStatus: status,
+      commissionCardImages: images,
+    })
+  }
+
   const createCategory = trpc.commission.createCategory.useMutation({
     onSuccess: () => {
       utils.commission.getCategories.invalidate({ username })
@@ -146,7 +166,8 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   }
 
   function saveSettings() {
-    updateProfile.mutate({ commissionStatus: status, commissionDescription: description, commissionTurnaround: turnaround, priceRanges, commissionCardImages: cardImages, artStyles })
+    // Card images save separately — don't bundle large base64 here
+    updateProfile.mutate({ commissionStatus: status, commissionDescription: description, commissionTurnaround: turnaround, priceRanges, artStyles })
   }
 
   async function handleCardImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -160,12 +181,20 @@ function ProfessionalProfileInner({ username }: { username: string }) {
     setUploadingCard(true)
     try {
       const processed = await Promise.all(files.map(processImage))
-      setCardImages(prev => [...prev, ...processed].slice(0, 5))
+      const next = [...cardImages, ...processed].slice(0, 5)
+      setCardImages(next)
+      doSaveCardImages(next) // auto-save immediately after upload
     } catch {
       setCardUploadError("Failed to process image. Please try a different file.")
     } finally {
       setUploadingCard(false)
     }
+  }
+
+  function removeCardImage(i: number) {
+    const next = cardImages.filter((_, idx) => idx !== i)
+    setCardImages(next)
+    doSaveCardImages(next) // auto-save immediately after removal
   }
 
   function startEditCat(id: string, name: string, options: string[]) {
@@ -204,38 +233,38 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   }
 
   const statusColors = {
-    OPEN: "bg-green-100 text-green-700 border-green-200",
-    LIMITED: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    CLOSED: "bg-gray-100 text-gray-600 border-gray-200",
+    OPEN: "bg-green-500/20 text-green-400 border-green-500/30",
+    LIMITED: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    CLOSED: "bg-white/10 text-white/30 border-white/15",
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+        <p className="text-white/50">Loading…</p>
       </div>
     )
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Artist Dashboard</h1>
-      <p className="text-sm text-gray-500 mb-8">Manage your commission settings and track your business.</p>
+      <h1 className="text-2xl font-bold text-white mb-1">Artist Dashboard</h1>
+      <p className="text-sm text-white/50 mb-8">Manage your commission settings and track your business.</p>
 
       {/* ── Active Commissions ── */}
       {myCommissions?.asArtist && myCommissions.asArtist.filter(c => !["COMPLETE","DECLINED","CANCELLED"].includes(c.status)).length > 0 && (
-        <section className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-6">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Active Commissions</h2>
+        <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+          <div className="px-6 py-4" style={{ borderBottom: "1px solid #ffffff10" }}>
+            <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide">Active Commissions</h2>
           </div>
           {myCommissions.asArtist
             .filter(c => !["COMPLETE","DECLINED","CANCELLED"].includes(c.status))
             .map(c => {
-              const statusColors: Record<string, string> = {
-                PENDING: "bg-yellow-100 text-yellow-700",
-                ACCEPTED: "bg-blue-100 text-blue-700",
-                IN_PROGRESS: "bg-blue-100 text-blue-700",
-                DELIVERED: "bg-purple-100 text-purple-700",
+              const commissionStatusColors: Record<string, string> = {
+                PENDING: "bg-yellow-500/20 text-yellow-400",
+                ACCEPTED: "bg-blue-500/20 text-blue-400",
+                IN_PROGRESS: "bg-blue-500/20 text-blue-400",
+                DELIVERED: "bg-purple-500/20 text-purple-400",
               }
               const statusLabels: Record<string, string> = {
                 PENDING: "Pending",
@@ -247,17 +276,18 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                 <a
                   key={c.id}
                   href={`/professional-dms/${c.id}`}
-                  className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                  className="flex items-center gap-3 px-6 py-3.5 hover:bg-white/5 transition-colors last:border-0"
+                  style={{ borderBottom: "1px solid #ffffff08" }}
                 >
                   <Avatar src={c.buyer?.image} name={c.buyer?.name} username={c.buyer?.username} size={36} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">@{c.buyer?.username ?? "unknown"}</p>
-                    <p className="text-xs text-gray-400 truncate mt-0.5">{c.description}</p>
+                    <p className="text-sm font-semibold text-white truncate">@{c.buyer?.username ?? "unknown"}</p>
+                    <p className="text-xs text-white/40 truncate mt-0.5">{c.description}</p>
                   </div>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${statusColors[c.status] ?? "bg-gray-100 text-gray-500"}`}>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${commissionStatusColors[c.status] ?? "bg-white/10 text-white/40"}`}>
                     {statusLabels[c.status] ?? c.status}
                   </span>
-                  <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-white/30 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </a>
@@ -267,39 +297,40 @@ function ProfessionalProfileInner({ username }: { username: string }) {
       )}
 
       {/* ── Business Overview ── */}
-      <section className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Business Overview</h2>
+      <section className="rounded-2xl p-6 mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+        <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide mb-4">Business Overview</h2>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{stats?.activeCount ?? 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Active commissions</p>
+            <p className="text-2xl font-bold text-white">{stats?.activeCount ?? 0}</p>
+            <p className="text-xs text-white/50 mt-1">Active commissions</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">${(stats?.escrowHeld ?? 0).toFixed(2)}</p>
-            <p className="text-xs text-gray-500 mt-1">In escrow</p>
+            <p className="text-2xl font-bold text-white">${(stats?.escrowHeld ?? 0).toFixed(2)}</p>
+            <p className="text-xs text-white/50 mt-1">In escrow</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">${(stats?.totalEarned ?? 0).toFixed(2)}</p>
-            <p className="text-xs text-gray-500 mt-1">Total earned</p>
+            <p className="text-2xl font-bold text-white">${(stats?.totalEarned ?? 0).toFixed(2)}</p>
+            <p className="text-xs text-white/50 mt-1">Total earned</p>
           </div>
         </div>
       </section>
 
       {/* ── Commission Settings ── */}
-      <section className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Commission Settings</h2>
+      <section className="rounded-2xl p-6 mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+        <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide mb-4">Commission Settings</h2>
 
         {/* Status */}
         <div className="mb-4">
-          <label className="text-xs font-semibold text-gray-600 block mb-2">Status</label>
+          <label className="text-xs font-semibold text-white/60 block mb-2">Status</label>
           <div className="flex gap-2">
             {(["OPEN", "LIMITED", "CLOSED"] as const).map(s => (
               <button
                 key={s}
                 onClick={() => setStatus(s)}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                  status === s ? statusColors[s] : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
+                  status === s ? statusColors[s] : "bg-white/5 text-white/40 hover:bg-white/10"
                 }`}
+                style={status !== s ? { borderColor: "#ffffff10" } : undefined}
               >
                 {s === "OPEN" ? "Open" : s === "LIMITED" ? "Limited" : "Closed"}
               </button>
@@ -309,41 +340,43 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
         {/* Description */}
         <div className="mb-4">
-          <label className="text-xs font-semibold text-gray-600 block mb-2">Description</label>
+          <label className="text-xs font-semibold text-white/60 block mb-2">Description</label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="Tell buyers what you offer, your style, any terms…"
             rows={4}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 resize-none"
+            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
           />
         </div>
 
         {/* Turnaround */}
         <div className="mb-6">
-          <label className="text-xs font-semibold text-gray-600 block mb-2">Turnaround time</label>
+          <label className="text-xs font-semibold text-white/60 block mb-2">Turnaround time</label>
           <input
             type="text"
             value={turnaround}
             onChange={e => setTurnaround(e.target.value)}
             placeholder="e.g. 1–2 weeks"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
           />
         </div>
 
         {/* Price ranges */}
         <div className="mb-4">
-          <label className="text-xs font-semibold text-gray-600 block mb-2">Price ranges</label>
+          <label className="text-xs font-semibold text-white/60 block mb-2">Price ranges</label>
           {priceRanges.length > 0 && (
             <div className="flex flex-col gap-2 mb-3">
               {priceRanges.map((r, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
-                  <span className="text-sm text-gray-700">{r.label}</span>
+                <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: "#ffffff10", border: "1px solid #ffffff10" }}>
+                  <span className="text-sm text-white/70">{r.label}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-900">${r.price}</span>
+                    <span className="text-sm font-semibold text-white">${r.price}</span>
                     <button
                       onClick={() => removePriceRange(i)}
-                      className="text-gray-400 hover:text-red-500 transition-colors text-xs"
+                      className="text-white/40 hover:text-red-500 transition-colors text-xs"
                     >
                       Remove
                     </button>
@@ -358,7 +391,8 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               value={newRangeLabel}
               onChange={e => setNewRangeLabel(e.target.value)}
               placeholder="Label (e.g. Bust)"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
             />
             <input
               type="number"
@@ -366,11 +400,13 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               onChange={e => setNewRangePrice(e.target.value)}
               placeholder="Price ($)"
               min="0"
-              className="w-28 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-28 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
             />
             <button
               onClick={addPriceRange}
-              className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 text-white rounded-xl text-sm font-medium transition-colors"
+              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
             >
               Add
             </button>
@@ -378,17 +414,21 @@ function ProfessionalProfileInner({ username }: { username: string }) {
         </div>
 
         {/* ── Commission Card Images ── */}
-        <div className="mt-6 pt-6 border-t border-gray-100">
-          <h3 className="text-sm font-bold text-gray-700 mb-1">Commission Card Images</h3>
-          <p className="text-xs text-gray-400 mb-3">Up to 5 images shown on your commission card in the discovery feed. Separate from your portfolio.</p>
+        <div className="mt-6 pt-6" style={{ borderTop: "1px solid #ffffff10" }}>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-sm font-bold text-white/70">Commission Card Images</h3>
+            {saveCardImages.isPending && <span className="text-xs text-white/40">Saving…</span>}
+            {cardImagesSaved && !saveCardImages.isPending && <span className="text-xs text-green-400 font-medium">✓ Saved</span>}
+          </div>
+          <p className="text-xs text-white/40 mb-3">Up to 5 images shown on your commission card in the discovery feed. Separate from your portfolio.</p>
 
           {cardImages.length > 0 && (
             <div className="flex gap-2 flex-wrap mb-3">
               {cardImages.map((img, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0" style={{ border: "1px solid #ffffff10" }}>
                   <img src={img} alt="" className="w-full h-full object-cover" />
                   <button
-                    onClick={() => setCardImages(prev => prev.filter((_, idx) => idx !== i))}
+                    onClick={() => removeCardImage(i)}
                     className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center text-xs hover:bg-black/80 transition-colors"
                   >
                     ×
@@ -401,27 +441,27 @@ function ProfessionalProfileInner({ username }: { username: string }) {
           {cardUploadError && <p className="text-xs text-red-500 mb-2">{cardUploadError}</p>}
 
           {cardImages.length < 5 && (
-            <label className="flex items-center gap-2 cursor-pointer px-4 py-3 border border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 transition-colors">
-              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <label className="flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl hover:bg-white/5 transition-colors" style={{ border: "1px dashed #ffffff30" }}>
+              <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="text-sm text-gray-500">{uploadingCard ? "Processing…" : `Add image (${cardImages.length}/5)`}</span>
+              <span className="text-sm text-white/50">{uploadingCard ? "Processing…" : `Add image (${cardImages.length}/5)`}</span>
               <input type="file" accept="image/*" multiple className="hidden" onChange={handleCardImageUpload} disabled={uploadingCard} />
             </label>
           )}
         </div>
 
         {/* ── Art Styles ── */}
-        <div className="mt-6 pt-6 border-t border-gray-100">
-          <h3 className="text-sm font-bold text-gray-700 mb-1">Art Styles</h3>
-          <p className="text-xs text-gray-400 mb-3">Tags shown on your commission card to help buyers find you (e.g. Anime, Realistic, Chibi).</p>
+        <div className="mt-6 pt-6" style={{ borderTop: "1px solid #ffffff10" }}>
+          <h3 className="text-sm font-bold text-white/70 mb-1">Art Styles</h3>
+          <p className="text-xs text-white/40 mb-3">Tags shown on your commission card to help buyers find you (e.g. Anime, Realistic, Chibi).</p>
 
           {artStyles.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {artStyles.map(s => (
-                <span key={s} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                <span key={s} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(176, 68, 248, 0.15)", color: "#d580ff", border: "1px solid rgba(176, 68, 248, 0.3)" }}>
                   {s}
-                  <button type="button" onClick={() => setArtStyles(prev => prev.filter(x => x !== s))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
+                  <button type="button" onClick={() => setArtStyles(prev => prev.filter(x => x !== s))} className="ml-0.5 opacity-70 hover:opacity-100">×</button>
                 </span>
               ))}
             </div>
@@ -443,7 +483,8 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                 }
               }}
               placeholder="Type a style, press Enter…"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
             />
             <button
               type="button"
@@ -454,7 +495,8 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                   setArtStyleInput("")
                 }
               }}
-              className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors"
+              className="px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:bg-white/10 transition-colors"
+              style={{ background: "#ffffff10" }}
             >
               Add
             </button>
@@ -464,35 +506,37 @@ function ProfessionalProfileInner({ username }: { username: string }) {
         <button
           onClick={saveSettings}
           disabled={updateProfile.isPending}
-          className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="w-full mt-6 text-white py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
         >
           {updateProfile.isPending ? "Saving…" : settingsSaved ? "✓ Saved" : "Save settings"}
         </button>
       </section>
 
       {/* ── Dropdown Categories ── */}
-      <section className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">Commission Form Options</h2>
-        <p className="text-xs text-gray-400 mb-4">These dropdowns appear on your commission request form. Each is mandatory for buyers.</p>
+      <section className="rounded-2xl p-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+        <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide mb-1">Commission Form Options</h2>
+        <p className="text-xs text-white/40 mb-4">These dropdowns appear on your commission request form. Each is mandatory for buyers.</p>
 
         {categories && categories.length > 0 && (
           <div className="flex flex-col gap-3 mb-4">
             {categories.map(cat => (
-              <div key={cat.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+              <div key={cat.id} className="rounded-xl p-4" style={{ background: "#ffffff08", border: "1px solid #ffffff10" }}>
                 {editingCat === cat.id ? (
                   <div className="flex flex-col gap-2">
                     <input
                       value={editCatName}
                       onChange={e => setEditCatName(e.target.value)}
-                      className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                      style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
                       placeholder="Category name"
                     />
                     {editCatOptionsList.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {editCatOptionsList.map(opt => (
-                          <span key={opt} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                          <span key={opt} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(176, 68, 248, 0.15)", color: "#d580ff", border: "1px solid rgba(176, 68, 248, 0.3)" }}>
                             {opt}
-                            <button type="button" onClick={() => setEditCatOptionsList(prev => prev.filter(o => o !== opt))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
+                            <button type="button" onClick={() => setEditCatOptionsList(prev => prev.filter(o => o !== opt))} className="ml-0.5 opacity-70 hover:opacity-100">×</button>
                           </span>
                         ))}
                       </div>
@@ -502,21 +546,31 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                         value={editCatOptionInput}
                         onChange={e => setEditCatOptionInput(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEditChip() } }}
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+                        style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
                         placeholder="Add option, press Enter"
                       />
-                      <button type="button" onClick={addEditChip} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors">Add</button>
+                      <button
+                        type="button"
+                        onClick={addEditChip}
+                        className="px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:bg-white/10 transition-colors"
+                        style={{ background: "#ffffff10" }}
+                      >
+                        Add
+                      </button>
                     </div>
                     <div className="flex gap-2 pt-1">
                       <button
                         onClick={() => saveEditCat(cat.id)}
-                        className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition-colors"
+                        className="flex-1 px-3 py-2 text-white rounded-xl text-xs font-semibold transition-opacity"
+                        style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
                       >
                         Save
                       </button>
                       <button
                         onClick={() => setEditingCat(null)}
-                        className="px-3 py-2 border border-gray-200 rounded-xl text-xs text-gray-500 hover:bg-gray-100 transition-colors"
+                        className="px-3 py-2 rounded-xl text-xs text-white/50 hover:bg-white/5 transition-colors"
+                        style={{ border: "1px solid #ffffff10" }}
                       >
                         Cancel
                       </button>
@@ -525,23 +579,23 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                 ) : (
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 mb-1.5">{cat.name}</p>
+                      <p className="text-sm font-semibold text-white mb-1.5">{cat.name}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {cat.options.map(opt => (
-                          <span key={opt} className="text-xs bg-white border border-gray-200 text-gray-600 px-2.5 py-0.5 rounded-full">{opt}</span>
+                          <span key={opt} className="text-xs text-white/60 px-2.5 py-0.5 rounded-full" style={{ background: "#ffffff10", border: "1px solid #ffffff10" }}>{opt}</span>
                         ))}
                       </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={() => startEditCat(cat.id, cat.name, cat.options)}
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-white/50 hover:text-white transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => deleteCategory.mutate({ id: cat.id })}
-                        className="text-xs text-red-500 hover:underline"
+                        className="text-xs text-red-500 hover:text-red-400 transition-colors"
                       >
                         Delete
                       </button>
@@ -554,21 +608,22 @@ function ProfessionalProfileInner({ username }: { username: string }) {
         )}
 
         {/* Add new category */}
-        <div className="flex flex-col gap-2 pt-3 border-t border-gray-100">
-          <p className="text-xs font-semibold text-gray-600">Add a category</p>
+        <div className="flex flex-col gap-2 pt-3" style={{ borderTop: "1px solid #ffffff10" }}>
+          <p className="text-xs font-semibold text-white/60">Add a category</p>
           <input
             type="text"
             value={newCatName}
             onChange={e => setNewCatName(e.target.value)}
             placeholder="Category name (e.g. Art Style)"
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
           />
           {newCatOptionsList.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {newCatOptionsList.map(opt => (
-                <span key={opt} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                <span key={opt} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(176, 68, 248, 0.15)", color: "#d580ff", border: "1px solid rgba(176, 68, 248, 0.3)" }}>
                   {opt}
-                  <button type="button" onClick={() => setNewCatOptionsList(prev => prev.filter(o => o !== opt))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
+                  <button type="button" onClick={() => setNewCatOptionsList(prev => prev.filter(o => o !== opt))} className="ml-0.5 opacity-70 hover:opacity-100">×</button>
                 </span>
               ))}
             </div>
@@ -580,14 +635,23 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               onChange={e => setNewCatOptionInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addNewChip() } }}
               placeholder="Add option, press Enter (e.g. Anime)"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
+              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
             />
-            <button type="button" onClick={addNewChip} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors">Add</button>
+            <button
+              type="button"
+              onClick={addNewChip}
+              className="px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:bg-white/10 transition-colors"
+              style={{ background: "#ffffff10" }}
+            >
+              Add
+            </button>
           </div>
           <button
             onClick={addCategory}
             disabled={createCategory.isPending || !newCatName.trim() || newCatOptionsList.length === 0}
-            className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-40"
+            className="px-4 py-2 text-white rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40"
+            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
           >
             {createCategory.isPending ? "Adding…" : "Save category"}
           </button>

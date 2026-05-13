@@ -69,8 +69,8 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
   return (
     <div className="max-w-lg mx-auto flex flex-col h-screen pb-16">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">
-        <button onClick={() => router.push("/messages")} className="text-gray-400 hover:text-gray-600 p-1">
+      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid #ffffff10", background: "#0D0D0F" }}>
+        <button onClick={() => router.push("/messages")} className="text-white/40 hover:text-white p-1 transition-colors">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -81,7 +81,7 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
             className="flex items-center gap-2 flex-1 min-w-0"
           >
             <Avatar src={convo.other.image} name={convo.other.name} username={convo.other.username} size={32} />
-            <p className="text-sm font-semibold text-gray-900 truncate">@{convo.other.username}</p>
+            <p className="text-sm font-semibold text-white truncate">@{convo.other.username}</p>
           </button>
         )}
       </div>
@@ -99,11 +99,11 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
                 <div className={`px-4 py-2.5 rounded-2xl text-sm ${
                   isMe
                     ? "bg-blue-600 text-white rounded-tr-sm"
-                    : "bg-gray-100 text-gray-800 rounded-tl-sm"
-                }`}>
+                    : "rounded-tl-sm text-white"
+                }`} style={!isMe ? { background: "#1a1a2e" } : {}}>
                   {msg.text}
                 </div>
-                <p className="text-[10px] text-gray-400 px-1">{timeAgo(msg.createdAt)}</p>
+                <p className="text-[10px] text-white/30 px-1">{timeAgo(msg.createdAt)}</p>
               </div>
             </div>
           )
@@ -112,14 +112,15 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 border-t border-gray-100 px-4 py-3 bg-white flex gap-2 items-end">
+      <div className="flex-shrink-0 px-4 py-3 flex gap-2 items-end" style={{ borderTop: "1px solid #ffffff10", background: "#0D0D0F" }}>
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
           placeholder="Message…"
           rows={1}
-          className="flex-1 px-4 py-3 bg-gray-100 rounded-2xl text-sm text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 resize-none max-h-32"
+          className="flex-1 px-4 py-3 rounded-2xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 resize-none max-h-32"
+          style={{ background: "#ffffff10" }}
         />
         <button
           onClick={handleSend}

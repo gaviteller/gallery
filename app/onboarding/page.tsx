@@ -23,51 +23,56 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#0D0D0F" }}>
+      <div className="w-full max-w-lg rounded-2xl p-8" style={{ background: "#1a1a2e", border: "1px solid #ffffff15" }}>
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-white">
             Welcome{session?.user?.username ? `, @${session.user.username}` : ""}
           </h1>
-          <p className="text-gray-500 mt-2">One quick question before we get started</p>
+          <p className="text-white/50 mt-2">One quick question before we get started</p>
         </div>
 
-        <p className="text-center text-gray-700 font-medium mb-6">
+        <p className="text-center text-white/80 font-medium mb-6">
           Do you want to sell art or take commissions?
         </p>
 
         <div className="grid grid-cols-2 gap-4 mb-8">
           <button
             onClick={() => setSelected(true)}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${
-              selected === true ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-            }`}
+            className="p-6 rounded-xl text-left transition-all"
+            style={{
+              border: selected === true ? "2px solid #B044F8" : "2px solid #ffffff15",
+              background: selected === true ? "rgba(176,68,248,0.1)" : "transparent",
+            }}
           >
             <div className="text-2xl mb-2">🎨</div>
-            <div className="font-semibold text-gray-900">Yes</div>
-            <div className="text-sm text-gray-500 mt-1">Enable shop and commission features</div>
+            <div className="font-semibold text-white">Yes</div>
+            <div className="text-sm text-white/50 mt-1">Enable shop and commission features</div>
           </button>
 
           <button
             onClick={() => setSelected(false)}
-            className={`p-6 rounded-xl border-2 text-left transition-all ${
-              selected === false ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-            }`}
+            className="p-6 rounded-xl text-left transition-all"
+            style={{
+              border: selected === false ? "2px solid #B044F8" : "2px solid #ffffff15",
+              background: selected === false ? "rgba(176,68,248,0.1)" : "transparent",
+            }}
           >
             <div className="text-2xl mb-2">🖼️</div>
-            <div className="font-semibold text-gray-900">Not yet</div>
-            <div className="text-sm text-gray-500 mt-1">Just browsing — enable this later in Settings</div>
+            <div className="font-semibold text-white">Not yet</div>
+            <div className="text-sm text-white/50 mt-1">Just browsing — enable this later in Settings</div>
           </button>
         </div>
 
         {completeOnboarding.error && (
-          <p className="text-sm text-red-500 text-center mb-4">{completeOnboarding.error.message}</p>
+          <p className="text-sm text-red-400 text-center mb-4">{completeOnboarding.error.message}</p>
         )}
 
         <button
           onClick={handleContinue}
           disabled={selected === null || completeOnboarding.isPending}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 rounded-xl font-medium text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
         >
           {completeOnboarding.isPending ? "Setting up your account..." : "Continue"}
         </button>

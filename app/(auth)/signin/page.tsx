@@ -4,6 +4,7 @@ import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 
 function SignInForm() {
   const searchParams = useSearchParams()
@@ -29,17 +30,18 @@ function SignInForm() {
         window.location.href = "/"
       }
     } catch {
-      // NextAuth v4 + Next.js 16 may throw on the internal session fetch,
-      // but the auth cookie is already set server-side — navigate anyway.
       window.location.href = callbackUrl
     }
   }
 
   return (
     <div className="space-y-3">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Gallery</h1>
+      {/* Card */}
+      <div className="rounded-2xl border border-white/10 p-8" style={{ background: "#1a1a2e" }}>
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <Image src="/logo.png" alt="Gallery" width={100} height={100} className="mb-3" />
+          <p className="text-white/50 text-sm">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -49,7 +51,8 @@ function SignInForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
           />
           <input
             type="password"
@@ -57,29 +60,32 @@ function SignInForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
           />
 
-          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+          {error && <p className="text-sm text-red-400 text-center">{error}</p>}
 
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
           >
-            {loading ? "Logging in..." : "Log in"}
+            {loading ? "Logging in…" : "Log in"}
           </button>
         </form>
 
         <p className="text-center mt-4">
-          <a href="#" className="text-xs text-blue-600 hover:underline">Forgot password?</a>
+          <a href="#" className="text-xs text-white/40 hover:text-white/70 transition">Forgot password?</a>
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 text-center">
-        <p className="text-sm text-gray-600">
+      {/* Sign up link */}
+      <div className="rounded-2xl border border-white/10 p-5 text-center" style={{ background: "#1a1a2e" }}>
+        <p className="text-sm text-white/50">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-blue-600 font-semibold hover:underline">
+          <Link href="/signup" className="font-semibold text-white hover:opacity-80 transition">
             Sign up
           </Link>
         </p>
