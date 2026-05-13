@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { trpc } from "@/components/providers"
@@ -52,7 +52,12 @@ function ArtistCard({
   const router = useRouter()
   const { data: session } = useSession()
   const [imgIndex, setImgIndex] = useState(0)
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+  const didSwipe = useRef(false)
+
   function handleCardClick() {
+    if (didSwipe.current) { didSwipe.current = false; return }
     router.push(`/@${artist.username}?tab=Commissions`)
   }
 
@@ -62,6 +67,29 @@ function ArtistCard({
     onRequest(artist)
   }
 
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+    didSwipe.current = false
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = e.changedTouches[0].clientY - touchStartY.current
+    // Horizontal swipe: must be >30px and more horizontal than vertical
+    if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+      didSwipe.current = true
+      if (dx < 0) {
+        setImgIndex(i => (i + 1) % images.length)
+      } else {
+        setImgIndex(i => (i - 1 + images.length) % images.length)
+      }
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
   const images: string[] =
     artist.commissionCardImages.length > 0
       ? artist.commissionCardImages
@@ -69,35 +97,32 @@ function ArtistCard({
 
   return (
     <div onClick={handleCardClick} className="cursor-pointer bg-white overflow-hidden">
-      <div className="aspect-square bg-gray-100 overflow-hidden relative">
+      <div
+        className="aspect-square bg-gray-100 overflow-hidden relative select-none"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {images.length === 0 ? (
           <div className="w-full h-full flex items-center justify-center">
             <p className="text-xs text-gray-400">No examples</p>
           </div>
         ) : (
           <>
-            <img src={images[imgIndex]} alt="" className="w-full h-full object-cover" />
+            <img
+              src={images[imgIndex]}
+              alt=""
+              className="w-full h-full object-cover pointer-events-none"
+              draggable={false}
+            />
             {images.length > 1 && (
-              <>
-                <button
-                  onClick={e => { e.stopPropagation(); setImgIndex(i => (i - 1 + images.length) % images.length) }}
-                  className="absolute left-0 top-0 h-full w-1/3"
-                  aria-label="Previous"
-                />
-                <button
-                  onClick={e => { e.stopPropagation(); setImgIndex(i => (i + 1) % images.length) }}
-                  className="absolute right-0 top-0 h-full w-1/3"
-                  aria-label="Next"
-                />
-                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-                  {images.map((_, i) => (
-                    <span
-                      key={i}
-                      className={`block w-1.5 h-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`}
-                    />
-                  ))}
-                </div>
-              </>
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                {images.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`block w-1.5 h-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`}
+                  />
+                ))}
+              </div>
             )}
           </>
         )}
