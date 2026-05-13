@@ -18,6 +18,8 @@ type DiscoveryUser = {
   priceRanges: { label: string; price: number }[] | null
   posts: { id: string; image: string }[]
   commissionCategories: { name: string; options: string[] }[]
+  commissionCardImages: string[]
+  artStyles: string[]
 }
 
 type SortBy = "default" | "top" | "new" | "affordable"
@@ -49,6 +51,7 @@ function ArtistCard({
 }) {
   const router = useRouter()
   const { data: session } = useSession()
+  const [imgIndex, setImgIndex] = useState(0)
   function handleCardClick() {
     router.push(`/@${artist.username}?tab=Commissions`)
   }
@@ -59,24 +62,44 @@ function ArtistCard({
     onRequest(artist)
   }
 
-  const photos = artist.posts.slice(0, 4)
+  const images: string[] =
+    artist.commissionCardImages.length > 0
+      ? artist.commissionCardImages
+      : artist.posts.map(p => p.image)
 
   return (
     <div onClick={handleCardClick} className="cursor-pointer bg-white overflow-hidden">
-      {/* Square image grid */}
-      <div className="aspect-square bg-gray-100 overflow-hidden">
-        {photos.length === 0 ? (
+      <div className="aspect-square bg-gray-100 overflow-hidden relative">
+        {images.length === 0 ? (
           <div className="w-full h-full flex items-center justify-center">
             <p className="text-xs text-gray-400">No examples</p>
           </div>
-        ) : photos.length === 1 ? (
-          <img src={photos[0].image} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className={`w-full h-full grid gap-px ${photos.length >= 4 ? "grid-cols-2 grid-rows-2" : "grid-cols-2"}`}>
-            {photos.slice(0, 4).map((p) => (
-              <img key={p.id} src={p.image} alt="" className="w-full h-full object-cover" />
-            ))}
-          </div>
+          <>
+            <img src={images[imgIndex]} alt="" className="w-full h-full object-cover" />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={e => { e.stopPropagation(); setImgIndex(i => (i - 1 + images.length) % images.length) }}
+                  className="absolute left-0 top-0 h-full w-1/3"
+                  aria-label="Previous"
+                />
+                <button
+                  onClick={e => { e.stopPropagation(); setImgIndex(i => (i + 1) % images.length) }}
+                  className="absolute right-0 top-0 h-full w-1/3"
+                  aria-label="Next"
+                />
+                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                  {images.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`block w-1.5 h-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
 
@@ -92,6 +115,16 @@ function ArtistCard({
         <p className="text-[10px] text-gray-400 mb-2">
           {avgPrice(artist.priceRanges)}{artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
         </p>
+        {artist.artStyles.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {artist.artStyles.slice(0, 3).map(s => (
+              <span key={s} className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{s}</span>
+            ))}
+            {artist.artStyles.length > 3 && (
+              <span className="text-[9px] text-gray-400">+{artist.artStyles.length - 3}</span>
+            )}
+          </div>
+        )}
         <button
           onClick={handleRequest}
           className="w-full py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
