@@ -69,6 +69,8 @@ model User {
 
   commissionDescription    String?                      @db.Text
   commissionTurnaround     String?
+  commissionCardImages     String[]                     @default([])
+  artStyles                String[]                     @default([])
   priceRanges              Json?
 
   buyerCommissions         Commission[]                 @relation("BuyerCommissions")

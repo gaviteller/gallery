@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "commissionCardImages" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "User" ADD COLUMN "artStyles" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
