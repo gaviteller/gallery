@@ -8,6 +8,7 @@ import { hashtagRouter } from "./hashtag"
 import { shopRouter } from "./shop"
 import { commissionRouter } from "./commission"
 import { commissionMessageRouter } from "./commissionMessage"
+import { dmRouter } from "./dm"
 
 export const appRouter = router({
   user: userRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   shop: shopRouter,
   commission: commissionRouter,
   commissionMessage: commissionMessageRouter,
+  dm: dmRouter,
 })
 
 export type AppRouter = typeof appRouter
