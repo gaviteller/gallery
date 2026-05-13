@@ -8,6 +8,33 @@ import Avatar from "@/components/Avatar"
 
 type PriceRange = { label: string; price: number }
 
+function processImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error("Failed to read file"))
+    reader.onload = (e) => {
+      const img = new window.Image()
+      img.onerror = () => reject(new Error("Failed to load image"))
+      img.onload = () => {
+        let { width, height } = img
+        const maxSize = 1200
+        if (width > maxSize || height > maxSize) {
+          if (width > height) { height = Math.round((height * maxSize) / width); width = maxSize }
+          else { width = Math.round((width * maxSize) / height); height = maxSize }
+        }
+        const canvas = document.createElement("canvas")
+        canvas.width = width; canvas.height = height
+        const ctx = canvas.getContext("2d")
+        if (!ctx) { reject(new Error("Canvas not available")); return }
+        ctx.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL("image/jpeg", 0.85))
+      }
+      img.src = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function ProfessionalProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -43,6 +70,11 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   const [priceRanges, setPriceRanges] = useState<PriceRange[]>([])
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [cardImages, setCardImages] = useState<string[]>([])
+  const [uploadingCard, setUploadingCard] = useState(false)
+  const [cardUploadError, setCardUploadError] = useState("")
+  const [artStyles, setArtStyles] = useState<string[]>([])
+  const [artStyleInput, setArtStyleInput] = useState("")
 
   // Initialize form from loaded profile
   useEffect(() => {
@@ -51,6 +83,8 @@ function ProfessionalProfileInner({ username }: { username: string }) {
       setDescription(profile.commissionDescription ?? "")
       setTurnaround(profile.commissionTurnaround ?? "")
       setPriceRanges((profile.priceRanges as PriceRange[]) ?? [])
+      setCardImages((profile.commissionCardImages as string[]) ?? [])
+      setArtStyles((profile.artStyles as string[]) ?? [])
       setInitialized(true)
     }
   }, [profile, initialized])
@@ -112,7 +146,26 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   }
 
   function saveSettings() {
-    updateProfile.mutate({ commissionStatus: status, commissionDescription: description, commissionTurnaround: turnaround, priceRanges })
+    updateProfile.mutate({ commissionStatus: status, commissionDescription: description, commissionTurnaround: turnaround, priceRanges, commissionCardImages: cardImages, artStyles })
+  }
+
+  async function handleCardImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
+    if (cardImages.length + files.length > 5) {
+      setCardUploadError("Maximum 5 commission card images")
+      return
+    }
+    setCardUploadError("")
+    setUploadingCard(true)
+    try {
+      const processed = await Promise.all(files.map(processImage))
+      setCardImages(prev => [...prev, ...processed].slice(0, 5))
+    } catch {
+      setCardUploadError("Failed to process image. Please try a different file.")
+    } finally {
+      setUploadingCard(false)
+    }
   }
 
   function startEditCat(id: string, name: string, options: string[]) {
@@ -331,6 +384,93 @@ function ProfessionalProfileInner({ username }: { username: string }) {
         >
           {updateProfile.isPending ? "Saving…" : settingsSaved ? "✓ Saved" : "Save settings"}
         </button>
+      </section>
+
+      {/* ── Commission Card Images ── */}
+      <section className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">Commission Card Images</h2>
+        <p className="text-xs text-gray-400 mb-4">Up to 5 images shown on your commission card in the discovery feed. Separate from your portfolio.</p>
+
+        {cardImages.length > 0 && (
+          <div className="flex gap-2 flex-wrap mb-4">
+            {cardImages.map((img, i) => (
+              <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                <img src={img} alt="" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => setCardImages(prev => prev.filter((_, idx) => idx !== i))}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center text-xs hover:bg-black/80 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {cardUploadError && <p className="text-xs text-red-500 mb-2">{cardUploadError}</p>}
+
+        {cardImages.length < 5 && (
+          <label className="flex items-center gap-2 cursor-pointer px-4 py-3 border border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 transition-colors">
+            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="text-sm text-gray-500">{uploadingCard ? "Processing…" : `Add image (${cardImages.length}/5)`}</span>
+            <input type="file" accept="image/*" multiple className="hidden" onChange={handleCardImageUpload} disabled={uploadingCard} />
+          </label>
+        )}
+
+        <p className="text-xs text-gray-400 mt-3">Changes are saved when you click "Save settings" above.</p>
+      </section>
+
+      {/* ── Art Styles ── */}
+      <section className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">Art Styles</h2>
+        <p className="text-xs text-gray-400 mb-3">Tags shown on your commission card to help clients find you.</p>
+
+        {artStyles.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {artStyles.map(s => (
+              <span key={s} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                {s}
+                <button type="button" onClick={() => setArtStyles(prev => prev.filter(x => x !== s))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={artStyleInput}
+            onChange={e => setArtStyleInput(e.target.value)}
+            onKeyDown={e => {
+              if ((e.key === "Enter" || e.key === ",") && artStyleInput.trim()) {
+                e.preventDefault()
+                const trimmed = artStyleInput.trim().replace(/,$/, "")
+                if (trimmed && !artStyles.includes(trimmed) && artStyles.length < 20) {
+                  setArtStyles(prev => [...prev, trimmed])
+                }
+                setArtStyleInput("")
+              }
+            }}
+            placeholder="Add style, press Enter (e.g. Anime, Realistic)"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const trimmed = artStyleInput.trim()
+              if (trimmed && !artStyles.includes(trimmed) && artStyles.length < 20) {
+                setArtStyles(prev => [...prev, trimmed])
+                setArtStyleInput("")
+              }
+            }}
+            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors"
+          >
+            Add
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">Changes are saved when you click "Save settings" above.</p>
       </section>
 
       {/* ── Dropdown Categories ── */}
