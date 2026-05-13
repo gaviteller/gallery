@@ -377,100 +377,97 @@ function ProfessionalProfileInner({ username }: { username: string }) {
           </div>
         </div>
 
+        {/* ── Commission Card Images ── */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <h3 className="text-sm font-bold text-gray-700 mb-1">Commission Card Images</h3>
+          <p className="text-xs text-gray-400 mb-3">Up to 5 images shown on your commission card in the discovery feed. Separate from your portfolio.</p>
+
+          {cardImages.length > 0 && (
+            <div className="flex gap-2 flex-wrap mb-3">
+              {cardImages.map((img, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setCardImages(prev => prev.filter((_, idx) => idx !== i))}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center text-xs hover:bg-black/80 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {cardUploadError && <p className="text-xs text-red-500 mb-2">{cardUploadError}</p>}
+
+          {cardImages.length < 5 && (
+            <label className="flex items-center gap-2 cursor-pointer px-4 py-3 border border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 transition-colors">
+              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-sm text-gray-500">{uploadingCard ? "Processing…" : `Add image (${cardImages.length}/5)`}</span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleCardImageUpload} disabled={uploadingCard} />
+            </label>
+          )}
+        </div>
+
+        {/* ── Art Styles ── */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <h3 className="text-sm font-bold text-gray-700 mb-1">Art Styles</h3>
+          <p className="text-xs text-gray-400 mb-3">Tags shown on your commission card to help buyers find you (e.g. Anime, Realistic, Chibi).</p>
+
+          {artStyles.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {artStyles.map(s => (
+                <span key={s} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                  {s}
+                  <button type="button" onClick={() => setArtStyles(prev => prev.filter(x => x !== s))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={artStyleInput}
+              onChange={e => setArtStyleInput(e.target.value)}
+              onKeyDown={e => {
+                if ((e.key === "Enter" || e.key === ",") && artStyleInput.trim()) {
+                  e.preventDefault()
+                  const trimmed = artStyleInput.trim().replace(/,$/, "")
+                  if (trimmed && !artStyles.includes(trimmed) && artStyles.length < 20) {
+                    setArtStyles(prev => [...prev, trimmed])
+                  }
+                  setArtStyleInput("")
+                }
+              }}
+              placeholder="Type a style, press Enter…"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const trimmed = artStyleInput.trim()
+                if (trimmed && !artStyles.includes(trimmed) && artStyles.length < 20) {
+                  setArtStyles(prev => [...prev, trimmed])
+                  setArtStyleInput("")
+                }
+              }}
+              className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
         <button
           onClick={saveSettings}
           disabled={updateProfile.isPending}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
           {updateProfile.isPending ? "Saving…" : settingsSaved ? "✓ Saved" : "Save settings"}
         </button>
-      </section>
-
-      {/* ── Commission Card Images ── */}
-      <section className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">Commission Card Images</h2>
-        <p className="text-xs text-gray-400 mb-4">Up to 5 images shown on your commission card in the discovery feed. Separate from your portfolio.</p>
-
-        {cardImages.length > 0 && (
-          <div className="flex gap-2 flex-wrap mb-4">
-            {cardImages.map((img, i) => (
-              <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                <img src={img} alt="" className="w-full h-full object-cover" />
-                <button
-                  onClick={() => setCardImages(prev => prev.filter((_, idx) => idx !== i))}
-                  className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center text-xs hover:bg-black/80 transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {cardUploadError && <p className="text-xs text-red-500 mb-2">{cardUploadError}</p>}
-
-        {cardImages.length < 5 && (
-          <label className="flex items-center gap-2 cursor-pointer px-4 py-3 border border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 transition-colors">
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="text-sm text-gray-500">{uploadingCard ? "Processing…" : `Add image (${cardImages.length}/5)`}</span>
-            <input type="file" accept="image/*" multiple className="hidden" onChange={handleCardImageUpload} disabled={uploadingCard} />
-          </label>
-        )}
-
-        <p className="text-xs text-gray-400 mt-3">Changes are saved when you click "Save settings" above.</p>
-      </section>
-
-      {/* ── Art Styles ── */}
-      <section className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">Art Styles</h2>
-        <p className="text-xs text-gray-400 mb-3">Tags shown on your commission card to help clients find you.</p>
-
-        {artStyles.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {artStyles.map(s => (
-              <span key={s} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
-                {s}
-                <button type="button" onClick={() => setArtStyles(prev => prev.filter(x => x !== s))} className="text-blue-400 hover:text-blue-700 ml-0.5">×</button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={artStyleInput}
-            onChange={e => setArtStyleInput(e.target.value)}
-            onKeyDown={e => {
-              if ((e.key === "Enter" || e.key === ",") && artStyleInput.trim()) {
-                e.preventDefault()
-                const trimmed = artStyleInput.trim().replace(/,$/, "")
-                if (trimmed && !artStyles.includes(trimmed) && artStyles.length < 20) {
-                  setArtStyles(prev => [...prev, trimmed])
-                }
-                setArtStyleInput("")
-              }
-            }}
-            placeholder="Add style, press Enter (e.g. Anime, Realistic)"
-            className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              const trimmed = artStyleInput.trim()
-              if (trimmed && !artStyles.includes(trimmed) && artStyles.length < 20) {
-                setArtStyles(prev => [...prev, trimmed])
-                setArtStyleInput("")
-              }
-            }}
-            className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors"
-          >
-            Add
-          </button>
-        </div>
-        <p className="text-xs text-gray-400 mt-3">Changes are saved when you click "Save settings" above.</p>
       </section>
 
       {/* ── Dropdown Categories ── */}
