@@ -278,7 +278,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* Tabs */}
       <div className="mb-6" style={{ borderBottom: "1px solid #ffffff10" }}>
         <nav className="flex gap-6">
-          {["Posts", "Shop", "Commissions", "About"].map((t) => (
+          {(["Posts", "Shop", "Commissions", "About"] as const).filter((t) => {
+            if (isOwn) return true
+            if (t === "Shop" && (!shopItems || shopItems.length === 0)) return false
+            if (t === "Commissions" && commissionProfile?.commissionStatus === "CLOSED") return false
+            return true
+          }).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
