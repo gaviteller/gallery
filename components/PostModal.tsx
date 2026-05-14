@@ -199,8 +199,7 @@ export default function PostModal({
                         : pinPost.mutate({ id: post.id })
                       }
                       disabled={pinPost.isPending || unpinPost.isPending}
-                      className="text-xs text-white/50 hover:text-white font-medium disabled:opacity-50 px-2 py-1 rounded-lg transition-colors"
-                      style={{ background: "#ffffff10" }}
+                      className="text-xs text-gray-500 hover:text-gray-800 font-medium disabled:opacity-50 px-2 py-1 rounded-lg transition-colors bg-gray-100 hover:bg-gray-200"
                     >
                       {pinPost.isPending || unpinPost.isPending
                         ? "…"
