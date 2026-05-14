@@ -418,72 +418,83 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── Commissions tab ───────────────────────────────────── */}
       {tab === "Commissions" && (
         <>
-          {/* Info card */}
-          <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
-            {/* Trust score */}
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white/40" style={{ background: "#ffffff10" }}>
-                New Artist
-              </span>
+          {!commissionProfile ? (
+            <div className="text-center py-12">
+              <p className="text-white/30 text-sm">Loading…</p>
             </div>
-
-            {commissionProfile?.commissionDescription && (
-              <p className="text-sm text-white/70 mb-4">{commissionProfile.commissionDescription}</p>
-            )}
-
-            <div className="flex flex-wrap gap-4 mb-4">
-              {commissionProfile?.commissionTurnaround && (
-                <div>
-                  <p className="text-xs text-white/40 mb-0.5">Turnaround</p>
-                  <p className="text-sm font-medium text-white">{commissionProfile.commissionTurnaround}</p>
+          ) : (
+            <>
+              {/* Info card */}
+              <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+                {/* Trust score */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white/40" style={{ background: "#ffffff10" }}>
+                    New Artist
+                  </span>
                 </div>
-              )}
-              {commissionProfile?.priceRanges && (commissionProfile.priceRanges as { label: string; price: number }[]).length > 0 && (
-                <div>
-                  <p className="text-xs text-white/40 mb-0.5">Price ranges</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(commissionProfile.priceRanges as { label: string; price: number }[]).map((r) => (
-                      <span key={r.label} className="text-xs px-2 py-0.5 rounded-full text-white/70" style={{ background: "#ffffff10" }}>
-                        {r.label} — ${r.price}
-                      </span>
+
+                {commissionProfile.commissionDescription && (
+                  <p className="text-sm text-white/70 mb-4">{commissionProfile.commissionDescription}</p>
+                )}
+
+                <div className="flex flex-wrap gap-4 mb-4">
+                  {commissionProfile.commissionTurnaround && (
+                    <div>
+                      <p className="text-xs text-white/40 mb-0.5">Turnaround</p>
+                      <p className="text-sm font-medium text-white">{commissionProfile.commissionTurnaround}</p>
+                    </div>
+                  )}
+                  {commissionProfile.priceRanges && (() => {
+                    const ranges = commissionProfile.priceRanges as { label: string; price: number }[]
+                    return ranges.length > 0 && (
+                      <div>
+                        <p className="text-xs text-white/40 mb-0.5">Price ranges</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {ranges.map((r) => (
+                            <span key={r.label + '-' + r.price} className="text-xs px-2 py-0.5 rounded-full text-white/70" style={{ background: "#ffffff10" }}>
+                              {r.label} — ${r.price}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {!isOwn && commissionProfile.commissionStatus !== "CLOSED" && (
+                  <button
+                    onClick={() => setShowCommissionRequest(true)}
+                    className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
+                    style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                  >
+                    Request Commission
+                  </button>
+                )}
+              </div>
+
+              {/* Example work gallery */}
+              {commissionProfile.commissionCardImages && commissionProfile.commissionCardImages.length > 0 ? (
+                <>
+                  <p className="text-xs text-white/40 mb-3 uppercase tracking-wide font-semibold">Example work</p>
+                  <div className="grid grid-cols-3 gap-0.5">
+                    {commissionProfile.commissionCardImages.map((img) => (
+                      <div key={img} className="relative aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
+                        <img src={img} alt="Example work" className="w-full h-full object-cover" />
+                      </div>
                     ))}
                   </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3">🎨</div>
+                  <p className="font-medium text-white/50">No example work yet</p>
+                  {isOwn && (
+                    <p className="text-sm mt-1 text-white/30">Add images in your Artist Dashboard</p>
+                  )}
                 </div>
               )}
-            </div>
-
-            {!isOwn && commissionProfile && commissionProfile.commissionStatus !== "CLOSED" && (
-              <button
-                onClick={() => setShowCommissionRequest(true)}
-                className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
-              >
-                Request Commission
-              </button>
-            )}
-          </div>
-
-          {/* Example work gallery */}
-          {commissionProfile?.commissionCardImages && commissionProfile.commissionCardImages.length > 0 ? (
-            <>
-              <p className="text-xs text-white/40 mb-3 uppercase tracking-wide font-semibold">Example work</p>
-              <div className="grid grid-cols-3 gap-0.5">
-                {commissionProfile.commissionCardImages.map((img, i) => (
-                  <div key={i} className="relative aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
-                    <img src={img} alt={`Example ${i + 1}`} className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
             </>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-3">🎨</div>
-              <p className="font-medium text-white/50">No example work yet</p>
-              {isOwn && (
-                <p className="text-sm mt-1 text-white/30">Add images in your Artist Dashboard</p>
-              )}
-            </div>
           )}
         </>
       )}
@@ -492,11 +503,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {tab === "About" && (
         <div className="flex flex-col gap-5 max-w-sm">
           {/* Commission status badge */}
-          {profileUser.sellingEnabled && (
+          {commissionProfile && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-2">Commission status</p>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusColors[profileUser.commissionStatus as keyof typeof statusColors] ?? "bg-white/10 text-white/30"}`}>
-                {statusLabels[profileUser.commissionStatus as keyof typeof statusLabels] ?? "Closed for commissions"}
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusColors[commissionProfile.commissionStatus as keyof typeof statusColors] ?? "bg-white/10 text-white/30"}`}>
+                {statusLabels[commissionProfile.commissionStatus as keyof typeof statusLabels] ?? "Closed for commissions"}
               </span>
             </div>
           )}
@@ -518,12 +529,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   </a>
                 )}
                 {profileUser.twitterHandle && (
-                  <a href={`https://x.com/${profileUser.twitterHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
+                  <a href={`https://x.com/${profileUser.twitterHandle.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
                     <span>𝕏</span> {profileUser.twitterHandle}
                   </a>
                 )}
                 {profileUser.instagramHandle && (
-                  <a href={`https://instagram.com/${profileUser.instagramHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
+                  <a href={`https://instagram.com/${profileUser.instagramHandle.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
                     <span>📸</span> {profileUser.instagramHandle}
                   </a>
                 )}
