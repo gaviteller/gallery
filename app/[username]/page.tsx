@@ -176,7 +176,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       )}
 
       {/* Mutual followers modal */}
-      {showMutuals && mutualData && (
+      {showMutuals && !isOwn && mutualData && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setShowMutuals(false)}>
           <div className="w-full max-w-lg rounded-t-2xl pb-8" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-center pt-3 pb-1">
