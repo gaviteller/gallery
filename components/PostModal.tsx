@@ -13,6 +13,7 @@ type Post = {
   description: string | null
   isAiGenerated: boolean
   createdAt: Date
+  pinned?: boolean
 }
 
 type ProfileUser = {
@@ -119,6 +120,7 @@ export default function PostModal({
   isOwn,
   onClose,
   onDelete,
+  onPinToggle,
   autoFocusComment = false,
 }: {
   post: Post
@@ -126,6 +128,7 @@ export default function PostModal({
   isOwn: boolean
   onClose: () => void
   onDelete: (id: string) => void
+  onPinToggle?: () => void
   autoFocusComment?: boolean
 }) {
   const { data: session } = useSession()
@@ -153,6 +156,8 @@ export default function PostModal({
 
   const deleteComment = trpc.interaction.deleteComment.useMutation({ onSuccess: invalidate })
   const deletePost = trpc.post.delete.useMutation({ onSuccess: () => onDelete(post.id) })
+  const pinPost = trpc.post.pin.useMutation({ onSuccess: () => onPinToggle?.() })
+  const unpinPost = trpc.post.unpin.useMutation({ onSuccess: () => onPinToggle?.() })
 
   function submitComment() {
     const text = comment.trim()
@@ -186,10 +191,27 @@ export default function PostModal({
                 )}
               </div>
               {isOwn && (
-                <button onClick={() => deletePost.mutate({ id: post.id })} disabled={deletePost.isPending}
-                  className="text-xs text-red-400 hover:text-red-600 font-medium disabled:opacity-50">
-                  {deletePost.isPending ? "Deleting…" : "Delete"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {onPinToggle && (
+                    <button
+                      onClick={() => post.pinned
+                        ? unpinPost.mutate({ id: post.id })
+                        : pinPost.mutate({ id: post.id })
+                      }
+                      disabled={pinPost.isPending || unpinPost.isPending}
+                      className="text-xs text-white/50 hover:text-white font-medium disabled:opacity-50 px-2 py-1 rounded-lg transition-colors"
+                      style={{ background: "#ffffff10" }}
+                    >
+                      {pinPost.isPending || unpinPost.isPending
+                        ? "…"
+                        : post.pinned ? "Unpin" : "Pin"}
+                    </button>
+                  )}
+                  <button onClick={() => deletePost.mutate({ id: post.id })} disabled={deletePost.isPending}
+                    className="text-xs text-red-400 hover:text-red-600 font-medium disabled:opacity-50">
+                    {deletePost.isPending ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
               )}
             </div>
 
