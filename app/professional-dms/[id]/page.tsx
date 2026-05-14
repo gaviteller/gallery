@@ -488,7 +488,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
             <div>
               {showAcceptForm ? (
                 <div className="flex flex-col gap-3">
-                  <p className="text-xs font-semibold text-white/70">Set your price and deadline</p>
+                  <p className="text-xs font-semibold text-white/70">Set price and deadline to accept</p>
                   <div className="flex gap-2 items-center">
                     <span className="text-sm text-white/70">$</span>
                     <input
@@ -503,10 +503,12 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                     />
                   </div>
                   <div className="flex gap-2 items-center">
+                    <span className="text-xs text-white/50 flex-shrink-0">Deadline</span>
                     <input
-                      type="datetime-local"
+                      type="date"
                       value={acceptDeadline}
                       onChange={e => setAcceptDeadline(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
                       className="flex-1 px-3 py-2 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                       style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
                     />
@@ -517,17 +519,15 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                       onClick={() => {
                         const price = parseFloat(acceptPrice)
                         if (!isNaN(price) && price > 0 && acceptDeadline) {
-                          const deadlineDate = new Date(acceptDeadline)
-                          const isoString = deadlineDate.toISOString()
-                          acceptMutation.mutate({ id, price, deadline: isoString })
+                          acceptMutation.mutate({ id, price, deadline: new Date(acceptDeadline).toISOString() })
                         }
                       }}
-                      disabled={acceptMutation.isPending || !acceptPrice || !acceptDeadline}
+                      disabled={acceptMutation.isPending || !acceptPrice || parseFloat(acceptPrice) <= 0 || !acceptDeadline}
                       className="flex-1 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
                     >
                       {acceptMutation.isPending ? "…" : "Accept"}
                     </button>
-                    <button onClick={() => setShowAcceptForm(false)} className="text-xs text-white/40 hover:text-white/70">Cancel</button>
+                    <button onClick={() => setShowAcceptForm(false)} className="text-xs text-white/40 hover:text-white/70 px-3">Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -595,22 +595,33 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
 
           {/* Buyer: confirm payment on ACCEPTED */}
           {isBuyer && commission.status === "ACCEPTED" && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => confirmPaymentMutation.mutate({ id })}
-                disabled={confirmPaymentMutation.isPending}
-                className="flex-1 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
-              >
-                {confirmPaymentMutation.isPending ? "Processing…" : `Confirm payment · $${commission.agreedPrice}`}
-              </button>
-              <button
-                onClick={() => cancelMutation.mutate({ id })}
-                disabled={cancelMutation.isPending}
-                className="text-xs text-red-400 hover:text-red-300 underline transition-colors disabled:opacity-50 flex-shrink-0"
-              >
-                Cancel
-              </button>
+            <div className="flex flex-col gap-2">
+              {commission.agreedPrice !== null && commission.deadline && (
+                <p className="text-xs text-white/50">
+                  Price: <span className="font-semibold text-white">${commission.agreedPrice}</span>
+                  {" · "}
+                  Deadline: <span className="font-semibold text-white">
+                    {new Date(commission.deadline).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                  </span>
+                </p>
+              )}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => confirmPaymentMutation.mutate({ id })}
+                  disabled={confirmPaymentMutation.isPending}
+                  className="flex-1 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                >
+                  {confirmPaymentMutation.isPending ? "Processing…" : `Confirm payment · $${commission.agreedPrice}`}
+                </button>
+                <button
+                  onClick={() => cancelMutation.mutate({ id })}
+                  disabled={cancelMutation.isPending}
+                  className="text-xs text-red-400 hover:text-red-300 underline transition-colors disabled:opacity-50 flex-shrink-0"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
 
@@ -671,7 +682,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
           )}
 
           {/* Deadline control */}
-          {isArtist && !isClosed && (
+          {isArtist && !isClosed && commission.status !== "ACCEPTED" && (
             <div className="mt-2 pt-2" style={{ borderTop: "1px solid #ffffff10" }}>
               {showDeadlinePicker ? (
                 <div className="flex gap-2 items-center">
