@@ -157,15 +157,17 @@ export const postRouter = router({
       if (!post) throw new TRPCError({ code: "NOT_FOUND" })
       if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
 
-      // Enforce max 3 pinned posts
-      const pinnedCount = await ctx.prisma.post.count({
-        where: { userId: ctx.session.user.id, pinned: true },
-      })
-      if (pinnedCount >= 3) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "You can only pin up to 3 posts." })
-      }
+      return ctx.prisma.$transaction(async (tx) => {
+        // Enforce max 3 pinned posts (inside transaction to prevent race condition)
+        const pinnedCount = await tx.post.count({
+          where: { userId: ctx.session.user.id, pinned: true },
+        })
+        if (pinnedCount >= 3) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "You can only pin up to 3 posts." })
+        }
 
-      return ctx.prisma.post.update({ where: { id: input.id }, data: { pinned: true } })
+        return tx.post.update({ where: { id: input.id }, data: { pinned: true } })
+      })
     }),
 
   unpin: protectedProcedure
