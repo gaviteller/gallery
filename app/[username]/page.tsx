@@ -65,6 +65,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: commissions, isLoading: commissionsLoading } = trpc.post.getCommissionsByUsername.useQuery({ username })
   const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
   const { data: commissionProfile } = trpc.commission.getProfile.useQuery({ username })
+  const { data: approvedWork } = trpc.commission.getApprovedWork.useQuery({ username })
   const { data: commissionCategories } = trpc.commission.getCategories.useQuery({ username })
   const { data: followStatus, refetch: refetchFollow } = trpc.follow.status.useQuery(
     { username },
@@ -158,6 +159,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   }
 
   const isOwn = session?.user?.id === profileUser.id
+
+  const galleryImages: { src: string; key: string }[] = [
+    ...(approvedWork ?? []).map(w => ({ src: w.fileUrl, key: `approved-${w.commissionId}` })),
+    ...(commissionProfile?.commissionCardImages ?? []).map(img => ({ src: img, key: `manual-${img}` })),
+  ]
 
   const initials = (profileUser.name ?? profileUser.username ?? "?")
     .split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
@@ -474,13 +480,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               </div>
 
               {/* Example work gallery */}
-              {commissionProfile.commissionCardImages && commissionProfile.commissionCardImages.length > 0 ? (
+              {galleryImages.length > 0 ? (
                 <>
                   <p className="text-xs text-white/40 mb-3 uppercase tracking-wide font-semibold">Example work</p>
                   <div className="grid grid-cols-3 gap-0.5">
-                    {commissionProfile.commissionCardImages.map((img) => (
-                      <div key={img} className="relative aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
-                        <img src={img} alt="Example work" className="w-full h-full object-cover" />
+                    {galleryImages.map(({ src, key }) => (
+                      <div key={key} className="relative aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
+                        <img src={src} alt="Example work" className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>
