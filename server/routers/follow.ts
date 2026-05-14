@@ -65,4 +65,37 @@ export const followRouter = router({
         followingCount: target._count.following,
       }
     }),
+
+  mutuals: publicProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.session) return { count: 0, users: [] }
+
+      const target = await ctx.prisma.user.findFirst({
+        where: { username: { equals: input.username, mode: "insensitive" } },
+        select: { id: true },
+      })
+      if (!target) return { count: 0, users: [] }
+
+      // People the current user follows
+      const myFollowing = await ctx.prisma.follow.findMany({
+        where: { followerId: ctx.session.user.id },
+        select: { followingId: true },
+      })
+      const myFollowingIds = myFollowing.map((f) => f.followingId)
+
+      // Of those, which also follow the target?
+      const mutualFollows = await ctx.prisma.follow.findMany({
+        where: {
+          followingId: target.id,
+          followerId: { in: myFollowingIds },
+        },
+        select: {
+          follower: { select: { id: true, username: true, name: true, image: true } },
+        },
+      })
+
+      const users = mutualFollows.map((f) => f.follower)
+      return { count: users.length, users }
+    }),
 })
