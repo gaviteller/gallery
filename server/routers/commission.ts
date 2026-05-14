@@ -8,6 +8,12 @@ const priceRangeSchema = z.array(z.object({
   price: z.number().positive(),
 }))
 
+export const acceptInputSchema = z.object({
+  id: z.string(),
+  price: z.number().positive(),
+  deadline: z.string().datetime(),
+})
+
 export const commissionRouter = router({
 
   // ── Artist profile settings ───────────────────────────────────────────────
@@ -264,11 +270,7 @@ export const commissionRouter = router({
     }),
 
   accept: protectedProcedure
-    .input(z.object({
-      id: z.string(),
-      price: z.number().positive(),
-      deadline: z.string().datetime(),
-    }))
+    .input(acceptInputSchema)
     .mutation(async ({ ctx, input }) => {
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })

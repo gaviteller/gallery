@@ -124,12 +124,17 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
   const [showAcceptForm, setShowAcceptForm] = useState(false)
   const [acceptPrice, setAcceptPrice] = useState("")
   const [acceptDeadline, setAcceptDeadline] = useState("")
+  const [acceptError, setAcceptError] = useState("")
   const acceptMutation = trpc.commission.accept.useMutation({
     onSuccess: () => {
       utils.commission.getById.invalidate({ id })
       setShowAcceptForm(false)
       setAcceptPrice("")
       setAcceptDeadline("")
+      setAcceptError("")
+    },
+    onError: (err) => {
+      setAcceptError(err.message ?? "Failed to accept commission")
     },
   })
 
@@ -506,6 +511,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                       style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
                     />
                   </div>
+                  {acceptError && <p className="text-xs text-red-400">{acceptError}</p>}
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
