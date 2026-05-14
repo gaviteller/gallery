@@ -124,7 +124,7 @@ export const postRouter = router({
       if (!user) throw new TRPCError({ code: "NOT_FOUND" })
       return ctx.prisma.post.findMany({
         where: { userId: user.id },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       })
     }),
 
@@ -149,4 +149,68 @@ export const postRouter = router({
       if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       return ctx.prisma.post.delete({ where: { id: input.id } })
     }),
+
+  pin: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const post = await ctx.prisma.post.findUnique({ where: { id: input.id } })
+      if (!post) throw new TRPCError({ code: "NOT_FOUND" })
+      if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+
+      // Enforce max 3 pinned posts
+      const pinnedCount = await ctx.prisma.post.count({
+        where: { userId: ctx.session.user.id, pinned: true },
+      })
+      if (pinnedCount >= 3) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "You can only pin up to 3 posts." })
+      }
+
+      return ctx.prisma.post.update({ where: { id: input.id }, data: { pinned: true } })
+    }),
+
+  unpin: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const post = await ctx.prisma.post.findUnique({ where: { id: input.id } })
+      if (!post) throw new TRPCError({ code: "NOT_FOUND" })
+      if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      return ctx.prisma.post.update({ where: { id: input.id }, data: { pinned: false } })
+    }),
+
+  getMyPostStats: protectedProcedure.query(async ({ ctx }) => {
+    const me = ctx.session.user.id
+
+    const posts = await ctx.prisma.post.findMany({
+      where: { userId: me },
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { likes: true, comments: true } },
+      },
+    })
+
+    const totalLikes = posts.reduce((sum, p) => sum + p._count.likes, 0)
+    const totalComments = posts.reduce((sum, p) => sum + p._count.comments, 0)
+    const topPost = posts.reduce<typeof posts[0] | null>(
+      (best, p) => (!best || p._count.likes > best._count.likes ? p : best),
+      null
+    )
+
+    return {
+      totalPosts: posts.length,
+      totalLikes,
+      totalComments,
+      avgLikes: posts.length > 0 ? Math.round((totalLikes / posts.length) * 10) / 10 : 0,
+      topPostId: topPost?.id ?? null,
+      posts: posts.map(p => ({
+        id: p.id,
+        image: p.image,
+        description: p.description,
+        createdAt: p.createdAt,
+        likes: p._count.likes,
+        comments: p._count.comments,
+        isAiGenerated: p.isAiGenerated,
+        isCommission: p.isCommission,
+      })),
+    }
+  }),
 })
