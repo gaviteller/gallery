@@ -475,6 +475,43 @@ export const commissionRouter = router({
       return null
     }),
 
+  submitRating: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      rating: z.number().int().min(1).max(5),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.status !== "COMPLETE") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not complete" })
+      if (commission.buyerRating !== null) throw new TRPCError({ code: "BAD_REQUEST", message: "Already rated" })
+      return ctx.prisma.commission.update({
+        where: { id: input.id },
+        data: { buyerRating: input.rating },
+      })
+    }),
+
+  setDisplayPermission: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      allow: z.boolean(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.status !== "COMPLETE") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not complete" })
+      if (commission.displayPermissionAnswered) throw new TRPCError({ code: "BAD_REQUEST", message: "Already answered" })
+      return ctx.prisma.commission.update({
+        where: { id: input.id },
+        data: {
+          displayAsExample: input.allow,
+          displayPermissionAnswered: true,
+        },
+      })
+    }),
+
   // ── For You feed + favorites ─────────────────────────────────────────────
 
   toggleFavorite: protectedProcedure
