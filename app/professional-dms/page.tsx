@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
+import MessagesTabs from "@/components/MessagesTabs"
 
 const statusLabel: Record<string, string> = {
   PENDING: "Pending",
@@ -107,21 +108,22 @@ function ProfessionalDMsInner() {
   ].sort((a, b) => new Date(b.commission.updatedAt).getTime() - new Date(a.commission.updatedAt).getTime())
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 pb-24">
-      <h1 className="text-xl font-bold text-white mb-6">Commission Chats</h1>
-
-      {threads.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-white/50 font-medium">No commission threads yet</p>
-          <p className="text-xs text-white/30 mt-1">Request a commission from the Commissions tab to get started</p>
-        </div>
-      ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
-          {threads.map(({ commission, otherParty, role }) => (
-            <CommissionRow key={commission.id} commission={commission} otherParty={otherParty} role={role} />
-          ))}
-        </div>
-      )}
+    <div className="max-w-2xl mx-auto pb-24">
+      <MessagesTabs />
+      <div className="px-4 py-6">
+        {threads.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-white/50 font-medium">No commission threads yet</p>
+            <p className="text-xs text-white/30 mt-1">Request a commission from the Commissions tab to get started</p>
+          </div>
+        ) : (
+          <div className="rounded-2xl overflow-hidden" style={{ background: "#160b30", border: "1px solid #ffffff10" }}>
+            {threads.map(({ commission, otherParty, role }) => (
+              <CommissionRow key={commission.id} commission={commission} otherParty={otherParty} role={role} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
+import MessagesTabs from "@/components/MessagesTabs"
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
@@ -35,7 +36,7 @@ function NewMessageModal({ onClose }: { onClose: () => void }) {
     >
       <div
         className="w-full max-w-lg rounded-t-2xl pb-8"
-        style={{ background: "#1a1a2e", border: "1px solid #ffffff15" }}
+        style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-center pt-3 pb-1">
@@ -118,8 +119,8 @@ function MessagesInner({ userId }: { userId: string }) {
       {composing && <NewMessageModal onClose={() => setComposing(false)} />}
 
       <div className="max-w-lg mx-auto pb-24">
-        <div className="flex items-center justify-between px-4 pt-6 pb-3">
-          <h1 className="text-xl font-bold text-white">Messages</h1>
+        <MessagesTabs />
+        <div className="flex items-center justify-end px-4 pt-3 pb-2">
           <button
             onClick={() => setComposing(true)}
             className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors text-white/60"
@@ -131,7 +132,7 @@ function MessagesInner({ userId }: { userId: string }) {
           </button>
         </div>
 
-        {!convos || convos.length === 0 ? (
+        {!convos || convos.filter(c => !c.isBlocked).length === 0 ? (
           <div className="text-center py-20 px-6">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "#ffffff10" }}>
               <svg className="w-8 h-8 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -150,25 +151,37 @@ function MessagesInner({ userId }: { userId: string }) {
           </div>
         ) : (
           <div style={{ borderTop: "1px solid #ffffff10" }}>
-            {convos.map(c => (
+            {convos.filter(c => !c.isBlocked).map(c => (
               <button
                 key={c.id}
                 onClick={() => router.push(`/messages/${c.id}`)}
                 className="w-full flex items-center gap-3 px-4 py-4 hover:bg-white/5 transition-colors text-left"
-                style={{ borderBottom: "1px solid #ffffff08" }}
+                style={{ borderBottom: "1px solid #ffffff08", background: c.isUnread ? "rgba(176,68,248,0.06)" : undefined }}
               >
-                <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={48} />
+                <div className="relative flex-shrink-0">
+                  <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={48} />
+                  {c.isUnread && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0D0D0F]" style={{ background: "linear-gradient(135deg,#FF1CF7,#B044F8)" }} />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">@{c.other.username ?? "unknown"}</p>
+                  <p className={`text-sm truncate ${c.isUnread ? "font-bold text-white" : "font-semibold text-white"}`}>
+                    @{c.other.username ?? "unknown"}
+                  </p>
                   {c.lastMsg && (
-                    <p className="text-xs text-white/40 truncate mt-0.5">
+                    <p className={`text-xs truncate mt-0.5 ${c.isUnread ? "text-white/70 font-medium" : "text-white/40"}`}>
                       {c.lastMsg.senderId === userId ? "You: " : ""}{c.lastMsg.text}
                     </p>
                   )}
                 </div>
-                {c.lastMsg && (
-                  <p className="text-[10px] text-white/30 flex-shrink-0">{timeAgo(c.lastMsg.createdAt)}</p>
-                )}
+                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                  {c.lastMsg && (
+                    <p className="text-[10px] text-white/30">{timeAgo(c.lastMsg.createdAt)}</p>
+                  )}
+                  {c.isUnread && (
+                    <span className="w-2 h-2 rounded-full" style={{ background: "linear-gradient(135deg,#FF1CF7,#B044F8)" }} />
+                  )}
+                </div>
               </button>
             ))}
           </div>
