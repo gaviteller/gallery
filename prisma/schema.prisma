@@ -223,6 +223,10 @@ model Commission {
   deliveredAt        DateTime?
   deadline                  DateTime?
   deadlineNotificationSent  Boolean   @default(false)
+  buyerRating               Int?
+  displayAsExample          Boolean   @default(false)
+  displayPermissionAnswered Boolean   @default(false)
+  artistFeedShareOffered    Boolean   @default(false)
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
   messages           ProfessionalMessage[]
