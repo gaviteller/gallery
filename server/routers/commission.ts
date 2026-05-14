@@ -252,22 +252,23 @@ export const commissionRouter = router({
             where: { id: input.id },
             data: { deadlineNotificationSent: true },
           })
-          if (ctx.session?.user?.id) {
-            await ctx.prisma.notification.createMany({
-              data: [
-                {
-                  userId: commission.buyerId,
-                  fromUserId: ctx.session.user.id,
-                  type: `commission_deadline_approaching:${input.id}`,
-                },
-                {
-                  userId: commission.artistId,
-                  fromUserId: ctx.session.user.id,
-                  type: `commission_deadline_approaching:${input.id}`,
-                },
-              ],
-            })
-          }
+          // NOTE: fromUserId is the party who loaded the page and triggered the check.
+          // This is a clock-triggered event, not a user action — a system actor ID would
+          // be more accurate here but the app has no system user yet.
+          await ctx.prisma.notification.createMany({
+            data: [
+              {
+                userId: commission.buyerId,
+                fromUserId: ctx.session.user.id,
+                type: `commission_deadline_approaching:${input.id}`,
+              },
+              {
+                userId: commission.artistId,
+                fromUserId: ctx.session.user.id,
+                type: `commission_deadline_approaching:${input.id}`,
+              },
+            ],
+          })
         }
       }
 
