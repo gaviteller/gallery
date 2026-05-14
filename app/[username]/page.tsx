@@ -27,6 +27,7 @@ type PostItem = {
   description: string | null
   isAiGenerated: boolean
   isCommission: boolean
+  pinned: boolean
   createdAt: Date
 }
 
@@ -326,6 +327,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                       <span className="text-xs font-medium bg-blue-600/80 text-white px-1.5 py-0.5 rounded-md">Comm</span>
                     )}
                   </div>
+                  {isOwn && (post as PostItem).pinned && (
+                    <div className="absolute top-1.5 right-1.5">
+                      <svg className="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M16 1v10l2 3H6l2-3V1h8zm-5 19a1 1 0 002 0v-5h-2v5zM9 1h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                      </svg>
+                    </div>
+                  )}
                   {post.description && (
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                       <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
@@ -658,6 +666,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             utils.post.getCommissionsByUsername.invalidate({ username })
             setViewPost(null)
           }}
+          onPinToggle={isOwn ? () => {
+            utils.post.getByUsername.invalidate({ username })
+            setViewPost(null)
+          } : undefined}
         />
       )}
     </div>
