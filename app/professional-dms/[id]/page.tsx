@@ -173,6 +173,25 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     onSuccess: () => utils.commission.getById.invalidate({ id }),
   })
 
+  // Rating
+  const [selectedRating, setSelectedRating] = useState(0)
+  const submitRatingMutation = trpc.commission.submitRating.useMutation({
+    onSuccess: () => utils.commission.getById.invalidate({ id }),
+  })
+
+  // Display permission
+  const setDisplayPermissionMutation = trpc.commission.setDisplayPermission.useMutation({
+    onSuccess: () => utils.commission.getById.invalidate({ id }),
+  })
+
+  // Share to feed
+  const shareToFeedMutation = trpc.commission.shareToFeed.useMutation({
+    onSuccess: () => utils.commission.getById.invalidate({ id }),
+  })
+  const dismissFeedShareMutation = trpc.commission.dismissFeedShare.useMutation({
+    onSuccess: () => utils.commission.getById.invalidate({ id }),
+  })
+
   // Deadline
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false)
   const [deadlineInput, setDeadlineInput] = useState("")
@@ -216,11 +235,15 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
   const dropdownSelections = commission.dropdownSelections as Record<string, string>
   const otherParty = isArtist ? commission.buyer : commission.artist
 
+  const deliveredFileUrl = commission.messages
+    .filter(m => m.fileUrl)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]?.fileUrl ?? null
+
   return (
     <div className="max-w-2xl mx-auto flex flex-col h-screen pb-16" style={{ background: "#0D0D0F" }}>
 
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ background: "#111118", borderBottom: "1px solid #ffffff10" }}>
+      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ background: "#160b30", borderBottom: "1px solid #ffffff10" }}>
         <button onClick={() => router.push("/professional-dms")} className="text-white/40 hover:text-white/70 p-1">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -239,7 +262,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1">
 
         {/* Pinned request card */}
-        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+        <div className="rounded-2xl mb-4 overflow-hidden" style={{ background: "#160b30", border: "1px solid #ffffff10" }}>
           <button
             onClick={() => setRequestCardOpen(v => !v)}
             className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
@@ -286,8 +309,8 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                   </p>
                   {(() => {
                     const msLeft = new Date(commission.deadline).getTime() - Date.now()
-                    if (msLeft < 0) return <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">Overdue</span>
-                    if (msLeft < 48 * 60 * 60 * 1000) return <span className="text-[10px] font-semibold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full">Due soon</span>
+                    if (msLeft < 0) return <span className="text-[10px] font-semibold text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded-full">Overdue</span>
+                    if (msLeft < 48 * 60 * 60 * 1000) return <span className="text-[10px] font-semibold text-orange-400 bg-orange-500/20 px-1.5 py-0.5 rounded-full">Due soon</span>
                     return null
                   })()}
                 </div>
@@ -303,13 +326,103 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
             <p className="text-xs text-green-400/70 mt-1">Payment has been released to the artist.</p>
           </div>
         )}
+
+        {/* Card 1: Rating (buyer only, shown while buyerRating is null) */}
+        {commission.status === "COMPLETE" && isBuyer && commission.buyerRating === null && (
+          <div className="mb-4 rounded-2xl p-4" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+            <p className="text-sm font-semibold text-white mb-1">How was your experience?</p>
+            <p className="text-xs text-white/40 mb-3">Rate your commission with @{commission.artist.username}</p>
+            <div className="flex gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  onClick={() => setSelectedRating(star)}
+                  className="text-2xl transition-transform hover:scale-110"
+                >
+                  {star <= selectedRating ? "★" : "☆"}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { if (selectedRating > 0) submitRatingMutation.mutate({ id, rating: selectedRating }) }}
+              disabled={selectedRating === 0 || submitRatingMutation.isPending}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            >
+              {submitRatingMutation.isPending ? "Submitting…" : "Submit rating"}
+            </button>
+          </div>
+        )}
+
+        {/* Card 2: Display permission (buyer only, shown after rating, before permission answered) */}
+        {commission.status === "COMPLETE" && isBuyer && commission.buyerRating !== null && !commission.displayPermissionAnswered && (
+          <div className="mb-4 rounded-2xl p-4" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+            <p className="text-sm font-semibold text-white mb-1">Portfolio permission</p>
+            <p className="text-xs text-white/50 mb-4">
+              Can <span className="text-white">@{commission.artist.username}</span> display this work in their public portfolio?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDisplayPermissionMutation.mutate({ id, allow: true })}
+                disabled={setDisplayPermissionMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setDisplayPermissionMutation.mutate({ id, allow: false })}
+                disabled={setDisplayPermissionMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white/60 hover:text-white transition-colors disabled:opacity-50"
+                style={{ border: "1px solid #ffffff20" }}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Card 3: Share to feed (artist only, shown when buyer approved and artist hasn't responded) */}
+        {commission.status === "COMPLETE" && isArtist && commission.displayAsExample && !commission.artistFeedShareOffered && (
+          <div className="mb-4 rounded-2xl p-4" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+            {deliveredFileUrl && (
+              <img
+                src={deliveredFileUrl}
+                alt="Completed commission"
+                className="w-full rounded-xl object-cover max-h-48 mb-3"
+                style={{ border: "1px solid #ffffff10" }}
+              />
+            )}
+            <p className="text-sm font-semibold text-white mb-1">Your buyer approved this work!</p>
+            <p className="text-xs text-white/50 mb-4">It will appear in your portfolio. Want to also post it to your feed?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => shareToFeedMutation.mutate({ id })}
+                disabled={shareToFeedMutation.isPending || dismissFeedShareMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              >
+                {shareToFeedMutation.isPending ? "Posting…" : "Post to feed"}
+              </button>
+              <button
+                onClick={() => dismissFeedShareMutation.mutate({ id })}
+                disabled={shareToFeedMutation.isPending || dismissFeedShareMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white/60 hover:text-white transition-colors disabled:opacity-50"
+                style={{ border: "1px solid #ffffff20" }}
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        )}
+
         {commission.status === "DECLINED" && (
-          <div className="mb-4 rounded-2xl p-4 text-center" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+          <div className="mb-4 rounded-2xl p-4 text-center" style={{ background: "#160b30", border: "1px solid #ffffff10" }}>
             <p className="text-sm font-semibold text-white/50">This request was declined</p>
           </div>
         )}
         {commission.status === "CANCELLED" && (
-          <div className="mb-4 rounded-2xl p-4 text-center" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+          <div className="mb-4 rounded-2xl p-4 text-center" style={{ background: "#160b30", border: "1px solid #ffffff10" }}>
             <p className="text-sm font-semibold text-white/50">This commission was cancelled</p>
           </div>
         )}
@@ -345,7 +458,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                       {msg.text}
                     </div>
                   ) : (
-                    <div className="px-4 py-2.5 rounded-2xl text-sm text-white rounded-tl-sm" style={{ background: "#1a1a2e" }}>
+                    <div className="px-4 py-2.5 rounded-2xl text-sm text-white rounded-tl-sm" style={{ background: "#1e0d3f" }}>
                       {msg.text}
                     </div>
                   )
@@ -361,7 +474,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
 
       {/* Action bar — status-specific, fixed at bottom */}
       {!isClosed && (
-        <div className="flex-shrink-0 px-4 py-3" style={{ borderTop: "1px solid #ffffff10", background: "#111118" }}>
+        <div className="flex-shrink-0 px-4 py-3" style={{ borderTop: "1px solid #ffffff10", background: "#160b30" }}>
 
           {/* Artist: accept or decline a PENDING commission */}
           {isArtist && commission.status === "PENDING" && (
@@ -581,7 +694,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
 
       {/* Message input — hidden for closed threads */}
       {!isClosed && (
-        <div className="flex-shrink-0 px-4 py-3 flex gap-2 items-end" style={{ borderTop: "1px solid #ffffff10", background: "#111118" }}>
+        <div className="flex-shrink-0 px-4 py-3 flex gap-2 items-end" style={{ borderTop: "1px solid #ffffff10", background: "#160b30" }}>
           <textarea
             value={messageText}
             onChange={e => setMessageText(e.target.value)}
@@ -604,7 +717,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
         </div>
       )}
       {isClosed && (
-        <div className="flex-shrink-0 px-4 py-3 text-center" style={{ borderTop: "1px solid #ffffff10", background: "#111118" }}>
+        <div className="flex-shrink-0 px-4 py-3 text-center" style={{ borderTop: "1px solid #ffffff10", background: "#160b30" }}>
           <p className="text-xs text-white/40">This commission is closed</p>
         </div>
       )}
