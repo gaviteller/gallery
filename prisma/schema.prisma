@@ -84,6 +84,8 @@ model User {
   conversationsAsB     Conversation[]  @relation("ConversationB")
   sentDirectMessages   DirectMessage[] @relation("SentDirectMessages")
   pushSubscriptions    PushSubscription[]
+  blockedUsers         Block[]         @relation("BlockerRelation")
+  blockedByUsers       Block[]         @relation("BlockedRelation")
 
   accounts              Account[]
   sessions              Session[]
@@ -141,6 +143,7 @@ model Post {
   description    String?
   isAiGenerated  Boolean   @default(false)
   isCommission   Boolean   @default(false)
+  pinned         Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   likes          Like[]
@@ -258,6 +261,8 @@ model Conversation {
   userA        User            @relation("ConversationA", fields: [participantA], references: [id], onDelete: Cascade)
   userB        User            @relation("ConversationB", fields: [participantB], references: [id], onDelete: Cascade)
   messages     DirectMessage[]
+  lastReadAtA  DateTime?
+  lastReadAtB  DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
@@ -287,6 +292,19 @@ model CommissionFavorite {
   @@unique([userId, artistId])
   @@index([userId])
   @@index([artistId])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  blocker   User     @relation("BlockerRelation", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("BlockedRelation", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }
 
 model DirectMessage {
