@@ -9,9 +9,9 @@ import PostModal from "@/components/PostModal"
 import CommissionRequestModal from "@/components/CommissionRequestModal"
 
 const statusColors = {
-  OPEN: "bg-green-100 text-green-700",
-  LIMITED: "bg-yellow-100 text-yellow-700",
-  CLOSED: "bg-gray-100 text-gray-500",
+  OPEN: "bg-green-500/20 text-green-400",
+  LIMITED: "bg-yellow-500/20 text-yellow-400",
+  CLOSED: "bg-white/10 text-white/30",
 }
 
 const statusLabels = {
@@ -65,11 +65,22 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
   const { data: commissionProfile } = trpc.commission.getProfile.useQuery({ username })
   const { data: commissionCategories } = trpc.commission.getCategories.useQuery({ username })
+  const { data: followStatus, refetch: refetchFollow } = trpc.follow.status.useQuery(
+    { username },
+    { enabled: !!profileUser }
+  )
+  const { data: mutualData } = trpc.follow.mutuals.useQuery(
+    { username },
+    { enabled: !!profileUser && !!session && session.user.id !== profileUser?.id }
+  )
+  const followMutation = trpc.follow.follow.useMutation({ onSuccess: () => refetchFollow() })
+  const unfollowMutation = trpc.follow.unfollow.useMutation({ onSuccess: () => refetchFollow() })
   const utils = trpc.useUtils()
 
   const [tab, setTab] = useState("Posts")
   const [viewPost, setViewPost] = useState<PostItem | null>(null)
   const [showCommissionRequest, setShowCommissionRequest] = useState(false)
+  const [showMutuals, setShowMutuals] = useState(false)
 
   // ── New post modal state ──────────────────────────────────────
   const [showUpload, setShowUpload] = useState(false)
@@ -138,11 +149,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   }
 
   if (userLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="text-gray-400">Loading…</div></div>
+    return <div className="min-h-screen flex items-center justify-center"><div className="text-white/40">Loading…</div></div>
   }
 
   if (!profileUser) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="text-gray-400">User not found</div></div>
+    return <div className="min-h-screen flex items-center justify-center"><div className="text-white/40">User not found</div></div>
   }
 
   const isOwn = session?.user?.id === profileUser.id
@@ -150,8 +161,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const initials = (profileUser.name ?? profileUser.username ?? "?")
     .split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
 
+  const inputClass = "w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+  const inputStyle = { background: "#ffffff10", border: "1px solid #ffffff15" }
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10">
+    <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
       {showCommissionRequest && commissionProfile && commissionCategories && (
         <CommissionRequestModal
           artistId={commissionProfile.id}
@@ -161,78 +175,115 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         />
       )}
 
+      {/* Mutual followers modal */}
+      {showMutuals && mutualData && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setShowMutuals(false)}>
+          <div className="w-full max-w-lg rounded-t-2xl pb-8" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ background: "#ffffff20" }} />
+            </div>
+            <p className="text-sm font-semibold text-white px-4 pb-3" style={{ borderBottom: "1px solid #ffffff10" }}>
+              Mutual followers
+            </p>
+            <div className="max-h-72 overflow-y-auto">
+              {mutualData.users.map(u => (
+                <button key={u.id} onClick={() => { setShowMutuals(false); router.push(`/@${u.username}`) }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
+                  {u.image
+                    ? <img src={u.image} className="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="" />
+                    : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-sm" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>{(u.name ?? u.username ?? "?")[0].toUpperCase()}</div>
+                  }
+                  <div>
+                    <p className="text-sm font-semibold text-white">@{u.username}</p>
+                    {u.name && <p className="text-xs text-white/40">{u.name}</p>}
+                  </div>
+                </button>
+              ))}
+              {mutualData.users.length === 0 && (
+                <p className="text-sm text-white/40 text-center py-6">No mutual followers</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start gap-6 mb-8">
         {profileUser.image ? (
           <img src={profileUser.image} alt={profileUser.name ?? profileUser.username ?? "Profile"} className="w-20 h-20 rounded-full object-cover flex-shrink-0" />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-2xl font-bold flex-shrink-0">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
             {initials}
           </div>
         )}
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-gray-900">@{profileUser.username}</h1>
+            <h1 className="text-xl font-bold text-white">@{profileUser.username}</h1>
             {isOwn ? (
-              <Link href="/settings" className="text-sm px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+              <Link href="/settings" className="text-sm px-3 py-1 rounded-lg text-white/60 hover:text-white transition-colors" style={{ border: "1px solid #ffffff20" }}>
                 Edit profile
               </Link>
             ) : session && (
-              <button
-                onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
-                disabled={getOrCreateDM.isPending}
-                className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                {getOrCreateDM.isPending ? "Opening…" : "Message"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => followStatus?.following
+                    ? unfollowMutation.mutate({ username })
+                    : followMutation.mutate({ username })
+                  }
+                  disabled={followMutation.isPending || unfollowMutation.isPending}
+                  className="text-sm px-4 py-1.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
+                  style={followStatus?.following
+                    ? { background: "#ffffff15", border: "1px solid #ffffff30" }
+                    : { background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }
+                  }
+                >
+                  {followMutation.isPending || unfollowMutation.isPending
+                    ? "…"
+                    : followStatus?.following ? "Following" : "Follow"}
+                </button>
+                <button
+                  onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
+                  disabled={getOrCreateDM.isPending}
+                  className="text-sm px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors disabled:opacity-50"
+                  style={{ border: "1px solid #ffffff20" }}
+                >
+                  {getOrCreateDM.isPending ? "Opening…" : "Message"}
+                </button>
+              </div>
             )}
           </div>
 
           {profileUser.name && (
-            <p className="text-gray-700 text-sm font-medium mt-0.5">{profileUser.name}</p>
+            <p className="text-white/60 text-sm font-medium mt-0.5">{profileUser.name}</p>
           )}
 
-          {profileUser.bio && (
-            <p className="text-gray-700 text-sm mt-3">{profileUser.bio}</p>
-          )}
-
-          {(profileUser.websiteUrl || profileUser.twitterHandle || profileUser.instagramHandle || profileUser.artstationHandle) && (
-            <div className="flex flex-wrap gap-3 mt-3">
-              {profileUser.websiteUrl && (
-                <a href={profileUser.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">🌐 Website</a>
-              )}
-              {profileUser.twitterHandle && (
-                <a href={`https://x.com/${profileUser.twitterHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">𝕏 {profileUser.twitterHandle}</a>
-              )}
-              {profileUser.instagramHandle && (
-                <a href={`https://instagram.com/${profileUser.instagramHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">📸 {profileUser.instagramHandle}</a>
-              )}
-              {profileUser.artstationHandle && (
-                <a href={`https://artstation.com/${profileUser.artstationHandle}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">🎨 {profileUser.artstationHandle}</a>
-              )}
-            </div>
-          )}
-
-          {profileUser.sellingEnabled && (
-            <div className="mt-3">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusColors[profileUser.commissionStatus as keyof typeof statusColors] ?? "bg-gray-100 text-gray-500"}`}>
-                {statusLabels[profileUser.commissionStatus as keyof typeof statusLabels] ?? "Closed for commissions"}
-              </span>
-            </div>
-          )}
+          {/* Follower / following counts */}
+          <div className="flex items-center gap-4 mt-2">
+            <span className="text-sm text-white/70">
+              <span className="font-bold text-white">{followStatus?.followerCount ?? 0}</span> followers
+            </span>
+            <span className="text-sm text-white/70">
+              <span className="font-bold text-white">{followStatus?.followingCount ?? 0}</span> following
+            </span>
+            {!isOwn && mutualData && mutualData.count > 0 && (
+              <button onClick={() => setShowMutuals(true)} className="text-sm text-cyan-400 hover:underline">
+                {mutualData.count} mutual
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="mb-6" style={{ borderBottom: "1px solid #ffffff10" }}>
         <nav className="flex gap-6">
           {["Posts", "Shop", "Commissions", "About"].map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                tab === t ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"
+                tab === t ? "border-white text-white" : "border-transparent text-white/40 hover:text-white/70"
               }`}
             >
               {t}
@@ -247,19 +298,20 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           {isOwn && (
             <div className="mb-4 flex justify-end">
               <button onClick={() => setShowUpload(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
+                className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-xl hover:opacity-80 transition-opacity"
+                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
                 + New post
               </button>
             </div>
           )}
 
           {postsLoading ? (
-            <div className="text-center py-16 text-gray-400">Loading…</div>
+            <div className="text-center py-16 text-white/40">Loading…</div>
           ) : posts && posts.length > 0 ? (
             <div className="grid grid-cols-3 gap-0.5">
               {posts.map((post) => (
                 <button key={post.id} onClick={() => setViewPost(post as PostItem)}
-                  className="relative aspect-square overflow-hidden bg-gray-100 group">
+                  className="relative aspect-square overflow-hidden group" style={{ background: "#ffffff08" }}>
                   <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
                   <div className="absolute top-1.5 left-1.5 flex gap-1">
                     {post.isAiGenerated && (
@@ -280,10 +332,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16">
               <div className="text-4xl mb-3">🖼️</div>
-              <p className="font-medium text-gray-500">No posts yet</p>
-              {isOwn && <p className="text-sm mt-1">Share your first piece of art</p>}
+              <p className="font-medium text-white/50">No posts yet</p>
+              {isOwn && <p className="text-sm mt-1 text-white/30">Share your first piece of art</p>}
             </div>
           )}
         </>
@@ -295,40 +347,42 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           {isOwn && (
             <div className="mb-4 flex justify-end">
               <button onClick={() => setShowShopUpload(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
+                className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-xl hover:opacity-80 transition-opacity"
+                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
                 + Add item
               </button>
             </div>
           )}
 
           {shopLoading ? (
-            <div className="text-center py-16 text-gray-400">Loading…</div>
+            <div className="text-center py-16 text-white/40">Loading…</div>
           ) : shopItems && shopItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               {shopItems.map((item) => (
-                <div key={item.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                  <div className="aspect-square overflow-hidden bg-gray-100">
+                <div key={item.id} className="rounded-2xl overflow-hidden" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+                  <div className="aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="p-3">
-                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">{item.title}</p>
+                    <p className="text-sm font-semibold text-white line-clamp-1">{item.title}</p>
                     {item.description && (
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{item.description}</p>
+                      <p className="text-xs text-white/40 mt-0.5 line-clamp-2">{item.description}</p>
                     )}
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm font-bold text-gray-900">${item.price.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-white">${item.price.toFixed(2)}</span>
                       {isOwn ? (
                         <button
                           onClick={() => deleteShopItem.mutate({ id: item.id })}
                           disabled={deleteShopItem.isPending}
-                          className="text-xs text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                          className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
                         >
                           Remove
                         </button>
                       ) : (
                         <a
                           href={`mailto:${profileUser.email ?? ""}?subject=Shop inquiry: ${encodeURIComponent(item.title)}`}
-                          className="text-xs bg-gray-900 text-white px-3 py-1 rounded-lg hover:bg-gray-700 transition-colors"
+                          className="text-xs text-white px-3 py-1 rounded-lg hover:opacity-80 transition-opacity"
+                          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
                         >
                           Inquire
                         </a>
@@ -339,10 +393,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16">
               <div className="text-4xl mb-3">🛍️</div>
-              <p className="font-medium text-gray-500">No items for sale yet</p>
-              {isOwn && <p className="text-sm mt-1">Add prints, stickers, or other work</p>}
+              <p className="font-medium text-white/50">No items for sale yet</p>
+              {isOwn && <p className="text-sm mt-1 text-white/30">Add prints, stickers, or other work</p>}
             </div>
           )}
         </>
@@ -351,31 +405,31 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── Commissions tab ───────────────────────────────────── */}
       {tab === "Commissions" && (
         <>
-          {/* Request Commission button — show to non-owners when artist is open */}
           {!isOwn && commissionProfile && commissionProfile.commissionStatus !== "CLOSED" && (
             <div className="mb-6 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                     commissionProfile.commissionStatus === "OPEN"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
+                      ? "bg-green-500/20 text-green-400"
+                      : "bg-yellow-500/20 text-yellow-400"
                   }`}>
                     {commissionProfile.commissionStatus === "OPEN" ? "Open for commissions" : "Limited slots"}
                   </span>
                   {commissionProfile.commissionTurnaround && (
-                    <p className="text-xs text-gray-400 mt-1">Turnaround: {commissionProfile.commissionTurnaround}</p>
+                    <p className="text-xs text-white/40 mt-1">Turnaround: {commissionProfile.commissionTurnaround}</p>
                   )}
                 </div>
                 <button
                   onClick={() => setShowCommissionRequest(true)}
-                  className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+                  className="px-5 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
+                  style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
                 >
                   Request Commission
                 </button>
               </div>
               {commissionProfile.commissionDescription && (
-                <p className="text-sm text-gray-600 bg-gray-50 rounded-xl px-4 py-3">
+                <p className="text-sm text-white/60 rounded-xl px-4 py-3" style={{ background: "#ffffff08", border: "1px solid #ffffff10" }}>
                   {commissionProfile.commissionDescription}
                 </p>
               )}
@@ -383,14 +437,14 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           )}
 
           {commissionsLoading ? (
-            <div className="text-center py-16 text-gray-400">Loading…</div>
+            <div className="text-center py-16 text-white/40">Loading…</div>
           ) : commissions && commissions.length > 0 ? (
             <>
-              <p className="text-xs text-gray-400 mb-4">Finished commission work — click to view</p>
+              <p className="text-xs text-white/40 mb-4">Finished commission work — click to view</p>
               <div className="grid grid-cols-3 gap-0.5">
                 {commissions.map((post) => (
                   <button key={post.id} onClick={() => setViewPost(post as PostItem)}
-                    className="relative aspect-square overflow-hidden bg-gray-100 group">
+                    className="relative aspect-square overflow-hidden group" style={{ background: "#ffffff08" }}>
                     <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                       <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
@@ -402,11 +456,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               </div>
             </>
           ) : (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16">
               <div className="text-4xl mb-3">🎨</div>
-              <p className="font-medium text-gray-500">No finished commissions posted yet</p>
+              <p className="font-medium text-white/50">No finished commissions posted yet</p>
               {isOwn && (
-                <p className="text-sm mt-1">
+                <p className="text-sm mt-1 text-white/30">
                   When posting, tick &ldquo;This is a commission&rdquo; to show it here
                 </p>
               )}
@@ -420,32 +474,32 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <div className="flex flex-col gap-4 max-w-sm">
           {profileUser.bio ? (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Bio</p>
-              <p className="text-sm text-gray-700">{profileUser.bio}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-1">Bio</p>
+              <p className="text-sm text-white/70">{profileUser.bio}</p>
             </div>
           ) : null}
 
           {(profileUser.websiteUrl || profileUser.twitterHandle || profileUser.instagramHandle || profileUser.artstationHandle) && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Links</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-2">Links</p>
               <div className="flex flex-col gap-2">
                 {profileUser.websiteUrl && (
-                  <a href={profileUser.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                  <a href={profileUser.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
                     <span>🌐</span> {profileUser.websiteUrl}
                   </a>
                 )}
                 {profileUser.twitterHandle && (
-                  <a href={`https://x.com/${profileUser.twitterHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                  <a href={`https://x.com/${profileUser.twitterHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
                     <span>𝕏</span> {profileUser.twitterHandle}
                   </a>
                 )}
                 {profileUser.instagramHandle && (
-                  <a href={`https://instagram.com/${profileUser.instagramHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                  <a href={`https://instagram.com/${profileUser.instagramHandle.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
                     <span>📸</span> {profileUser.instagramHandle}
                   </a>
                 )}
                 {profileUser.artstationHandle && (
-                  <a href={`https://artstation.com/${profileUser.artstationHandle}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                  <a href={`https://artstation.com/${profileUser.artstationHandle}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
                     <span>🎨</span> ArtStation — {profileUser.artstationHandle}
                   </a>
                 )}
@@ -454,29 +508,28 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           )}
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Joined</p>
-            <p className="text-sm text-gray-700">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-1">Joined</p>
+            <p className="text-sm text-white/70">
               {new Date(profileUser.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </p>
           </div>
 
           {isOwn && (
-            <Link href="/settings" className="mt-2 text-sm text-blue-600 hover:underline">
+            <Link href="/settings" className="mt-2 text-sm text-cyan-400 hover:underline">
               Edit profile →
             </Link>
           )}
         </div>
       )}
 
-
       {/* ── New post modal ────────────────────────────────────── */}
       {showUpload && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">New post</h2>
+              <h2 className="text-lg font-bold text-white">New post</h2>
               <button onClick={() => { setShowUpload(false); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false) }}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+                className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
             </div>
 
             {uploadImage ? (
@@ -488,30 +541,30 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl h-48 cursor-pointer hover:border-gray-400 transition-colors">
+              <label className="flex flex-col items-center justify-center rounded-xl h-48 cursor-pointer hover:bg-white/5 transition-colors" style={{ border: "2px dashed #ffffff20" }}>
                 <span className="text-3xl mb-2">🖼️</span>
-                <span className="text-sm text-gray-500">{imgProcessing ? "Processing…" : "Click to choose image"}</span>
+                <span className="text-sm text-white/40">{imgProcessing ? "Processing…" : "Click to choose image"}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageFile} disabled={imgProcessing} />
               </label>
             )}
 
             <textarea value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
               placeholder="Write a caption…" maxLength={500} rows={3}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }} />
 
-            {/* Toggles */}
             {[
               { label: "AI generated", sub: "Let others know this was made with AI", value: uploadIsAi, set: setUploadIsAi },
               { label: "This is a commission", sub: "Show in your Commissions tab", value: uploadIsCommission, set: setUploadIsCommission },
             ].map(({ label, sub, value, set }) => (
               <div key={label} className="flex items-center justify-between py-1">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{label}</p>
-                  <p className="text-xs text-gray-500">{sub}</p>
+                  <p className="text-sm font-medium text-white">{label}</p>
+                  <p className="text-xs text-white/40">{sub}</p>
                 </div>
                 <button
                   onClick={() => set((v: boolean) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${value ? "bg-blue-600" : "bg-gray-200"}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${value ? "bg-purple-600" : "bg-white/20"}`}
                   role="switch" aria-checked={value}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${value ? "translate-x-6" : "translate-x-1"}`} />
@@ -519,12 +572,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               </div>
             ))}
 
-            {createPost.error && <p className="text-sm text-red-500">{createPost.error.message}</p>}
+            {createPost.error && <p className="text-sm text-red-400">{createPost.error.message}</p>}
 
             <button
               onClick={() => { if (uploadImage) createPost.mutate({ image: uploadImage, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi, isCommission: uploadIsCommission }) }}
               disabled={createPost.isPending || !uploadImage || imgProcessing}
-              className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
               {createPost.isPending ? "Posting…" : "Share"}
             </button>
           </div>
@@ -533,12 +587,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
       {/* ── New shop item modal ───────────────────────────────── */}
       {showShopUpload && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Add shop item</h2>
+              <h2 className="text-lg font-bold text-white">Add shop item</h2>
               <button onClick={() => { setShowShopUpload(false); setShopImage(null); setShopTitle(""); setShopDesc(""); setShopPrice("") }}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+                className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
             </div>
 
             {shopImage ? (
@@ -550,45 +604,27 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl h-48 cursor-pointer hover:border-gray-400 transition-colors">
+              <label className="flex flex-col items-center justify-center rounded-xl h-48 cursor-pointer hover:bg-white/5 transition-colors" style={{ border: "2px dashed #ffffff20" }}>
                 <span className="text-3xl mb-2">🛍️</span>
-                <span className="text-sm text-gray-500">{shopImgProcessing ? "Processing…" : "Click to choose image"}</span>
+                <span className="text-sm text-white/40">{shopImgProcessing ? "Processing…" : "Click to choose image"}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleShopImageFile} disabled={shopImgProcessing} />
               </label>
             )}
 
-            <input
-              type="text"
-              value={shopTitle}
-              onChange={(e) => setShopTitle(e.target.value)}
-              placeholder="Item title"
-              maxLength={100}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <input type="text" value={shopTitle} onChange={(e) => setShopTitle(e.target.value)}
+              placeholder="Item title" maxLength={100} className={inputClass} style={inputStyle} />
 
-            <textarea
-              value={shopDesc}
-              onChange={(e) => setShopDesc(e.target.value)}
-              placeholder="Description (optional)"
-              maxLength={500}
-              rows={2}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <textarea value={shopDesc} onChange={(e) => setShopDesc(e.target.value)}
+              placeholder="Description (optional)" maxLength={500} rows={2}
+              className={`${inputClass} resize-none`} style={inputStyle} />
 
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">$</span>
-              <input
-                type="number"
-                value={shopPrice}
-                onChange={(e) => setShopPrice(e.target.value)}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <span className="text-sm font-medium text-white/60">$</span>
+              <input type="number" value={shopPrice} onChange={(e) => setShopPrice(e.target.value)}
+                placeholder="0.00" min="0" step="0.01" className={inputClass} style={inputStyle} />
             </div>
 
-            {createShopItem.error && <p className="text-sm text-red-500">{createShopItem.error.message}</p>}
+            {createShopItem.error && <p className="text-sm text-red-400">{createShopItem.error.message}</p>}
 
             <button
               onClick={() => {
@@ -598,7 +634,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 }
               }}
               disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing}
-              className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
               {createShopItem.isPending ? "Adding…" : "Add to shop"}
             </button>
           </div>
