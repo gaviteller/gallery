@@ -13,7 +13,7 @@ type Post = {
   description: string | null
   isAiGenerated: boolean
   createdAt: Date
-  pinned?: boolean
+  pinned: boolean
 }
 
 type ProfileUser = {

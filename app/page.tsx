@@ -177,7 +177,7 @@ export default function FeedPage() {
           {/* Infinite scroll sentinel */}
           <div ref={sentinelRef} className="py-6 flex justify-center">
             {isFetchingNextPage && (
-              <div className="w-6 h-6 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
             )}
             {!hasNextPage && posts.length > 0 && (
               <p className="text-xs text-gray-300">You're all caught up</p>
@@ -188,7 +188,7 @@ export default function FeedPage() {
 
       {viewPost && (
         <PostModal
-          post={viewPost}
+          post={{ ...viewPost, pinned: false }}
           profileUser={{
             username: viewPost.user.username,
             name: viewPost.user.name,

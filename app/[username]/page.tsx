@@ -330,7 +330,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   {isOwn && (post as PostItem).pinned && (
                     <div className="absolute top-1.5 right-1.5">
                       <svg className="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 1v10l2 3H6l2-3V1h8zm-5 19a1 1 0 002 0v-5h-2v5zM9 1h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+                        <path d="M16 12V4h1a1 1 0 000-2H7a1 1 0 000 2h1v8l-2 2v2h5v5l1 1 1-1v-5h5v-2l-2-2z"/>
                       </svg>
                     </div>
                   )}
