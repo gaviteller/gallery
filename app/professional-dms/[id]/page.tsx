@@ -120,14 +120,16 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     },
   })
 
-  // Accept + price
+  // Accept + price + deadline
   const [showAcceptForm, setShowAcceptForm] = useState(false)
   const [acceptPrice, setAcceptPrice] = useState("")
+  const [acceptDeadline, setAcceptDeadline] = useState("")
   const acceptMutation = trpc.commission.accept.useMutation({
     onSuccess: () => {
       utils.commission.getById.invalidate({ id })
       setShowAcceptForm(false)
       setAcceptPrice("")
+      setAcceptDeadline("")
     },
   })
 
@@ -480,8 +482,8 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
           {isArtist && commission.status === "PENDING" && (
             <div>
               {showAcceptForm ? (
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs font-semibold text-white/70">Set your price</p>
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs font-semibold text-white/70">Set your price and deadline</p>
                   <div className="flex gap-2 items-center">
                     <span className="text-sm text-white/70">$</span>
                     <input
@@ -494,13 +496,28 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                       className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
                     />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="datetime-local"
+                      value={acceptDeadline}
+                      onChange={e => setAcceptDeadline(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+                    />
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => {
                         const price = parseFloat(acceptPrice)
-                        if (!isNaN(price) && price > 0) acceptMutation.mutate({ id, price })
+                        if (!isNaN(price) && price > 0 && acceptDeadline) {
+                          const deadlineDate = new Date(acceptDeadline)
+                          const isoString = deadlineDate.toISOString()
+                          acceptMutation.mutate({ id, price, deadline: isoString })
+                        }
                       }}
-                      disabled={acceptMutation.isPending}
-                      className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
+                      disabled={acceptMutation.isPending || !acceptPrice || !acceptDeadline}
+                      className="flex-1 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50"
                     >
                       {acceptMutation.isPending ? "…" : "Accept"}
                     </button>

@@ -264,15 +264,28 @@ export const commissionRouter = router({
     }),
 
   accept: protectedProcedure
-    .input(z.object({ id: z.string(), price: z.number().positive() }))
+    .input(z.object({
+      id: z.string(),
+      price: z.number().positive(),
+      deadline: z.string().datetime(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "PENDING") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not pending" })
+
+      const deadlineDate = new Date(input.deadline)
+      const formatted = deadlineDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+
       const updated = await ctx.prisma.commission.update({
         where: { id: input.id },
-        data: { status: "ACCEPTED", agreedPrice: input.price },
+        data: {
+          status: "ACCEPTED",
+          agreedPrice: input.price,
+          deadline: deadlineDate,
+          deadlineNotificationSent: false,
+        },
       })
       await ctx.prisma.notification.create({
         data: { userId: commission.buyerId, fromUserId: ctx.session.user.id, type: `commission_accepted:${input.id}` },
@@ -281,7 +294,7 @@ export const commissionRouter = router({
         data: {
           commissionId: input.id,
           senderId: ctx.session.user.id,
-          text: `Commission accepted at $${input.price}. Awaiting payment.`,
+          text: `Commission accepted at $${input.price}. Deadline: ${formatted}. Awaiting payment.`,
           isSystem: true,
         },
       })
