@@ -252,15 +252,20 @@ export const commissionRouter = router({
             where: { id: input.id },
             data: { deadlineNotificationSent: true },
           })
-          const callerIsArtist = commission.artistId === ctx.session?.user?.id
-          const notifyUserId = callerIsArtist ? commission.buyerId : commission.artistId
           if (ctx.session?.user?.id) {
-            await ctx.prisma.notification.create({
-              data: {
-                userId: notifyUserId,
-                fromUserId: ctx.session.user.id,
-                type: `commission_deadline_approaching:${input.id}`,
-              },
+            await ctx.prisma.notification.createMany({
+              data: [
+                {
+                  userId: commission.buyerId,
+                  fromUserId: ctx.session.user.id,
+                  type: `commission_deadline_approaching:${input.id}`,
+                },
+                {
+                  userId: commission.artistId,
+                  fromUserId: ctx.session.user.id,
+                  type: `commission_deadline_approaching:${input.id}`,
+                },
+              ],
             })
           }
         }

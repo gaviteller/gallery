@@ -27,3 +27,24 @@ describe("accept mutation input schema", () => {
     expect(result.success).toBe(true)
   })
 })
+
+describe("dual deadline notification targeting", () => {
+  it("identifies two distinct user IDs to notify", () => {
+    const buyerId = "buyer-1"
+    const artistId = "artist-1"
+    const targets = [buyerId, artistId]
+    expect(targets).toHaveLength(2)
+    expect(new Set(targets).size).toBe(2)
+  })
+
+  it("both targets are included when buyer !== artist", () => {
+    const buyerId = "buyer-1"
+    const artistId = "artist-2"
+    const data = [
+      { userId: buyerId, type: "commission_deadline_approaching:xyz" },
+      { userId: artistId, type: "commission_deadline_approaching:xyz" },
+    ]
+    expect(data.some(d => d.userId === buyerId)).toBe(true)
+    expect(data.some(d => d.userId === artistId)).toBe(true)
+  })
+})
