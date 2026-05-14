@@ -418,64 +418,70 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── Commissions tab ───────────────────────────────────── */}
       {tab === "Commissions" && (
         <>
-          {!isOwn && commissionProfile && commissionProfile.commissionStatus !== "CLOSED" && (
-            <div className="mb-6 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
+          {/* Info card */}
+          <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+            {/* Trust score */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white/40" style={{ background: "#ffffff10" }}>
+                New Artist
+              </span>
+            </div>
+
+            {commissionProfile?.commissionDescription && (
+              <p className="text-sm text-white/70 mb-4">{commissionProfile.commissionDescription}</p>
+            )}
+
+            <div className="flex flex-wrap gap-4 mb-4">
+              {commissionProfile?.commissionTurnaround && (
                 <div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    commissionProfile.commissionStatus === "OPEN"
-                      ? "bg-green-500/20 text-green-400"
-                      : "bg-yellow-500/20 text-yellow-400"
-                  }`}>
-                    {commissionProfile.commissionStatus === "OPEN" ? "Open for commissions" : "Limited slots"}
-                  </span>
-                  {commissionProfile.commissionTurnaround && (
-                    <p className="text-xs text-white/40 mt-1">Turnaround: {commissionProfile.commissionTurnaround}</p>
-                  )}
+                  <p className="text-xs text-white/40 mb-0.5">Turnaround</p>
+                  <p className="text-sm font-medium text-white">{commissionProfile.commissionTurnaround}</p>
                 </div>
-                <button
-                  onClick={() => setShowCommissionRequest(true)}
-                  className="px-5 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
-                  style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
-                >
-                  Request Commission
-                </button>
-              </div>
-              {commissionProfile.commissionDescription && (
-                <p className="text-sm text-white/60 rounded-xl px-4 py-3" style={{ background: "#ffffff08", border: "1px solid #ffffff10" }}>
-                  {commissionProfile.commissionDescription}
-                </p>
+              )}
+              {commissionProfile?.priceRanges && (commissionProfile.priceRanges as { label: string; price: number }[]).length > 0 && (
+                <div>
+                  <p className="text-xs text-white/40 mb-0.5">Price ranges</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(commissionProfile.priceRanges as { label: string; price: number }[]).map((r) => (
+                      <span key={r.label} className="text-xs px-2 py-0.5 rounded-full text-white/70" style={{ background: "#ffffff10" }}>
+                        {r.label} — ${r.price}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-          )}
 
-          {commissionsLoading ? (
-            <div className="text-center py-16 text-white/40">Loading…</div>
-          ) : commissions && commissions.length > 0 ? (
+            {!isOwn && commissionProfile && commissionProfile.commissionStatus !== "CLOSED" && (
+              <button
+                onClick={() => setShowCommissionRequest(true)}
+                className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
+                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              >
+                Request Commission
+              </button>
+            )}
+          </div>
+
+          {/* Example work gallery */}
+          {commissionProfile?.commissionCardImages && commissionProfile.commissionCardImages.length > 0 ? (
             <>
-              <p className="text-xs text-white/40 mb-4">Finished commission work — click to view</p>
+              <p className="text-xs text-white/40 mb-3 uppercase tracking-wide font-semibold">Example work</p>
               <div className="grid grid-cols-3 gap-0.5">
-                {commissions.map((post) => (
-                  <button key={post.id} onClick={() => setViewPost(post as PostItem)}
-                    className="relative aspect-square overflow-hidden group" style={{ background: "#ffffff08" }}>
-                    <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                      <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
-                        {post.description}
-                      </span>
-                    </div>
-                  </button>
+                {commissionProfile.commissionCardImages.map((img, i) => (
+                  <div key={i} className="relative aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
+                    <img src={img} alt={`Example ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="text-center py-16">
+            <div className="text-center py-12">
               <div className="text-4xl mb-3">🎨</div>
-              <p className="font-medium text-white/50">No finished commissions posted yet</p>
+              <p className="font-medium text-white/50">No example work yet</p>
               {isOwn && (
-                <p className="text-sm mt-1 text-white/30">
-                  When posting, tick &ldquo;This is a commission&rdquo; to show it here
-                </p>
+                <p className="text-sm mt-1 text-white/30">Add images in your Artist Dashboard</p>
               )}
             </div>
           )}
@@ -484,13 +490,23 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
       {/* ── About tab ─────────────────────────────────────────── */}
       {tab === "About" && (
-        <div className="flex flex-col gap-4 max-w-sm">
-          {profileUser.bio ? (
+        <div className="flex flex-col gap-5 max-w-sm">
+          {/* Commission status badge */}
+          {profileUser.sellingEnabled && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-2">Commission status</p>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusColors[profileUser.commissionStatus as keyof typeof statusColors] ?? "bg-white/10 text-white/30"}`}>
+                {statusLabels[profileUser.commissionStatus as keyof typeof statusLabels] ?? "Closed for commissions"}
+              </span>
+            </div>
+          )}
+
+          {profileUser.bio && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-1">Bio</p>
               <p className="text-sm text-white/70">{profileUser.bio}</p>
             </div>
-          ) : null}
+          )}
 
           {(profileUser.websiteUrl || profileUser.twitterHandle || profileUser.instagramHandle || profileUser.artstationHandle) && (
             <div>
@@ -519,13 +535,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               </div>
             </div>
           )}
-
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-1">Joined</p>
-            <p className="text-sm text-white/70">
-              {new Date(profileUser.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </p>
-          </div>
 
           {isOwn && (
             <Link href="/settings" className="mt-2 text-sm text-cyan-400 hover:underline">
