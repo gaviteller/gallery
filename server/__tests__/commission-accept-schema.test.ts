@@ -26,4 +26,9 @@ describe("accept mutation input schema", () => {
     const result = acceptInputSchema.safeParse({ id: "abc", price: 50, deadline: "2026-06-01T00:00:00.000Z" })
     expect(result.success).toBe(true)
   })
+
+  it("rejects a past deadline", () => {
+    const result = acceptInputSchema.safeParse({ id: "abc", price: 50, deadline: "2020-01-01T00:00:00.000Z" })
+    expect(result.success).toBe(false)
+  })
 })

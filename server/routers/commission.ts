@@ -11,7 +11,10 @@ const priceRangeSchema = z.array(z.object({
 export const acceptInputSchema = z.object({
   id: z.string(),
   price: z.number().positive(),
-  deadline: z.string().datetime(),
+  deadline: z.string().datetime().refine(
+    val => new Date(val) > new Date(),
+    { message: "Deadline must be in the future" }
+  ),
 })
 
 export const commissionRouter = router({
@@ -284,7 +287,7 @@ export const commissionRouter = router({
       if (commission.status !== "PENDING") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not pending" })
 
       const deadlineDate = new Date(input.deadline)
-      const formatted = deadlineDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+      const formatted = deadlineDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })
 
       const updated = await ctx.prisma.commission.update({
         where: { id: input.id },
