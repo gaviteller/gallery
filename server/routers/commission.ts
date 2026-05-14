@@ -512,6 +512,86 @@ export const commissionRouter = router({
       })
     }),
 
+  shareToFeed: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const commission = await ctx.prisma.commission.findUnique({
+        where: { id: input.id },
+        include: {
+          messages: {
+            where: { fileUrl: { not: null } },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { fileUrl: true },
+          },
+        },
+      })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      if (!commission.displayAsExample) throw new TRPCError({ code: "BAD_REQUEST", message: "Buyer has not approved display" })
+      if (commission.artistFeedShareOffered) throw new TRPCError({ code: "BAD_REQUEST", message: "Already responded" })
+      const fileUrl = commission.messages[0]?.fileUrl
+      if (!fileUrl) throw new TRPCError({ code: "BAD_REQUEST", message: "No delivered image found" })
+      await ctx.prisma.$transaction([
+        ctx.prisma.post.create({
+          data: {
+            userId: ctx.session.user.id,
+            image: fileUrl,
+            isCommission: true,
+          },
+        }),
+        ctx.prisma.commission.update({
+          where: { id: input.id },
+          data: { artistFeedShareOffered: true },
+        }),
+      ])
+      return { posted: true }
+    }),
+
+  dismissFeedShare: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.artistFeedShareOffered) throw new TRPCError({ code: "BAD_REQUEST", message: "Already responded" })
+      return ctx.prisma.commission.update({
+        where: { id: input.id },
+        data: { artistFeedShareOffered: true },
+      })
+    }),
+
+  getApprovedWork: publicProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.prisma.user.findFirst({
+        where: { username: { equals: input.username, mode: "insensitive" } },
+        select: { id: true },
+      })
+      if (!user) return []
+
+      const commissions = await ctx.prisma.commission.findMany({
+        where: { artistId: user.id, displayAsExample: true, status: "COMPLETE" },
+        orderBy: { deliveredAt: "desc" },
+        include: {
+          messages: {
+            where: { fileUrl: { not: null } },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { fileUrl: true },
+          },
+        },
+      })
+
+      return commissions
+        .filter(c => c.messages.length > 0)
+        .map(c => ({
+          commissionId: c.id,
+          fileUrl: c.messages[0].fileUrl!,
+          deliveredAt: c.deliveredAt,
+        }))
+    }),
+
   // ── For You feed + favorites ─────────────────────────────────────────────
 
   toggleFavorite: protectedProcedure
