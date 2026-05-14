@@ -115,7 +115,8 @@
       "Bash(findstr /i \"vercel\\\\|deploy\\\\|build\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in d.get\\('scripts',{}\\).items\\(\\)]\")",
       "Bash(npx vercel *)",
-      "Bash(dir C:\\\\Users\\\\gavri\\\\OneDrive\\\\Documents\\\\Projects\\\\gallery\\\\*.config*)"
+      "Bash(dir C:\\\\Users\\\\gavri\\\\OneDrive\\\\Documents\\\\Projects\\\\gallery\\\\*.config*)",
+      "Bash(python theme_apply.py neon-pink-lime)"
     ]
   }
 }

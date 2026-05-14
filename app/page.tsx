@@ -118,7 +118,7 @@ export default function FeedPage() {
                     )}
                   </div>
                   {post.isAiGenerated && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: "rgba(176,68,248,0.2)", color: "#B044F8" }}>AI</span>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: "rgba(255,20,147,0.2)", color: "#CC33AA" }}>AI</span>
                   )}
                 </div>
 

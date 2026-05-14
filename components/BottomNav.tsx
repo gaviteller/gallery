@@ -27,7 +27,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search people or #tags…"
-            className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500"
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-pink-500"
             style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
           />
           <button onClick={onClose} className="text-sm text-white/40 hover:text-white transition-colors">Cancel</button>
@@ -57,7 +57,7 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                 {user.image ? (
                   <img src={user.image} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="" />
                 ) : (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}>
                     {(user.name ?? user.username ?? "?")[0].toUpperCase()}
                   </div>
                 )}
@@ -131,9 +131,9 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                   router.push(getLink(n.type))
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
-                style={{ background: !n.read ? "rgba(176,68,248,0.08)" : "transparent" }}
+                style={{ background: !n.read ? "rgba(255,20,147,0.08)" : "transparent" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                onMouseLeave={e => (e.currentTarget.style.background = !n.read ? "rgba(176,68,248,0.08)" : "transparent")}
+                onMouseLeave={e => (e.currentTarget.style.background = !n.read ? "rgba(255,20,147,0.08)" : "transparent")}
               >
                 <Avatar src={n.fromUser.image} name={n.fromUser.name} username={n.fromUser.username} size={32} />
                 <p className="text-sm text-white/80 flex-1 min-w-0">
@@ -250,7 +250,7 @@ export default function BottomNav() {
       {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
 
       {/* ── MOBILE bottom nav ─────────────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 h-16" style={{ background: "#0D0D0F", borderTop: "1px solid #ffffff10" }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 h-16" style={{ background: "#000000", borderTop: "1px solid #ffffff10" }}>
         {navItems.map((item) => {
           const inner = (
             <div className={`flex flex-col items-center gap-0.5 px-2 py-2 ${item.active ? "text-white" : "text-white/40"}`}>
@@ -289,7 +289,7 @@ export default function BottomNav() {
       {/* ── DESKTOP left sidebar — collapses to icons, expands on hover ─── */}
       <nav
         className="group hidden md:flex flex-col fixed left-0 top-0 h-full z-40 py-6 px-3 transition-all duration-200"
-        style={{ width: "64px", background: "#0D0D0F", borderRight: "1px solid #ffffff10" }}
+        style={{ width: "64px", background: "#000000", borderRight: "1px solid #ffffff10" }}
         onMouseEnter={e => (e.currentTarget.style.width = "240px")}
         onMouseLeave={e => (e.currentTarget.style.width = "64px")}
       >
@@ -318,7 +318,7 @@ export default function BottomNav() {
                 className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all w-full ${
                   item.active ? "bg-white/8" : "hover:bg-white/5"
                 }`}
-                style={item.active ? { background: "linear-gradient(135deg, #FF1CF720, #B044F820, #00B4EE20)" } : {}}
+                style={item.active ? { background: "linear-gradient(135deg, #FF149320, #CC33AA20, #00B4EE20)" } : {}}
               >
                 <div className={`relative flex-shrink-0 ${item.active ? "text-white" : "text-white/50 group-hover:text-white"}`}>
                   {item.icon}
@@ -353,7 +353,7 @@ export default function BottomNav() {
             </div>
             <span
               className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+              style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
               Notifications
             </span>
@@ -371,7 +371,7 @@ export default function BottomNav() {
             </div>
             <span
               className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+              style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
               Artist Dashboard
             </span>

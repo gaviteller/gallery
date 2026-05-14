@@ -69,7 +69,7 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
   return (
     <div className="max-w-lg mx-auto flex flex-col h-screen pb-16">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid #ffffff10", background: "#0D0D0F" }}>
+      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ borderBottom: "1px solid #ffffff10", background: "#000000" }}>
         <button onClick={() => router.push("/messages")} className="text-white/40 hover:text-white p-1 transition-colors">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -112,14 +112,14 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 px-4 py-3 flex gap-2 items-end" style={{ borderTop: "1px solid #ffffff10", background: "#0D0D0F" }}>
+      <div className="flex-shrink-0 px-4 py-3 flex gap-2 items-end" style={{ borderTop: "1px solid #ffffff10", background: "#000000" }}>
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
           placeholder="Message…"
           rows={1}
-          className="flex-1 px-4 py-3 rounded-2xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 resize-none max-h-32"
+          className="flex-1 px-4 py-3 rounded-2xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-pink-500 resize-none max-h-32"
           style={{ background: "#ffffff10" }}
         />
         <button

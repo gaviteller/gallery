@@ -148,7 +148,7 @@ function Lightbox({
         <button
           onClick={e => { e.stopPropagation(); if (!session) { onClose(); router.push("/signin"); return } onRequest(artist) }}
           className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
         >
           Request commission
         </button>
@@ -325,7 +325,7 @@ function ForYouCard({
           <button
             onClick={handleRequest}
             className="px-4 py-2 rounded-full text-xs font-bold text-white transition-all active:scale-95"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
           >
             Request
           </button>
@@ -425,7 +425,7 @@ function ExploreCard({
         <button
           onClick={handleRequest}
           className="w-full py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
         >
           Request
         </button>
@@ -562,7 +562,7 @@ function ExploreTab({
   return (
     <div className="h-full overflow-y-auto pb-24">
       {/* Search */}
-      <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "#0D0D0F" }}>
+      <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "#000000" }}>
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -572,7 +572,7 @@ function ExploreTab({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search artists, styles…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-pink-500 transition"
             style={{ background: "#ffffff10", border: "1px solid #ffffff18" }}
           />
         </div>
@@ -589,7 +589,7 @@ function ExploreTab({
                   : "text-white/50 hover:text-white/80"
               }`}
               style={sortBy === chip.value
-                ? { background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }
+                ? { background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }
                 : { background: "#ffffff10", border: "1px solid #ffffff18" }
               }
             >
@@ -667,14 +667,14 @@ export default function CommissionsPage() {
             className={`text-sm font-bold transition-all ${tab === "foryou" ? "text-white" : "text-white/40"}`}
           >
             For You
-            {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+            {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }} />}
           </button>
           <button
             onClick={() => setTab("explore")}
             className={`text-sm font-bold transition-all ${tab === "explore" ? "text-white" : "text-white/40"}`}
           >
             Explore
-            {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+            {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }} />}
           </button>
         </div>
 

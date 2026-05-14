@@ -168,7 +168,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const initials = (profileUser.name ?? profileUser.username ?? "?")
     .split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
 
-  const inputClass = "w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+  const inputClass = "w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
   const inputStyle = { background: "#ffffff10", border: "1px solid #ffffff15" }
 
   return (
@@ -185,7 +185,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* Mutual followers modal */}
       {showMutuals && !isOwn && mutualData && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setShowMutuals(false)}>
-          <div className="w-full max-w-lg rounded-t-2xl pb-8" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }} onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-t-2xl pb-8" style={{ background: "#111111", border: "1px solid #ffffff15" }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 rounded-full" style={{ background: "#ffffff20" }} />
             </div>
@@ -198,7 +198,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
                   {u.image
                     ? <img src={u.image} className="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="" />
-                    : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-sm" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>{(u.name ?? u.username ?? "?")[0].toUpperCase()}</div>
+                    : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-sm" style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}>{(u.name ?? u.username ?? "?")[0].toUpperCase()}</div>
                   }
                   <div>
                     <p className="text-sm font-semibold text-white">@{u.username}</p>
@@ -219,7 +219,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         {profileUser.image ? (
           <img src={profileUser.image} alt={profileUser.name ?? profileUser.username ?? "Profile"} className="w-20 h-20 rounded-full object-cover flex-shrink-0" />
         ) : (
-          <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+          <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}>
             {initials}
           </div>
         )}
@@ -242,7 +242,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   className="text-sm px-4 py-1.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
                   style={followStatus?.following
                     ? { background: "#ffffff15", border: "1px solid #ffffff30" }
-                    : { background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }
+                    : { background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }
                   }
                 >
                   {followMutation.isPending || unfollowMutation.isPending
@@ -311,7 +311,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <div className="mb-4 flex justify-end">
               <button onClick={() => setShowUpload(true)}
                 className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-xl hover:opacity-80 transition-opacity"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+                style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}>
                 + New post
               </button>
             </div>
@@ -327,7 +327,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
                   <div className="absolute top-1.5 left-1.5 flex gap-1">
                     {post.isAiGenerated && (
-                      <span className="text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
+                      <span className="text-xs font-medium bg-pink-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
                     )}
                     {(post as PostItem).isCommission && (
                       <span className="text-xs font-medium bg-blue-600/80 text-white px-1.5 py-0.5 rounded-md">Comm</span>
@@ -367,7 +367,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <div className="mb-4 flex justify-end">
               <button onClick={() => setShowShopUpload(true)}
                 className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-xl hover:opacity-80 transition-opacity"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+                style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}>
                 + Add item
               </button>
             </div>
@@ -378,7 +378,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           ) : shopItems && shopItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               {shopItems.map((item) => (
-                <div key={item.id} className="rounded-2xl overflow-hidden" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+                <div key={item.id} className="rounded-2xl overflow-hidden" style={{ background: "#111111", border: "1px solid #ffffff15" }}>
                   <div className="aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                   </div>
@@ -401,7 +401,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         <a
                           href={`mailto:${profileUser.email ?? ""}?subject=Shop inquiry: ${encodeURIComponent(item.title)}`}
                           className="text-xs text-white px-3 py-1 rounded-lg hover:opacity-80 transition-opacity"
-                          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                          style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
                         >
                           Inquire
                         </a>
@@ -431,7 +431,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           ) : (
             <>
               {/* Info card */}
-              <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+              <div className="rounded-2xl p-5 mb-6" style={{ background: "#111111", border: "1px solid #ffffff15" }}>
                 {/* Trust score */}
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
@@ -472,7 +472,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   <button
                     onClick={() => setShowCommissionRequest(true)}
                     className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
-                    style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                    style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
                   >
                     Request Commission
                   </button>
@@ -564,7 +564,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── New post modal ────────────────────────────────────── */}
       {showUpload && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#111111", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">New post</h2>
               <button onClick={() => { setShowUpload(false); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false) }}
@@ -589,7 +589,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
             <textarea value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
               placeholder="Write a caption…" maxLength={500} rows={3}
-              className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
               style={{ background: "#ffffff10", border: "1px solid #ffffff15" }} />
 
             {[
@@ -603,7 +603,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 </div>
                 <button
                   onClick={() => set((v: boolean) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${value ? "bg-purple-600" : "bg-white/20"}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${value ? "bg-pink-600" : "bg-white/20"}`}
                   role="switch" aria-checked={value}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${value ? "translate-x-6" : "translate-x-1"}`} />
@@ -617,7 +617,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               onClick={() => { if (uploadImage) createPost.mutate({ image: uploadImage, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi, isCommission: uploadIsCommission }) }}
               disabled={createPost.isPending || !uploadImage || imgProcessing}
               className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+              style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}>
               {createPost.isPending ? "Posting…" : "Share"}
             </button>
           </div>
@@ -627,7 +627,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── New shop item modal ───────────────────────────────── */}
       {showShopUpload && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#111111", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Add shop item</h2>
               <button onClick={() => { setShowShopUpload(false); setShopImage(null); setShopTitle(""); setShopDesc(""); setShopPrice("") }}
@@ -674,7 +674,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               }}
               disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing}
               className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+              style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}>
               {createShopItem.isPending ? "Adding…" : "Add to shop"}
             </button>
           </div>

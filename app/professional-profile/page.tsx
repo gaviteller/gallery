@@ -47,7 +47,7 @@ export default function ProfessionalProfilePage() {
 
   if (status === "unauthenticated" || status === "loading" || !session?.user?.username) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#000000" }}>
         <p className="text-white/50">Loading…</p>
       </div>
     )
@@ -240,7 +240,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#000000" }}>
         <p className="text-white/50">Loading…</p>
       </div>
     )
@@ -264,7 +264,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                 PENDING: "bg-yellow-500/20 text-yellow-400",
                 ACCEPTED: "bg-blue-500/20 text-blue-400",
                 IN_PROGRESS: "bg-blue-500/20 text-blue-400",
-                DELIVERED: "bg-purple-500/20 text-purple-400",
+                DELIVERED: "bg-pink-500/20 text-pink-400",
               }
               const statusLabels: Record<string, string> = {
                 PENDING: "Pending",
@@ -406,7 +406,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
             <button
               onClick={addPriceRange}
               className="px-4 py-2 text-white rounded-xl text-sm font-medium transition-colors"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
             >
               Add
             </button>
@@ -507,7 +507,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
           onClick={saveSettings}
           disabled={updateProfile.isPending}
           className="w-full mt-6 text-white py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
         >
           {updateProfile.isPending ? "Saving…" : settingsSaved ? "✓ Saved" : "Save settings"}
         </button>
@@ -563,7 +563,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                       <button
                         onClick={() => saveEditCat(cat.id)}
                         className="flex-1 px-3 py-2 text-white rounded-xl text-xs font-semibold transition-opacity"
-                        style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                        style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
                       >
                         Save
                       </button>
@@ -651,7 +651,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
             onClick={addCategory}
             disabled={createCategory.isPending || !newCatName.trim() || newCatOptionsList.length === 0}
             className="px-4 py-2 text-white rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            style={{ background: "linear-gradient(135deg, #FF1493 0%, #CC33AA 50%, #AAFF00 100%)" }}
           >
             {createCategory.isPending ? "Adding…" : "Save category"}
           </button>

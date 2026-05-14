@@ -57,7 +57,7 @@ export default function HashtagPage({ params }: { params: Promise<{ tag: string 
               className="relative aspect-square overflow-hidden group" style={{ background: "#ffffff08" }}>
               <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
               {post.isAiGenerated && (
-                <span className="absolute top-1.5 left-1.5 text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
+                <span className="absolute top-1.5 left-1.5 text-xs font-medium bg-pink-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
               )}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-3">
                 <span className="text-white text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
