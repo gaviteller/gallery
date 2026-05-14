@@ -21,7 +21,7 @@ export default function MessagesTabs() {
         aria-selected={isMessages}
         className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors border-b-2 ${
           isMessages
-            ? "text-white border-purple-500"
+            ? "text-white border-sky-500"
             : "text-white/40 border-transparent hover:text-white/60"
         }`}
       >
@@ -33,7 +33,7 @@ export default function MessagesTabs() {
         aria-selected={isCommissions}
         className={`flex-1 pb-3 text-sm font-semibold text-center transition-colors border-b-2 ${
           isCommissions
-            ? "text-white border-purple-500"
+            ? "text-white border-sky-500"
             : "text-white/40 border-transparent hover:text-white/60"
         }`}
       >

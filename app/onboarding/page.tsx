@@ -23,8 +23,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#0D0D0F" }}>
-      <div className="w-full max-w-lg rounded-2xl p-8" style={{ background: "#1a1a2e", border: "1px solid #ffffff15" }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#070C1C" }}>
+      <div className="w-full max-w-lg rounded-2xl p-8" style={{ background: "#0D1640", border: "1px solid #ffffff15" }}>
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white">
             Welcome{session?.user?.username ? `, @${session.user.username}` : ""}
@@ -41,8 +41,8 @@ export default function OnboardingPage() {
             onClick={() => setSelected(true)}
             className="p-6 rounded-xl text-left transition-all"
             style={{
-              border: selected === true ? "2px solid #B044F8" : "2px solid #ffffff15",
-              background: selected === true ? "rgba(176,68,248,0.1)" : "transparent",
+              border: selected === true ? "2px solid #6B5EFF" : "2px solid #ffffff15",
+              background: selected === true ? "rgba(107,94,255,0.1)" : "transparent",
             }}
           >
             <div className="text-2xl mb-2">🎨</div>
@@ -54,8 +54,8 @@ export default function OnboardingPage() {
             onClick={() => setSelected(false)}
             className="p-6 rounded-xl text-left transition-all"
             style={{
-              border: selected === false ? "2px solid #B044F8" : "2px solid #ffffff15",
-              background: selected === false ? "rgba(176,68,248,0.1)" : "transparent",
+              border: selected === false ? "2px solid #6B5EFF" : "2px solid #ffffff15",
+              background: selected === false ? "rgba(107,94,255,0.1)" : "transparent",
             }}
           >
             <div className="text-2xl mb-2">🖼️</div>
@@ -72,7 +72,7 @@ export default function OnboardingPage() {
           onClick={handleContinue}
           disabled={selected === null || completeOnboarding.isPending}
           className="w-full py-3 rounded-xl font-medium text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }}
         >
           {completeOnboarding.isPending ? "Setting up your account..." : "Continue"}
         </button>

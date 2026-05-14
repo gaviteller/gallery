@@ -21,7 +21,7 @@ const statusColor: Record<string, string> = {
   PENDING: "bg-yellow-500/20 text-yellow-400",
   ACCEPTED: "bg-blue-500/20 text-blue-400",
   IN_PROGRESS: "bg-blue-500/20 text-blue-400",
-  DELIVERED: "bg-purple-500/20 text-purple-400",
+  DELIVERED: "bg-sky-500/20 text-sky-400",
   COMPLETE: "bg-green-500/20 text-green-400",
   DECLINED: "bg-white/10 text-white/40",
   CANCELLED: "bg-white/10 text-white/40",
@@ -63,7 +63,7 @@ function CommissionRow({ commission, otherParty, role }: {
             @{otherParty?.username ?? "unknown"}
           </p>
           <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0"
-            style={{ background: role === "artist" ? "rgba(176,68,248,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#B044F8" : "rgba(255,255,255,0.4)" }}>
+            style={{ background: role === "artist" ? "rgba(107,94,255,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#6B5EFF" : "rgba(255,255,255,0.4)" }}>
             {role === "artist" ? "client" : "you commissioned"}
           </span>
         </div>
@@ -117,7 +117,7 @@ function ProfessionalDMsInner() {
             <p className="text-xs text-white/30 mt-1">Request a commission from the Commissions tab to get started</p>
           </div>
         ) : (
-          <div className="rounded-2xl overflow-hidden" style={{ background: "#160b30", border: "1px solid #ffffff10" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "#0A1030", border: "1px solid #ffffff10" }}>
             {threads.map(({ commission, otherParty, role }) => (
               <CommissionRow key={commission.id} commission={commission} otherParty={otherParty} role={role} />
             ))}

@@ -3,10 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --brand-pink: #FF1CF7;
-  --brand-purple: #B044F8;
+  --brand-pink: #00D4FF;
+  --brand-sky: #6B5EFF;
   --brand-cyan: #00B4EE;
-  --brand-dark: #0D0D0F;
+  --brand-dark: #070C1C;
 }
 
 @theme inline {
@@ -17,18 +17,18 @@
 }
 
 body {
-  background: #0D0D0F;
+  background: #070C1C;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Brand gradient utility */
 .brand-gradient {
-  background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%);
+  background: linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%);
 }
 
 .brand-gradient-text {
-  background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%);
+  background: linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

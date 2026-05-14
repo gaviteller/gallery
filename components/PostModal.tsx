@@ -187,7 +187,7 @@ export default function PostModal({
                   @{profileUser.username}
                 </Link>
                 {post.isAiGenerated && (
-                  <span className="text-xs font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">AI</span>
+                  <span className="text-xs font-medium bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">AI</span>
                 )}
               </div>
               {isOwn && (

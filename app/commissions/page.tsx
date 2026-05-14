@@ -148,7 +148,7 @@ function Lightbox({
         <button
           onClick={e => { e.stopPropagation(); if (!session) { onClose(); router.push("/signin"); return } onRequest(artist) }}
           className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }}
         >
           Request commission
         </button>
@@ -204,6 +204,21 @@ function ForYouCard({
     setImgIdx(Math.round(el.scrollLeft / el.offsetWidth))
   }, [])
 
+  // Auto-advance: schedule next slide whenever imgIdx changes OR isActive changes.
+  // This means every manual swipe also resets the 3-second countdown.
+  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
+    if (!isActive || images.length < 2) return
+    autoTimerRef.current = setTimeout(() => {
+      const el = imgScrollRef.current
+      if (!el) return
+      const next = (imgIdx + 1) % images.length
+      el.scrollTo({ left: next * el.offsetWidth, behavior: "smooth" })
+    }, 3000)
+    return () => { if (autoTimerRef.current) clearTimeout(autoTimerRef.current) }
+  }, [isActive, images.length, imgIdx])
+
   function handleFollow(e: React.MouseEvent) {
     e.stopPropagation()
     if (!session) { router.push("/signin"); return }
@@ -225,110 +240,149 @@ function ForYouCard({
   }
 
   return (
-    <div className="relative flex-shrink-0 snap-start" style={{ width: "100%", height: "100svh" }}>
-      {/* Background image */}
-      {images.length > 0 ? (
-        <div
-          ref={imgScrollRef}
-          onScroll={handleImgScroll}
-          className="absolute inset-0 flex overflow-x-scroll snap-x snap-mandatory"
-          style={{ scrollbarWidth: "none" }}
-        >
-          {images.map((img, i) => (
-            <div
-              key={i}
-              className="relative flex-shrink-0 snap-center cursor-zoom-in"
-              style={{ width: "100%", height: "100%" }}
-              onClick={() => onLightbox(artist, i)}
-            >
-              <img src={img} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#1a1a2e" }}>
-          <p className="text-white/30 text-sm">No examples yet</p>
-        </div>
-      )}
-
-      {/* Gradient overlays */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 25%, transparent 60%, rgba(0,0,0,0.85) 100%)" }} />
-
-      {/* Top: artist info */}
-      <div className="absolute top-0 left-0 right-0 px-4 pt-4 flex items-center gap-3 z-10">
-        <button onClick={e => { e.stopPropagation(); router.push(`/@${artist.username}?tab=Commissions`) }} className="flex items-center gap-2">
-          <Avatar src={artist.image} name={artist.name} username={artist.username} size={36} />
-          <div>
-            <p className="text-white font-bold text-sm leading-tight">@{artist.username}</p>
-            <p className="text-white/60 text-xs">{artist.name}</p>
-          </div>
-        </button>
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${statusBadge[artist.commissionStatus]}`}>
-          {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
-        </span>
-      </div>
-
-      {/* Right: action buttons */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-5 z-10">
-        {/* Follow */}
-        <button onClick={handleFollow} className="flex flex-col items-center gap-1">
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${followed ? "bg-blue-500" : "bg-white/20 backdrop-blur-sm"}`}>
-            {followed ? (
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            )}
-          </div>
-          <span className="text-white text-[10px] font-medium drop-shadow">{followed ? "Following" : "Follow"}</span>
-        </button>
-
-        {/* Favorite */}
-        <button onClick={handleFav} className="flex flex-col items-center gap-1">
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${favorited ? "bg-pink-500" : "bg-white/20 backdrop-blur-sm"}`}>
-            <svg className="w-6 h-6 text-white" fill={favorited ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </div>
-          <span className="text-white text-[10px] font-medium drop-shadow">{favorited ? "Saved" : "Save"}</span>
-        </button>
-
-        {/* Image counter (if multiple) */}
-        {images.length > 1 && (
-          <div className="flex flex-col items-center gap-1.5">
-            {images.map((_, i) => (
-              <span key={i} className={`block w-1 rounded-full transition-all ${i === imgIdx ? "h-4 bg-white" : "h-1 bg-white/40"}`} />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Bottom: info + request */}
-      <div className="absolute bottom-0 left-0 right-14 px-4 pb-6 z-10">
-        {artist.artStyles.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {artist.artStyles.slice(0, 4).map(s => (
-              <span key={s} className="text-[10px] bg-white/15 backdrop-blur-sm text-white/80 px-2 py-0.5 rounded-full">{s}</span>
-            ))}
-          </div>
-        )}
-        {artist.commissionDescription && (
-          <p className="text-white/70 text-xs mb-2 line-clamp-2">{artist.commissionDescription}</p>
-        )}
-        <div className="flex items-center gap-3">
-          <p className="text-white/60 text-xs">
-            {avgPrice(artist.priceRanges)}{artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
-          </p>
-          <button
-            onClick={handleRequest}
-            className="px-4 py-2 rounded-full text-xs font-bold text-white transition-all active:scale-95"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+    /* Outer snap container — always full viewport, black sides on wide screens */
+    <div
+      className="relative flex-shrink-0 snap-start flex items-center justify-center"
+      style={{ width: "100%", height: "100svh", background: "#000" }}
+    >
+      {/* Inner portrait card — 9:16, never wider than the viewport */}
+      <div
+        className="relative h-full overflow-hidden"
+        style={{ width: "min(100%, calc(100svh * 9 / 16))" }}
+      >
+        {/* Background image */}
+        {images.length > 0 ? (
+          <div
+            ref={imgScrollRef}
+            onScroll={handleImgScroll}
+            className="absolute inset-0 flex overflow-x-scroll snap-x snap-mandatory"
+            style={{ scrollbarWidth: "none" }}
           >
-            Request
-          </button>
+            {images.map((img, i) => (
+              <div
+                key={i}
+                className="relative flex-shrink-0 snap-center cursor-zoom-in"
+                style={{ width: "100%", height: "100%" }}
+                onClick={() => onLightbox(artist, i)}
+              >
+                <img src={img} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#0D1640" }}>
+            <p className="text-white/30 text-sm">No examples yet</p>
+          </div>
+        )}
+
+        {/* Gradient overlay — heavy at bottom, light at top */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 20%, transparent 45%, rgba(0,0,0,0.75) 80%, rgba(0,0,0,0.92) 100%)" }} />
+
+        {/* Image pagination dots */}
+        {images.length > 1 && (
+          <div className="absolute left-0 right-0 flex justify-center gap-1.5 pointer-events-none z-10" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 152px)" }}>
+            {images.map((_, i) => (
+              <span key={i} className={`block w-1.5 h-1.5 rounded-full transition-colors ${i === imgIdx ? "bg-white" : "bg-white/35"}`} />
+            ))}
+          </div>
+        )}
+
+        {/* Bottom bar: left info + right actions */}
+        <div
+          className="absolute bottom-0 left-0 right-0 flex items-end px-3 z-10"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)" }}
+        >
+          {/* LEFT: artist + caption */}
+          <div className="flex-1 min-w-0 pr-4">
+            {/* Username row */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <button
+                onClick={e => { e.stopPropagation(); router.push(`/@${artist.username}?tab=Commissions`) }}
+                className="flex items-center gap-2"
+              >
+                <Avatar src={artist.image} name={artist.name} username={artist.username} size={34} />
+                <span className="text-white font-bold text-sm drop-shadow">@{artist.username}</span>
+              </button>
+              <button
+                onClick={handleFollow}
+                className="flex-shrink-0 px-3 py-0.5 rounded text-xs font-semibold text-white transition-colors"
+                style={followed
+                  ? { background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)" }
+                  : { border: "1.5px solid rgba(255,255,255,0.75)" }}
+              >
+                {followed ? "Following" : "Follow"}
+              </button>
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statusBadge[artist.commissionStatus]}`}>
+                {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
+              </span>
+            </div>
+
+            {/* Description */}
+            {artist.commissionDescription && (
+              <p className="text-white/90 text-sm mb-1.5 line-clamp-2 leading-snug drop-shadow">{artist.commissionDescription}</p>
+            )}
+
+            {/* Hashtag-style art styles */}
+            {artist.artStyles.length > 0 && (
+              <p className="text-white/70 text-xs mb-1 leading-relaxed">
+                {artist.artStyles.slice(0, 4).map(s => `#${s}`).join("  ")}
+              </p>
+            )}
+
+            {/* Price */}
+            <p className="text-white/55 text-xs">
+              {avgPrice(artist.priceRanges)}{artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
+            </p>
+          </div>
+
+          {/* RIGHT: action buttons */}
+          <div className="flex-shrink-0 flex flex-col items-center gap-5 pb-1">
+            {/* Save */}
+            <button onClick={handleFav} className="flex flex-col items-center gap-1">
+              <svg
+                className="w-8 h-8 drop-shadow-lg"
+                fill={favorited ? "#00D4FF" : "none"}
+                viewBox="0 0 24 24"
+                stroke={favorited ? "#00D4FF" : "white"}
+                strokeWidth={1.8}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span className="text-white text-[11px] font-medium drop-shadow">{favorited ? "Saved" : "Save"}</span>
+            </button>
+
+            {/* Request */}
+            <button onClick={handleRequest} className="flex flex-col items-center gap-1">
+              <svg
+                className="w-8 h-8 drop-shadow-lg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke={`url(#rg-${artist.id})`}
+                strokeWidth={1.8}
+              >
+                <defs>
+                  <linearGradient id={`rg-${artist.id}`} x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#00D4FF" />
+                    <stop offset="50%" stopColor="#6B5EFF" />
+                    <stop offset="100%" stopColor="#00B4EE" />
+                  </linearGradient>
+                </defs>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-white text-[11px] font-medium drop-shadow">Request</span>
+            </button>
+
+            {/* View profile */}
+            <button
+              onClick={e => { e.stopPropagation(); router.push(`/@${artist.username}?tab=Commissions`) }}
+              className="flex flex-col items-center gap-1"
+            >
+              <svg className="w-7 h-7 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-white text-[11px] font-medium drop-shadow">Profile</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -367,8 +421,8 @@ function ExploreCard({
   }
 
   return (
-    <div onClick={() => router.push(`/@${artist.username}?tab=Commissions`)} className="cursor-pointer overflow-hidden" style={{ background: "#111118" }}>
-      <div className="aspect-square relative">
+    <div onClick={() => router.push(`/@${artist.username}?tab=Commissions`)} className="cursor-pointer overflow-hidden" style={{ background: "#0A1030" }}>
+      <div className="aspect-[3/4] relative">
         {images.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white/5">
             <p className="text-xs text-white/30">No examples</p>
@@ -425,7 +479,7 @@ function ExploreCard({
         <button
           onClick={handleRequest}
           className="w-full py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }}
         >
           Request
         </button>
@@ -562,7 +616,7 @@ function ExploreTab({
   return (
     <div className="h-full overflow-y-auto pb-24">
       {/* Search */}
-      <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "#0D0D0F" }}>
+      <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "#070C1C" }}>
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -572,7 +626,7 @@ function ExploreTab({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search artists, styles…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-sky-500 transition"
             style={{ background: "#ffffff10", border: "1px solid #ffffff18" }}
           />
         </div>
@@ -589,7 +643,7 @@ function ExploreTab({
                   : "text-white/50 hover:text-white/80"
               }`}
               style={sortBy === chip.value
-                ? { background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }
+                ? { background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }
                 : { background: "#ffffff10", border: "1px solid #ffffff18" }
               }
             >
@@ -667,14 +721,14 @@ export default function CommissionsPage() {
             className={`text-sm font-bold transition-all ${tab === "foryou" ? "text-white" : "text-white/40"}`}
           >
             For You
-            {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+            {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }} />}
           </button>
           <button
             onClick={() => setTab("explore")}
             className={`text-sm font-bold transition-all ${tab === "explore" ? "text-white" : "text-white/40"}`}
           >
             Explore
-            {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+            {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }} />}
           </button>
         </div>
 

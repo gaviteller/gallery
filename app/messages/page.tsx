@@ -36,7 +36,7 @@ function NewMessageModal({ onClose }: { onClose: () => void }) {
     >
       <div
         className="w-full max-w-lg rounded-t-2xl pb-8"
-        style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}
+        style={{ background: "#0D1640", border: "1px solid #ffffff15" }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-center pt-3 pb-1">
@@ -55,7 +55,7 @@ function NewMessageModal({ onClose }: { onClose: () => void }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search people…"
-            className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-sky-500 transition"
             style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
           />
         </div>
@@ -144,7 +144,7 @@ function MessagesInner({ userId }: { userId: string }) {
             <button
               onClick={() => setComposing(true)}
               className="px-5 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }}
             >
               Send message
             </button>
@@ -156,12 +156,12 @@ function MessagesInner({ userId }: { userId: string }) {
                 key={c.id}
                 onClick={() => router.push(`/messages/${c.id}`)}
                 className="w-full flex items-center gap-3 px-4 py-4 hover:bg-white/5 transition-colors text-left"
-                style={{ borderBottom: "1px solid #ffffff08", background: c.isUnread ? "rgba(176,68,248,0.06)" : undefined }}
+                style={{ borderBottom: "1px solid #ffffff08", background: c.isUnread ? "rgba(107,94,255,0.06)" : undefined }}
               >
                 <div className="relative flex-shrink-0">
                   <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={48} />
                   {c.isUnread && (
-                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0D0D0F]" style={{ background: "linear-gradient(135deg,#FF1CF7,#B044F8)" }} />
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#070C1C]" style={{ background: "linear-gradient(135deg,#00D4FF,#6B5EFF)" }} />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -179,7 +179,7 @@ function MessagesInner({ userId }: { userId: string }) {
                     <p className="text-[10px] text-white/30">{timeAgo(c.lastMsg.createdAt)}</p>
                   )}
                   {c.isUnread && (
-                    <span className="w-2 h-2 rounded-full" style={{ background: "linear-gradient(135deg,#FF1CF7,#B044F8)" }} />
+                    <span className="w-2 h-2 rounded-full" style={{ background: "linear-gradient(135deg,#00D4FF,#6B5EFF)" }} />
                   )}
                 </div>
               </button>

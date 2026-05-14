@@ -21,7 +21,7 @@ function TermsModal({ onAgree, onClose }: { onAgree: () => void; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-0 sm:px-4">
-      <div className="w-full sm:max-w-2xl sm:rounded-2xl flex flex-col max-h-screen sm:max-h-[90vh] shadow-2xl" style={{ background: "#1a1a2e", border: "1px solid #ffffff15" }}>
+      <div className="w-full sm:max-w-2xl sm:rounded-2xl flex flex-col max-h-screen sm:max-h-[90vh] shadow-2xl" style={{ background: "#0D1640", border: "1px solid #ffffff15" }}>
         {/* Modal header */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ borderBottom: "1px solid #ffffff10" }}>
           <div>
@@ -71,7 +71,7 @@ function TermsModal({ onAgree, onClose }: { onAgree: () => void; onClose: () => 
             onClick={onAgree}
             disabled={!hasReachedBottom}
             className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }}
           >
             I Agree to the Terms of Service
           </button>
@@ -152,7 +152,7 @@ function SignUpForm() {
         />
       )}
 
-      <div className="rounded-2xl border border-white/10 p-8" style={{ background: "#1a1a2e" }}>
+      <div className="rounded-2xl border border-white/10 p-8" style={{ background: "#0D1640" }}>
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <Image src="/logo.png" alt="Gallery" width={100} height={100} className="mb-3" />
@@ -166,7 +166,7 @@ function SignUpForm() {
             value={form.name}
             onChange={set("name")}
             required
-            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-sky-500 transition"
             style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
           />
 
@@ -176,13 +176,13 @@ function SignUpForm() {
             value={form.email}
             onChange={set("email")}
             required
-            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-sky-500 transition"
             style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
           />
 
           <div>
             <div
-              className="flex items-center rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 transition"
+              className="flex items-center rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-sky-500 transition"
               style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
             >
               <span className="pl-4 text-white/30 text-sm">@</span>
@@ -220,7 +220,7 @@ function SignUpForm() {
             onChange={set("password")}
             required
             minLength={6}
-            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+            className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-sky-500 transition"
             style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
           />
 
@@ -255,7 +255,7 @@ function SignUpForm() {
             type="submit"
             disabled={loading || !form.name || !form.email || !form.password || !agreed}
             className="w-full py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            style={{ background: "linear-gradient(135deg, #00D4FF 0%, #6B5EFF 50%, #FF5EE8 100%)" }}
           >
             {loading ? "Creating account…" : "Sign up"}
           </button>
