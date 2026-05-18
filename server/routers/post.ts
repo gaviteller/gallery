@@ -47,7 +47,7 @@ export const postRouter = router({
         orderBy: { createdAt: "desc" },
         take: POOL,
         include: {
-          user: { select: { id: true, username: true, name: true, image: true } },
+          user: { select: { id: true, username: true, name: true, image: true, commissionStatus: true } },
           _count: { select: { likes: true, comments: true } },
         },
       })
