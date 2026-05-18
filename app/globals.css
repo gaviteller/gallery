@@ -44,7 +44,7 @@ body {
 
 /* Feed container — single column, centered */
 .feed-container {
-  max-width: 32rem;
+  max-width: 42rem;
 }
 
 /* Feed images — cap height so tall artworks don't take over the screen */
