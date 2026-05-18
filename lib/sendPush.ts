@@ -1,17 +1,21 @@
 import webpush from "web-push"
 import { PrismaClient } from "@prisma/client"
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL ?? "mailto:admin@gallery.app",
-  process.env.VAPID_PUBLIC_KEY ?? "",
-  process.env.VAPID_PRIVATE_KEY ?? ""
-)
+function initVapid() {
+  const email = process.env.VAPID_EMAIL ?? "mailto:admin@gallery.app"
+  const pub = process.env.VAPID_PUBLIC_KEY ?? ""
+  const priv = process.env.VAPID_PRIVATE_KEY ?? ""
+  if (pub && priv) {
+    webpush.setVapidDetails(email, pub, priv)
+  }
+}
 
 export async function sendPushToUser(
   prisma: PrismaClient,
   userId: string,
   payload: { title: string; body: string; url: string; tag?: string }
 ) {
+  initVapid()
   const subs = await prisma.pushSubscription.findMany({ where: { userId } })
   if (subs.length === 0) return
 
