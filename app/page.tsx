@@ -117,7 +117,8 @@ export default function FeedPage() {
             {posts.map((post) => (
               <article
                 key={post.id}
-                className="mx-3 my-2 overflow-hidden gallery-card"
+                className="mx-3 my-2 gallery-card"
+                style={{ overflow: "hidden" }}
               >
                 {/* Post header — two lines: display name + commission badge / @username + timestamp */}
                 <div className="flex items-center gap-3 px-4 pt-4 pb-3">
@@ -200,13 +201,13 @@ export default function FeedPage() {
 
                 {/* Image — rounded inside the card, slight margin */}
                 <button
-                  className="w-full block px-3"
+                  className="w-full block"
                   onClick={() => setViewPost(post as FeedPost)}
                 >
                   <img
                     src={post.image}
                     alt={post.description ?? ""}
-                    style={{ borderRadius: 12, width: "100%", display: "block" }}
+                    style={{ width: "100%", display: "block" }}
                   />
                 </button>
 
