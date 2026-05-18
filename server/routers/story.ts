@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
+import { TRPCError } from "@trpc/server"
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000
 
@@ -108,6 +109,11 @@ export const storyRouter = router({
   markViewed: protectedProcedure
     .input(z.object({ storyId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const story = await ctx.prisma.story.findFirst({
+        where: { id: input.storyId, expiresAt: { gt: new Date() } },
+        select: { id: true },
+      })
+      if (!story) throw new TRPCError({ code: "NOT_FOUND" })
       await ctx.prisma.storyView.upsert({
         where: { storyId_viewerId: { storyId: input.storyId, viewerId: ctx.session.user.id } },
         create: { storyId: input.storyId, viewerId: ctx.session.user.id },
