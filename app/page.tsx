@@ -201,13 +201,13 @@ export default function FeedPage() {
 
                 {/* Image — rounded inside the card, slight margin */}
                 <button
-                  className="w-full block"
+                  style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none" }}
                   onClick={() => setViewPost(post as FeedPost)}
                 >
                   <img
                     src={post.image}
                     alt={post.description ?? ""}
-                    style={{ width: "100%", height: "auto", display: "block" }}
+                    style={{ display: "block", width: "100%", height: "auto" }}
                   />
                 </button>
 
