@@ -7,6 +7,8 @@ import Link from "next/link"
 import { trpc } from "@/components/providers"
 import PostModal from "@/components/PostModal"
 import CommissionRequestModal from "@/components/CommissionRequestModal"
+import StoryViewer from "@/components/StoryViewer"
+import StoryUpload from "@/components/StoryUpload"
 
 const statusColors = {
   OPEN: "bg-green-500/20 text-green-400",
@@ -78,11 +80,14 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const followMutation = trpc.follow.follow.useMutation({ onSuccess: () => refetchFollow() })
   const unfollowMutation = trpc.follow.unfollow.useMutation({ onSuccess: () => refetchFollow() })
   const utils = trpc.useUtils()
+  const { data: userStories = [] } = trpc.story.getByUsername.useQuery({ username })
 
   const [tab, setTab] = useState("Posts")
   const [viewPost, setViewPost] = useState<PostItem | null>(null)
   const [showCommissionRequest, setShowCommissionRequest] = useState(false)
   const [showMutuals, setShowMutuals] = useState(false)
+  const [viewingStory, setViewingStory] = useState(false)
+  const [addingStory, setAddingStory] = useState(false)
 
   // ── New post modal state ──────────────────────────────────────
   const [showUpload, setShowUpload] = useState(false)
@@ -216,13 +221,31 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
       {/* Header */}
       <div className="flex items-start gap-6 mb-8">
-        {profileUser.image ? (
-          <img src={profileUser.image} alt={profileUser.name ?? profileUser.username ?? "Profile"} className="w-20 h-20 rounded-full object-cover flex-shrink-0" />
-        ) : (
-          <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-            {initials}
+        <button
+          onClick={() => { if (isOwn) setAddingStory(true); else if (userStories.length > 0) setViewingStory(true) }}
+          className="flex-shrink-0 focus:outline-none"
+          style={{ cursor: isOwn || userStories.length > 0 ? "pointer" : "default" }}
+        >
+          <div
+            className="rounded-full"
+            style={{
+              padding: userStories.length > 0 ? 3 : 0,
+              background: userStories.length > 0
+                ? "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)"
+                : "transparent",
+            }}
+          >
+            <div className="rounded-full" style={{ padding: userStories.length > 0 ? 2 : 0, background: "#0D0D0F" }}>
+              {profileUser.image ? (
+                <img src={profileUser.image} alt={profileUser.name ?? profileUser.username ?? "Profile"} className="w-20 h-20 rounded-full object-cover" />
+              ) : (
+                <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+                  {initials}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </button>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
@@ -682,6 +705,26 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             </button>
           </div>
         </div>
+      )}
+
+      {viewingStory && userStories.length > 0 && (
+        <StoryViewer
+          user={{
+            userId: profileUser.id,
+            username: profileUser.username,
+            name: profileUser.name,
+            image: profileUser.image,
+            stories: userStories,
+          }}
+          onClose={() => setViewingStory(false)}
+        />
+      )}
+
+      {addingStory && (
+        <StoryUpload
+          onClose={() => setAddingStory(false)}
+          onSuccess={() => setAddingStory(false)}
+        />
       )}
 
       {viewPost && (
