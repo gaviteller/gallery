@@ -98,6 +98,8 @@ model User {
   likes                 Like[]
   comments              Comment[]
   commentLikes          CommentLike[]
+  stories               Story[]
+  storyViews            StoryView[]
 }
 
 model Follow {
@@ -321,4 +323,30 @@ model DirectMessage {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
+}
+
+model Story {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image     String      @db.Text
+  createdAt DateTime    @default(now())
+  expiresAt DateTime
+
+  views     StoryView[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model StoryView {
+  id       String   @id @default(cuid())
+  storyId  String
+  story    Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewerId String
+  viewer   User     @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now())
+
+  @@unique([storyId, viewerId])
+  @@index([viewerId])
 }

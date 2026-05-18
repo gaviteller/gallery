@@ -265,8 +265,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <p className="text-white/60 text-sm font-medium mt-0.5">{profileUser.name}</p>
           )}
 
-          {/* Follower / following counts */}
+          {/* Follower / following / post counts */}
           <div className="flex items-center gap-4 mt-2">
+            <span className="text-sm text-white/70">
+              <span className="font-bold text-white">{posts?.length ?? 0}</span> posts
+            </span>
             <span className="text-sm text-white/70">
               <span className="font-bold text-white">{followStatus?.followerCount ?? 0}</span> followers
             </span>

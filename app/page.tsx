@@ -8,6 +8,14 @@ import { trpc } from "@/components/providers"
 import MentionText from "@/components/MentionText"
 import PostModal from "@/components/PostModal"
 
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+  if (seconds < 60) return "just now"
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
+}
+
 type FeedPost = {
   id: string
   image: string
@@ -90,8 +98,15 @@ export default function FeedPage() {
       ) : posts.length === 0 ? (
         <div className="text-center py-20">
           <div className="text-4xl mb-3">🖼️</div>
-          <p className="font-medium text-gray-500">No posts yet</p>
-          <p className="text-sm text-gray-400 mt-1">Follow artists to see their work here</p>
+          <p className="font-medium text-white/60">No posts yet</p>
+          <p className="text-sm text-white/40 mt-1 mb-5">Follow artists to see their work here</p>
+          <Link
+            href="/commissions"
+            className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80"
+            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          >
+            Find artists →
+          </Link>
         </div>
       ) : (
         <>
@@ -104,15 +119,18 @@ export default function FeedPage() {
                     {post.user.image ? (
                       <img src={post.user.image} alt={post.user.username ?? ""} className="w-9 h-9 rounded-full object-cover" />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
                         {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
                       </div>
                     )}
                   </Link>
                   <div className="flex-1 min-w-0">
-                    <Link href={`/@${post.user.username}`} className="text-sm font-semibold text-white">
-                      @{post.user.username}
-                    </Link>
+                    <div className="flex items-baseline gap-2">
+                      <Link href={`/@${post.user.username}`} className="text-sm font-semibold text-white">
+                        @{post.user.username}
+                      </Link>
+                      <span className="text-xs text-white/30">{timeAgo(post.createdAt)}</span>
+                    </div>
                     {post.user.name && (
                       <p className="text-xs text-white/50 truncate">{post.user.name}</p>
                     )}
