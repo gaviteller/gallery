@@ -177,7 +177,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const inputStyle = { background: "#ffffff10", border: "1px solid #ffffff15" }
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
+    <>
       {showCommissionRequest && commissionProfile && commissionCategories && (
         <CommissionRequestModal
           artistId={commissionProfile.id}
@@ -219,11 +219,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </div>
       )}
 
-      {/* ── Banner ─────────────────────────────────────────────── */}
+      {/* ── Banner — full-width, taller on desktop ─────────────── */}
       <div
-        className="w-full relative overflow-hidden"
+        className="w-full relative overflow-hidden h-[120px] md:h-[160px]"
         style={{
-          height: 120,
           background: (profileUser as { bannerImage?: string | null }).bannerImage
             ? undefined
             : "linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%)",
@@ -239,7 +238,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       </div>
 
       {/* ── Profile identity block ─────────────────────────────── */}
-      <div className="px-4">
+      <div className="max-w-2xl mx-auto pb-24 px-4">
         {/* Avatar — overlapping banner by 40px */}
         <div style={{ marginTop: -40, marginBottom: 12 }}>
           <button
@@ -854,6 +853,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         />
       )}
     </div>
-  </div>
+  </>
   )
 }
