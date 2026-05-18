@@ -206,7 +206,8 @@ export default function FeedPage() {
                   <img
                     src={post.image}
                     alt={post.description ?? ""}
-                    style={{ borderRadius: 12, width: "100%", maxHeight: "45vh", objectFit: "cover", display: "block" }}
+                    style={{ borderRadius: 12 }}
+                    className="w-full"
                   />
                 </button>
 
