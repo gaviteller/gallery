@@ -177,7 +177,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const inputStyle = { background: "#ffffff10", border: "1px solid #ffffff15" }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
+    <div className="max-w-2xl mx-auto pb-24">
       {showCommissionRequest && commissionProfile && commissionCategories && (
         <CommissionRequestModal
           artistId={commissionProfile.id}
@@ -219,115 +219,224 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-start gap-6 mb-8">
-        <button
-          onClick={() => { if (isOwn) setAddingStory(true); else if (userStories.length > 0) setViewingStory(true) }}
-          className="flex-shrink-0 focus:outline-none"
-          style={{ cursor: isOwn || userStories.length > 0 ? "pointer" : "default" }}
-        >
-          <div
-            className="rounded-full"
-            style={{
-              padding: userStories.length > 0 ? 3 : 0,
-              background: userStories.length > 0
-                ? "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)"
-                : "transparent",
-            }}
-          >
-            <div className="rounded-full" style={{ padding: userStories.length > 0 ? 2 : 0, background: "#0D0D0F" }}>
-              {profileUser.image ? (
-                <img src={profileUser.image} alt={profileUser.name ?? profileUser.username ?? "Profile"} className="w-20 h-20 rounded-full object-cover" />
-              ) : (
-                <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-                  {initials}
-                </div>
-              )}
-            </div>
-          </div>
-        </button>
+      {/* ── Banner ─────────────────────────────────────────────── */}
+      <div
+        className="w-full relative overflow-hidden"
+        style={{
+          height: 120,
+          background: (profileUser as { bannerImage?: string | null }).bannerImage
+            ? undefined
+            : "linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%)",
+        }}
+      >
+        {(profileUser as { bannerImage?: string | null }).bannerImage && (
+          <img
+            src={(profileUser as { bannerImage?: string | null }).bannerImage!}
+            className="w-full h-full object-cover"
+            alt=""
+          />
+        )}
+      </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-bold text-white">@{profileUser.username}</h1>
-            {isOwn ? (
-              <Link href="/settings" className="text-sm px-3 py-1 rounded-lg text-white/60 hover:text-white transition-colors" style={{ border: "1px solid #ffffff20" }}>
+      {/* ── Profile identity block ─────────────────────────────── */}
+      <div className="px-4">
+        {/* Avatar — overlapping banner by 40px */}
+        <div style={{ marginTop: -40, marginBottom: 12 }}>
+          <button
+            onClick={() => {
+              if (isOwn) setAddingStory(true)
+              else if (userStories.length > 0) setViewingStory(true)
+            }}
+            className="focus:outline-none"
+            style={{ cursor: isOwn || userStories.length > 0 ? "pointer" : "default" }}
+          >
+            {/* Gradient ring — always on, brighter if has story */}
+            <div
+              style={{
+                padding: userStories.length > 0 ? 2.5 : 1.5,
+                background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                borderRadius: "50%",
+                opacity: userStories.length > 0 ? 1 : 0.4,
+              }}
+            >
+              <div
+                style={{ padding: 2, background: "#0D0D0F", borderRadius: "50%" }}
+              >
+                {profileUser.image ? (
+                  <img
+                    src={profileUser.image}
+                    alt={profileUser.name ?? profileUser.username ?? "Profile"}
+                    className="rounded-full object-cover"
+                    style={{ width: 80, height: 80 }}
+                  />
+                ) : (
+                  <div
+                    className="rounded-full flex items-center justify-center text-white text-2xl font-bold"
+                    style={{
+                      width: 80,
+                      height: 80,
+                      background:
+                        "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                    }}
+                  >
+                    {initials}
+                  </div>
+                )}
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Artist name (Space Grotesk) */}
+        <h1
+          className="text-white font-bold leading-tight"
+          style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 22 }}
+        >
+          {profileUser.name ?? profileUser.username}
+        </h1>
+        <p className="text-white/50 text-sm mt-0.5">@{profileUser.username}</p>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-4 mt-2 flex-wrap">
+          <span className="text-sm text-white/70">
+            <span className="font-bold text-white">{posts?.length ?? 0}</span> posts
+          </span>
+          <span className="text-sm text-white/70">
+            <span className="font-bold text-white">
+              {followStatus?.followerCount ?? 0}
+            </span>{" "}
+            followers
+          </span>
+          <span className="text-sm text-white/70">
+            <span className="font-bold text-white">
+              {followStatus?.followingCount ?? 0}
+            </span>{" "}
+            following
+          </span>
+          {!isOwn && mutualData && mutualData.count > 0 && (
+            <button
+              onClick={() => setShowMutuals(true)}
+              className="text-sm text-cyan-400 hover:underline"
+            >
+              {mutualData.count} mutual
+            </button>
+          )}
+        </div>
+
+        {/* Commission open badge */}
+        {commissionProfile &&
+          (commissionProfile.commissionStatus === "OPEN" ||
+            commissionProfile.commissionStatus === "LIMITED") && (
+            <span className="inline-block text-xs font-semibold brand-gradient-text mt-1.5">
+              Commission open ↗
+            </span>
+          )}
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mt-3 mb-6">
+          {isOwn ? (
+            <>
+              <Link
+                href="/settings"
+                className="text-sm px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors"
+                style={{ border: "1px solid #ffffff20" }}
+              >
                 Edit profile
               </Link>
-            ) : session && (
-              <div className="flex items-center gap-2">
+              {/* + Story gradient-border pill */}
+              <div
+                style={{
+                  padding: 1.5,
+                  background:
+                    "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                  borderRadius: 20,
+                }}
+              >
                 <button
-                  onClick={() => followStatus?.following
-                    ? unfollowMutation.mutate({ username })
-                    : followMutation.mutate({ username })
+                  onClick={() => setAddingStory(true)}
+                  className="text-xs font-semibold text-white px-3 py-1 rounded-full"
+                  style={{ background: "#0D0D0F" }}
+                >
+                  + Story
+                </button>
+              </div>
+            </>
+          ) : (
+            session && (
+              <>
+                <button
+                  onClick={() =>
+                    followStatus?.following
+                      ? unfollowMutation.mutate({ username })
+                      : followMutation.mutate({ username })
                   }
                   disabled={followMutation.isPending || unfollowMutation.isPending}
                   className="text-sm px-4 py-1.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
-                  style={followStatus?.following
-                    ? { background: "#ffffff15", border: "1px solid #ffffff30" }
-                    : { background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }
+                  style={
+                    followStatus?.following
+                      ? { background: "#ffffff15", border: "1px solid #ffffff30" }
+                      : {
+                          background:
+                            "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                        }
                   }
                 >
                   {followMutation.isPending || unfollowMutation.isPending
                     ? "…"
-                    : followStatus?.following ? "Following" : "Follow"}
+                    : followStatus?.following
+                    ? "Following"
+                    : "Follow"}
                 </button>
                 <button
-                  onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
+                  onClick={() =>
+                    getOrCreateDM.mutate({ otherUserId: profileUser.id })
+                  }
                   disabled={getOrCreateDM.isPending}
                   className="text-sm px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors disabled:opacity-50"
                   style={{ border: "1px solid #ffffff20" }}
                 >
                   {getOrCreateDM.isPending ? "Opening…" : "Message"}
                 </button>
-              </div>
-            )}
-          </div>
-
-          {profileUser.name && (
-            <p className="text-white/60 text-sm font-medium mt-0.5">{profileUser.name}</p>
+              </>
+            )
           )}
-
-          {/* Follower / following / post counts */}
-          <div className="flex items-center gap-4 mt-2">
-            <span className="text-sm text-white/70">
-              <span className="font-bold text-white">{posts?.length ?? 0}</span> posts
-            </span>
-            <span className="text-sm text-white/70">
-              <span className="font-bold text-white">{followStatus?.followerCount ?? 0}</span> followers
-            </span>
-            <span className="text-sm text-white/70">
-              <span className="font-bold text-white">{followStatus?.followingCount ?? 0}</span> following
-            </span>
-            {!isOwn && mutualData && mutualData.count > 0 && (
-              <button onClick={() => setShowMutuals(true)} className="text-sm text-cyan-400 hover:underline">
-                {mutualData.count} mutual
-              </button>
-            )}
-          </div>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="mb-6" style={{ borderBottom: "1px solid #ffffff10" }}>
-        <nav className="flex gap-6">
-          {(["Posts", "Shop", "Commissions", "About"] as const).filter((t) => {
+      {/* ── Pill tabs ──────────────────────────────────────────── */}
+      <div className="mb-6 flex gap-2 flex-wrap">
+        {(["Posts", "Shop", "Commissions", "About"] as const)
+          .filter((t) => {
             if (isOwn) return true
-            if (t === "Shop" && (!shopItems || shopItems.length === 0)) return false
-            if (t === "Commissions" && commissionProfile?.commissionStatus === "CLOSED") return false
+            if (t === "Shop" && (!shopItems || shopItems.length === 0))
+              return false
+            if (
+              t === "Commissions" &&
+              commissionProfile?.commissionStatus === "CLOSED"
+            )
+              return false
             return true
-          }).map((t) => (
+          })
+          .map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                tab === t ? "border-white text-white" : "border-transparent text-white/40 hover:text-white/70"
-              }`}
+              className="text-sm font-medium px-4 py-1.5 rounded-full transition-all"
+              style={
+                tab === t
+                  ? {
+                      background:
+                        "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                      color: "white",
+                    }
+                  : {
+                      background: "transparent",
+                      color: "rgba(255,255,255,0.4)",
+                    }
+              }
             >
               {t}
             </button>
           ))}
-        </nav>
       </div>
 
       {/* ── Posts tab ─────────────────────────────────────────── */}
@@ -346,10 +455,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           {postsLoading ? (
             <div className="text-center py-16 text-white/40">Loading…</div>
           ) : posts && posts.length > 0 ? (
-            <div className="grid grid-cols-3 gap-0.5">
+            <div className="grid grid-cols-3" style={{ gap: 2 }}>
               {posts.map((post) => (
                 <button key={post.id} onClick={() => setViewPost(post as PostItem)}
-                  className="relative aspect-square overflow-hidden group" style={{ background: "#ffffff08" }}>
+                  className="relative aspect-square overflow-hidden group" style={{ background: "#ffffff08", borderRadius: 4 }}>
                   <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
                   <div className="absolute top-1.5 left-1.5 flex gap-1">
                     {post.isAiGenerated && (
@@ -745,5 +854,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         />
       )}
     </div>
+  </div>
   )
 }
