@@ -319,7 +319,7 @@ export default function BottomNav() {
                 }`}
                 style={item.active ? { background: "linear-gradient(135deg, #FF1CF720, #B044F820, #00B4EE20)" } : {}}
               >
-                <div className={`relative flex-shrink-0 ${item.active ? "text-white" : "text-white/50 group-hover:text-white"}`}>
+                <div className={`relative flex-shrink-0 transition-colors ${item.active ? "text-[#B044F8]" : "text-white/40 group-hover:text-[#B044F8]"}`}>
                   {item.icon}
                   {item.badge && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
@@ -339,7 +339,7 @@ export default function BottomNav() {
             onClick={() => setNotifOpen(v => !v)}
             className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all w-full ${notifOpen ? "bg-white/5" : "hover:bg-white/5"}`}
           >
-            <div className={`relative flex-shrink-0 ${notifOpen ? "text-white" : "text-white/50 group-hover:text-white"}`}>
+            <div className={`relative flex-shrink-0 transition-colors ${notifOpen ? "text-[#B044F8]" : "text-white/40 group-hover:text-[#B044F8]"}`}>
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -362,7 +362,7 @@ export default function BottomNav() {
         {/* Bottom section */}
         <div className="flex flex-col gap-0.5 pt-4 mt-4" style={{ borderTop: "1px solid #ffffff10" }}>
           <Link href="/professional-profile" className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/5 transition-all">
-            <div className="text-white/50 group-hover:text-white flex-shrink-0 transition-colors">
+            <div className="text-white/40 group-hover:text-[#B044F8] flex-shrink-0 transition-colors">
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                 <path d="M8 21h8M12 17v4"/>
@@ -378,7 +378,7 @@ export default function BottomNav() {
 
           <div className="relative">
             <button onClick={() => setMoreOpen(v => !v)} className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/5 transition-all w-full">
-              <div className="text-white/50 group-hover:text-white flex-shrink-0 transition-colors">
+              <div className="text-white/40 group-hover:text-[#B044F8] flex-shrink-0 transition-colors">
                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="3" y1="6" x2="21" y2="6"/>
                   <line x1="3" y1="12" x2="21" y2="12"/>
