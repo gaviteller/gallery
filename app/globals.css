@@ -41,3 +41,13 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
 }
+
+/* Feed container — wider on desktop */
+.feed-container {
+  max-width: 32rem; /* max-w-lg on mobile */
+}
+@media (min-width: 768px) {
+  .feed-container {
+    max-width: 42rem; /* wider on desktop */
+  }
+}
