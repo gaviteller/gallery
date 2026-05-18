@@ -48,6 +48,24 @@ body {
 }
 @media (min-width: 768px) {
   .feed-container {
-    max-width: 56rem; /* wide enough for 2 columns */
+    max-width: 56rem;
   }
+}
+
+/* Feed posts grid — 2 columns on desktop */
+.feed-posts {
+  display: block;
+}
+@media (min-width: 768px) {
+  .feed-posts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Feed images — cap height so tall artworks don't take over the screen */
+.feed-image {
+  width: 100%;
+  max-height: 520px;
+  object-fit: cover;
 }

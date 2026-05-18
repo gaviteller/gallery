@@ -113,7 +113,7 @@ export default function FeedPage() {
         </div>
       ) : (
         <>
-          <div className="md:grid md:grid-cols-2">
+          <div className="feed-posts">
             {posts.map((post) => (
               <article
                 key={post.id}
@@ -206,7 +206,7 @@ export default function FeedPage() {
                   <img
                     src={post.image}
                     alt={post.description ?? ""}
-                    className="w-full object-cover"
+                    className="feed-image"
                     style={{ borderRadius: 12 }}
                   />
                 </button>
