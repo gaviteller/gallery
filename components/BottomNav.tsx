@@ -308,7 +308,8 @@ export default function BottomNav() {
           {navItems.map((item) => {
             const label = (
               <span
-                className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto text-white"
+                className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
+                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
               >
                 {item.label}
               </span>
@@ -387,7 +388,8 @@ export default function BottomNav() {
                 </svg>
               </div>
               <span
-                className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto text-white"
+                className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
+                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
               >
                 More
               </span>
