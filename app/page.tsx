@@ -113,7 +113,7 @@ export default function FeedPage() {
         </div>
       ) : (
         <>
-          <div className="feed-posts">
+          <div>
             {posts.map((post) => (
               <article
                 key={post.id}
