@@ -660,37 +660,40 @@ export default function CommissionsPage() {
 
       {/* Full-viewport container — breaks out of layout padding */}
       <div className="flex flex-col fixed inset-0 md:left-16" style={{ zIndex: 10 }}>
-        {/* Tab bar */}
-        <div className="flex-shrink-0 flex items-center justify-center gap-8 py-3 relative z-20" style={{ background: "rgba(13,13,15,0.95)", backdropFilter: "blur(12px)" }}>
-          <button
-            onClick={() => setTab("foryou")}
-            className={`text-sm font-bold transition-all ${tab === "foryou" ? "text-white" : "text-white/40"}`}
-          >
-            For You
-            {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
-          </button>
-          <button
-            onClick={() => setTab("explore")}
-            className={`text-sm font-bold transition-all ${tab === "explore" ? "text-white" : "text-white/40"}`}
-          >
-            Explore
-            {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
-          </button>
-        </div>
+        {/* Narrow column on desktop */}
+        <div className="flex flex-col h-full w-full md:max-w-lg md:mx-auto">
+          {/* Tab bar */}
+          <div className="flex-shrink-0 flex items-center justify-center gap-8 py-3 relative z-20" style={{ background: "rgba(13,13,15,0.95)", backdropFilter: "blur(12px)" }}>
+            <button
+              onClick={() => setTab("foryou")}
+              className={`text-sm font-bold transition-all ${tab === "foryou" ? "text-white" : "text-white/40"}`}
+            >
+              For You
+              {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+            </button>
+            <button
+              onClick={() => setTab("explore")}
+              className={`text-sm font-bold transition-all ${tab === "explore" ? "text-white" : "text-white/40"}`}
+            >
+              Explore
+              {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+            </button>
+          </div>
 
-        {/* Content */}
-        <div className="flex-1 min-h-0">
-          {tab === "foryou" ? (
-            <ForYouFeed
-              onRequest={setRequestTarget}
-              onLightbox={(a, i) => setLightbox({ artist: a, index: i })}
-            />
-          ) : (
-            <ExploreTab
-              onRequest={setRequestTarget}
-              onLightbox={(a, i) => setLightbox({ artist: a, index: i })}
-            />
-          )}
+          {/* Content */}
+          <div className="flex-1 min-h-0">
+            {tab === "foryou" ? (
+              <ForYouFeed
+                onRequest={setRequestTarget}
+                onLightbox={(a, i) => setLightbox({ artist: a, index: i })}
+              />
+            ) : (
+              <ExploreTab
+                onRequest={setRequestTarget}
+                onLightbox={(a, i) => setLightbox({ artist: a, index: i })}
+              />
+            )}
+          </div>
         </div>
       </div>
     </>
