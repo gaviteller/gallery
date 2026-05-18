@@ -313,7 +313,7 @@ function SettingsForm() {
 
         <button
           onClick={handleSave}
-          disabled={updateProfile.isPending || photoProcessing}
+          disabled={updateProfile.isPending || photoProcessing || bannerProcessing}
           className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {updateProfile.isPending ? "Saving…" : "Save changes"}
