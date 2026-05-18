@@ -93,19 +93,6 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     refetchIntervalInBackground: false,
   })
 
-  // Check auto-release on mount for DELIVERED commissions
-  const autoRelease = trpc.commission.checkAutoRelease.useMutation({
-    onSuccess: () => utils.commission.getById.invalidate({ id }),
-  })
-  const [autoReleaseChecked, setAutoReleaseChecked] = useState(false)
-
-  useEffect(() => {
-    if (commission?.status === "DELIVERED" && !autoReleaseChecked) {
-      setAutoReleaseChecked(true)
-      autoRelease.mutate({ id })
-    }
-  }, [commission?.status])
-
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
