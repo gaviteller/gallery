@@ -288,17 +288,15 @@ export default function BottomNav() {
 
       {/* ── DESKTOP left sidebar — collapses to icons, expands on hover ─── */}
       <nav
-        className="group hidden md:flex flex-col fixed left-0 top-0 h-full z-40 py-6 px-3 transition-all duration-200"
+        className="group hidden md:flex flex-col fixed left-0 top-0 h-full z-40 py-6 px-3 transition-all duration-200 overflow-hidden"
         style={{ width: "64px", background: "#0D0D0F", borderRight: "1px solid #ffffff10" }}
         onMouseEnter={e => (e.currentTarget.style.width = "240px")}
         onMouseLeave={e => (e.currentTarget.style.width = "64px")}
       >
         {/* Logo */}
-        <Link href="/" className="mb-8 flex items-center gap-3 flex-shrink-0 overflow-hidden">
+        <Link href="/" className="mb-8 flex items-center gap-3 flex-shrink-0">
           <Image src="/logo.png" alt="Gallery" width={36} height={36} className="rounded-lg flex-shrink-0" />
-          <span
-            className="text-lg font-bold tracking-tight whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto text-white"
-          >
+          <span className="text-lg font-bold tracking-tight whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100 text-white">
             Gallery
           </span>
         </Link>
@@ -308,7 +306,7 @@ export default function BottomNav() {
           {navItems.map((item) => {
             const label = (
               <span
-                className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
+                className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
                 style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
               >
                 {item.label}
@@ -353,7 +351,7 @@ export default function BottomNav() {
               )}
             </div>
             <span
-              className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
+              className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
               Notifications
@@ -371,7 +369,7 @@ export default function BottomNav() {
               </svg>
             </div>
             <span
-              className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
+              className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
               Artist Dashboard
@@ -388,7 +386,7 @@ export default function BottomNav() {
                 </svg>
               </div>
               <span
-                className="text-[15px] whitespace-nowrap overflow-hidden transition-all duration-200 opacity-0 group-hover:opacity-100 w-0 group-hover:w-auto"
+                className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
                 style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
               >
                 More
