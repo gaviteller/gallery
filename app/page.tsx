@@ -7,6 +7,7 @@ import Link from "next/link"
 import { trpc } from "@/components/providers"
 import MentionText from "@/components/MentionText"
 import PostModal from "@/components/PostModal"
+import StoriesRow from "@/components/StoriesRow"
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
@@ -91,6 +92,7 @@ export default function FeedPage() {
 
   return (
     <div className="max-w-lg mx-auto pb-24">
+      <StoriesRow />
       {isLoading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
       ) : error ? (
