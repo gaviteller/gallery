@@ -42,12 +42,12 @@ body {
   border-radius: 16px;
 }
 
-/* Feed container — wider on desktop */
+/* Feed container — 2-column on desktop */
 .feed-container {
-  max-width: 32rem; /* max-w-lg on mobile */
+  max-width: 32rem;
 }
 @media (min-width: 768px) {
   .feed-container {
-    max-width: 42rem; /* wider on desktop */
+    max-width: 56rem; /* wide enough for 2 columns */
   }
 }

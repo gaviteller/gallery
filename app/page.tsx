@@ -113,7 +113,7 @@ export default function FeedPage() {
         </div>
       ) : (
         <>
-          <div>
+          <div className="md:grid md:grid-cols-2">
             {posts.map((post) => (
               <article
                 key={post.id}
