@@ -33,6 +33,7 @@ type FeedPost = {
     username: string | null
     name: string | null
     image: string | null
+    commissionStatus: "OPEN" | "LIMITED" | "CLOSED"
   }
 }
 
@@ -112,44 +113,113 @@ export default function FeedPage() {
         </div>
       ) : (
         <>
-          <div style={{ borderTop: "1px solid #ffffff08" }}>
+          <div>
             {posts.map((post) => (
-              <article key={post.id} style={{ borderBottom: "1px solid #ffffff08" }}>
-                {/* Post header */}
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <Link href={`/@${post.user.username}`}>
-                    {post.user.image ? (
-                      <img src={post.user.image} alt={post.user.username ?? ""} className="w-9 h-9 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-                        {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
+              <article
+                key={post.id}
+                className="mx-3 my-2 overflow-hidden gallery-card"
+              >
+                {/* Post header — two lines: display name + commission badge / @username + timestamp */}
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                  <Link href={`/@${post.user.username}`} className="flex-shrink-0">
+                    {/* Avatar with always-on subtle gradient ring */}
+                    <div
+                      style={{
+                        padding: 1.5,
+                        background:
+                          "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                        borderRadius: "50%",
+                        opacity: 0.9,
+                      }}
+                    >
+                      <div
+                        style={{ padding: 2, background: "#141414", borderRadius: "50%" }}
+                      >
+                        {post.user.image ? (
+                          <img
+                            src={post.user.image}
+                            alt={post.user.username ?? ""}
+                            className="w-9 h-9 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                            style={{
+                              background:
+                                "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                            }}
+                          >
+                            {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <Link href={`/@${post.user.username}`} className="text-sm font-semibold text-white">
-                        @{post.user.username}
-                      </Link>
-                      <span className="text-xs text-white/30">{timeAgo(post.createdAt)}</span>
                     </div>
-                    {post.user.name && (
-                      <p className="text-xs text-white/50 truncate">{post.user.name}</p>
-                    )}
+                  </Link>
+
+                  <div className="flex-1 min-w-0">
+                    {/* Line 1: display name + commission badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <Link
+                        href={`/@${post.user.username}`}
+                        className="text-sm font-semibold text-white truncate"
+                        style={{ fontFamily: "Space Grotesk, sans-serif" }}
+                      >
+                        {post.user.name ?? `@${post.user.username}`}
+                      </Link>
+                      {(post.user.commissionStatus === "OPEN" ||
+                        post.user.commissionStatus === "LIMITED") && (
+                        <span className="text-xs font-semibold brand-gradient-text flex-shrink-0">
+                          Commission open ↗
+                        </span>
+                      )}
+                    </div>
+                    {/* Line 2: @username · timestamp */}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-white/40">
+                        @{post.user.username}
+                      </span>
+                      <span className="text-white/20 text-xs">·</span>
+                      <span className="text-xs text-white/30">
+                        {timeAgo(post.createdAt)}
+                      </span>
+                    </div>
                   </div>
+
                   {post.isAiGenerated && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: "rgba(176,68,248,0.2)", color: "#B044F8" }}>AI</span>
+                    <span
+                      className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{
+                        background: "rgba(176,68,248,0.2)",
+                        color: "#B044F8",
+                      }}
+                    >
+                      AI
+                    </span>
                   )}
                 </div>
 
-                {/* Full-bleed image */}
-                <button className="w-full block" onClick={() => setViewPost(post as FeedPost)}>
+                {/* Image — rounded inside the card, slight margin */}
+                <button
+                  className="w-full block px-3"
+                  onClick={() => setViewPost(post as FeedPost)}
+                >
                   <img
                     src={post.image}
                     alt={post.description ?? ""}
                     className="w-full object-cover"
+                    style={{ borderRadius: 12 }}
                   />
                 </button>
+
+                {/* Artwork title (Space Grotesk) */}
+                {post.title && (
+                  <p
+                    className="px-4 pt-2.5 text-sm font-semibold text-white/80"
+                    style={{ fontFamily: "Space Grotesk, sans-serif" }}
+                  >
+                    {post.title}
+                  </p>
+                )}
 
                 {/* Actions */}
                 <div className="flex items-center gap-4 px-4 pt-3 pb-1">
@@ -158,32 +228,59 @@ export default function FeedPage() {
                     disabled={toggleLike.isPending}
                     className="flex items-center gap-1.5 transition-colors disabled:opacity-50"
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24"
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
                       fill={post.likedByMe ? "#ef4444" : "none"}
                       stroke={post.likedByMe ? "#ef4444" : "white"}
-                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                     </svg>
-                    <span className={`text-sm font-semibold ${post.likedByMe ? "text-red-500" : "text-white"}`}>
+                    <span
+                      className={`text-sm font-semibold ${
+                        post.likedByMe ? "text-red-500" : "text-white"
+                      }`}
+                    >
                       {post._count.likes}
                     </span>
                   </button>
                   <button
-                    onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }}
+                    onClick={() => {
+                      setFocusComment(true)
+                      setViewPost(post as FeedPost)
+                    }}
                     className="flex items-center gap-1.5 text-white transition-colors"
                   >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                     </svg>
-                    <span className="text-sm font-semibold">{post._count.comments}</span>
+                    <span className="text-sm font-semibold">
+                      {post._count.comments}
+                    </span>
                   </button>
                 </div>
 
                 {/* Caption */}
                 {post.description && (
-                  <div className="px-4 py-1.5 pb-3">
+                  <div className="px-4 py-1.5 pb-4">
                     <p className="text-sm text-white/90 leading-snug">
-                      <Link href={`/@${post.user.username}`} className="font-semibold mr-1">
+                      <Link
+                        href={`/@${post.user.username}`}
+                        className="font-semibold mr-1"
+                      >
                         @{post.user.username}
                       </Link>
                       <MentionText text={post.description} />
