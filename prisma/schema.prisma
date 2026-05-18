@@ -61,6 +61,7 @@ model User {
   sellingEnabled     Boolean          @default(false)
   onboardingComplete Boolean          @default(false)
   commissionStatus   CommissionStatus @default(CLOSED)
+  bannerImage        String?          @db.Text
 
   websiteUrl         String?
   twitterHandle      String?

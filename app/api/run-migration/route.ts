@@ -65,7 +65,7 @@ export async function GET(req: Request) {
     `
     results.push("Foreign keys: OK")
 
-    // Mark migration as applied in _prisma_migrations
+    // Mark stories migration as applied
     await prisma.$executeRaw`
       INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
       VALUES (
@@ -80,7 +80,27 @@ export async function GET(req: Request) {
       )
       ON CONFLICT DO NOTHING
     `
-    results.push("Migration record: OK")
+    results.push("Migration record (stories): OK")
+
+    // Add bannerImage column
+    await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bannerImage" TEXT`
+    results.push("bannerImage column: OK")
+
+    await prisma.$executeRaw`
+      INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
+      VALUES (
+        gen_random_uuid()::text,
+        'manual',
+        NOW(),
+        '20260518010000_add_banner_image',
+        NULL,
+        NULL,
+        NOW(),
+        1
+      )
+      ON CONFLICT DO NOTHING
+    `
+    results.push("Migration record (banner): OK")
 
     return NextResponse.json({ ok: true, results })
   } catch (err: unknown) {
