@@ -86,21 +86,26 @@ export async function GET(req: Request) {
     await prisma.$executeRaw`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bannerImage" TEXT`
     results.push("bannerImage column: OK")
 
-    await prisma.$executeRaw`
-      INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
-      VALUES (
-        gen_random_uuid()::text,
-        'manual',
-        NOW(),
-        '20260518010000_add_banner_image',
-        NULL,
-        NULL,
-        NOW(),
-        1
-      )
-      ON CONFLICT DO NOTHING
-    `
-    results.push("Migration record (banner): OK")
+    try {
+      await prisma.$executeRaw`
+        INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
+        VALUES (
+          gen_random_uuid()::text,
+          'manual',
+          NOW(),
+          '20260518010000_add_banner_image',
+          NULL,
+          NULL,
+          NOW(),
+          1
+        )
+        ON CONFLICT DO NOTHING
+      `
+      results.push("Migration record (banner): OK")
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      results.push(`Migration record (banner): FAILED - ${msg}`)
+    }
 
     return NextResponse.json({ ok: true, results })
   } catch (err: unknown) {
