@@ -38,12 +38,15 @@ function SettingsForm() {
   const [instagramHandle, setInstagramHandle] = useState("")
   const [artstationHandle, setArtstationHandle] = useState("")
   const [photoProcessing, setPhotoProcessing] = useState(false)
+  const [bannerImage, setBannerImage] = useState<string | null>(null)
+  const [bannerProcessing, setBannerProcessing] = useState(false)
 
   useEffect(() => {
     if (user) {
       setName(user.name ?? "")
       setBio(user.bio ?? "")
       setImage(user.image ?? null)
+      setBannerImage((user as { bannerImage?: string | null }).bannerImage ?? null)
       setWebsiteUrl(user.websiteUrl ?? "")
       setTwitterHandle(user.twitterHandle ?? "")
       setInstagramHandle(user.instagramHandle ?? "")
@@ -113,11 +116,37 @@ function SettingsForm() {
     reader.readAsDataURL(file)
   }
 
+  function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBannerProcessing(true)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new window.Image()
+      img.onload = () => {
+        const MAX_W = 1200
+        const MAX_H = 400
+        let { width, height } = img
+        if (width > MAX_W) { height = Math.round((height * MAX_W) / width); width = MAX_W }
+        if (height > MAX_H) { width = Math.round((width * MAX_H) / height); height = MAX_H }
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
+        setBannerImage(canvas.toDataURL("image/jpeg", 0.85))
+        setBannerProcessing(false)
+      }
+      img.src = event.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+
   function handleSave() {
     updateProfile.mutate({
       name: name.trim() || (user?.name ?? "Artist"),
       bio: bio.trim() || null,
       image: image || null,
+      bannerImage: bannerImage || null,
       websiteUrl: websiteUrl.trim() || null,
       twitterHandle: twitterHandle.trim() || null,
       instagramHandle: instagramHandle.trim() || null,
@@ -172,7 +201,7 @@ function SettingsForm() {
       {tab === "profile" && (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-6 mb-6">
 
-        {/* Photo */}
+        {/* Profile photo */}
         <div className="flex items-center gap-4">
           {image ? (
             <img src={image} alt="Profile" className="rounded-full object-cover flex-shrink-0" style={{ width: 72, height: 72 }} />
@@ -194,6 +223,35 @@ function SettingsForm() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Profile banner */}
+        <div>
+          <p className="text-sm font-semibold text-gray-900 mb-2">Profile banner</p>
+          <p className="text-xs text-gray-400 mb-3">Shown at the top of your profile. Recommended: wide landscape image.</p>
+          {bannerImage ? (
+            <div className="relative rounded-xl overflow-hidden mb-2" style={{ height: 80 }}>
+              <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div
+              className="rounded-xl mb-2 flex items-center justify-center text-xs text-gray-400"
+              style={{ height: 80, background: "#f3f4f6", border: "2px dashed #d1d5db" }}
+            >
+              No banner set — a gradient will be used
+            </div>
+          )}
+          <div className="flex gap-2">
+            <label className="cursor-pointer text-sm px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors">
+              {bannerProcessing ? "Processing…" : "Upload banner"}
+              <input type="file" accept="image/*" className="hidden" onChange={handleBannerChange} disabled={bannerProcessing} />
+            </label>
+            {bannerImage && (
+              <button onClick={() => setBannerImage(null)} className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+                Remove
+              </button>
+            )}
           </div>
         </div>
 
