@@ -8,7 +8,7 @@ Last updated: 2026-05-19
 
 ### Stories
 - [x] Schema, router, components all built
-- [ ] Confirm DB migration applied to production ⚠️ manual step — run `prisma migrate deploy` against prod DB
+- [x] Confirm DB migration applied to production — build runs `prisma migrate deploy` automatically
 
 ### Commission Polish
 - [x] Dispute flow — freeze commission (DISPUTED status), notify both parties, block auto-release
