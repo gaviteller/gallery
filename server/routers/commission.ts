@@ -542,11 +542,50 @@ export const commissionRouter = router({
       return ctx.prisma.commission.findUnique({ where: { id: input.id } })
     }),
 
+  dispute: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      reason: z.string().min(10).max(2000),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const me = ctx.session.user.id
+      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.buyerId !== me) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.status !== "DELIVERED") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Can only dispute a delivered commission" })
+      }
+
+      await ctx.prisma.$transaction([
+        ctx.prisma.commission.update({
+          where: { id: input.id },
+          data: { status: "DISPUTED", disputedAt: new Date() },
+        }),
+        ctx.prisma.notification.create({
+          data: {
+            userId: commission.artistId,
+            fromUserId: me,
+            type: `commission_disputed:${input.id}`,
+          },
+        }),
+        ctx.prisma.professionalMessage.create({
+          data: {
+            commissionId: input.id,
+            senderId: me,
+            text: `Commission disputed by buyer. Reason: ${input.reason}\n\nThis commission is now frozen pending moderation review. Escrow will not be released until resolved.`,
+            isSystem: true,
+          },
+        }),
+      ])
+
+      return ctx.prisma.commission.findUnique({ where: { id: input.id } })
+    }),
+
   checkAutoRelease: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
-      if (!commission || commission.status !== "DELIVERED" || !commission.deliveredAt) return null
+      if (!commission || commission.status !== "DELIVERED" || commission.disputedAt || !commission.deliveredAt) return null
       if (commission.buyerId !== ctx.session.user.id && commission.artistId !== ctx.session.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" })
       }
