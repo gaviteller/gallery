@@ -129,11 +129,28 @@ export const dmRouter = router({
     const me = ctx.session.user.id
     const convos = await ctx.prisma.conversation.findMany({
       where: { OR: [{ participantA: me }, { participantB: me }] },
-      include: {
-        messages: { orderBy: { createdAt: "desc" }, take: 1, select: { senderId: true } },
+      select: {
+        participantA: true,
+        participantB: true,
+        lastReadAtA: true,
+        lastReadAtB: true,
+        messages: {
+          orderBy: { createdAt: "desc" },
+          select: { senderId: true, createdAt: true },
+        },
       },
     })
-    const count = convos.filter(c => c.messages[0]?.senderId !== me).length
+
+    const count = convos.filter(c => {
+      const myLastReadAt = c.participantA === me ? c.lastReadAtA : c.lastReadAtB
+      const unreadMessages = c.messages.filter(m => {
+        if (m.senderId === me) return false
+        if (!myLastReadAt) return true
+        return m.createdAt > myLastReadAt
+      })
+      return unreadMessages.length > 0
+    }).length
+
     return { count }
   }),
 })
