@@ -207,7 +207,7 @@ export default function FeedPage() {
                   <img
                     src={post.image}
                     alt={post.description ?? ""}
-                    style={{ display: "block", width: "100%", height: "auto" }}
+                    style={{ display: "block", width: "100%", aspectRatio: "1/1", objectFit: "cover" }}
                   />
                 </button>
 
