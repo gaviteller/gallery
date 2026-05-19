@@ -62,6 +62,13 @@ export const dmRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" })
       }
 
+      // Mark conversation as read for this user
+      const isA = convo.participantA === me
+      await ctx.prisma.conversation.update({
+        where: { id: input.conversationId },
+        data: isA ? { lastReadAtA: new Date() } : { lastReadAtB: new Date() },
+      })
+
       return ctx.prisma.directMessage.findMany({
         where: { conversationId: input.conversationId },
         orderBy: { createdAt: "asc" },
