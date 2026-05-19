@@ -61,6 +61,8 @@ model User {
   sellingEnabled     Boolean          @default(false)
   onboardingComplete Boolean          @default(false)
   commissionStatus   CommissionStatus @default(CLOSED)
+  buyerCancellationCount      Int     @default(0)
+  commissionFeatureDisabled   Boolean @default(false)
   bannerImage        String?          @db.Text
 
   websiteUrl         String?
@@ -210,6 +212,7 @@ enum CommissionRequestStatus {
   COMPLETE
   DECLINED
   CANCELLED
+  DISPUTED
 }
 
 model Commission {
@@ -224,6 +227,8 @@ model Commission {
   referencePhotos    Json                    @default("[]")
   agreedPrice        Float?
   deliveredAt        DateTime?
+  cancelledBy        String?
+  disputedAt         DateTime?
   deadline                  DateTime?
   deadlineNotificationSent  Boolean   @default(false)
   buyerRating               Int?
