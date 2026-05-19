@@ -22,6 +22,7 @@ Last updated: 2026-05-19
 - [x] Displayed after 10 completions — "New Artist" badge before that
 - [x] Tap to view full score breakdown
 - [x] Rating dispute flow — artist flags rating, system message queued; Minor strike enforcement in Tier 2
+- [ ] **DESIGN: Define full Trust Score grading formula** — how avg rating, cancel rate, and strikes combine into a final grade/label (e.g. Excellent / Good / Fair / Poor), what the thresholds are, how it visually displays, and how strikes will reduce the score once the strike system (Tier 2) is live
 
 ### DM Unread Count
 - [x] Write lastReadAt on message read (getMessages + send both write lastReadAtA/B)
