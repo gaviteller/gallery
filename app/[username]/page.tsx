@@ -241,7 +241,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       </div>
 
       {/* ── Profile identity block ─────────────────────────────── */}
-      <div className="max-w-2xl mx-auto pb-24 px-4">
+      <div style={{ maxWidth: "42rem", margin: "0 auto", paddingBottom: "6rem", paddingLeft: "1rem", paddingRight: "1rem" }}>
         {/* Avatar — overlapping banner by 40px */}
         <div style={{ marginTop: -40, marginBottom: 12 }}>
           <button
