@@ -227,7 +227,7 @@ export const commissionRouter = router({
       const commission = await ctx.prisma.commission.findUnique({
         where: { id: input.id },
         include: {
-          buyer: { select: { id: true, username: true, name: true, image: true } },
+          buyer: { select: { id: true, username: true, name: true, image: true, buyerCancellationCount: true } },
           artist: { select: { id: true, username: true, name: true, image: true } },
           messages: {
             include: {
@@ -616,6 +616,35 @@ export const commissionRouter = router({
       })
     }),
 
+  flagRating: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const me = ctx.session.user.id
+      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
+      if (commission.artistId !== me) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.status !== "COMPLETE") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not complete" })
+      if (commission.buyerRating === null) throw new TRPCError({ code: "BAD_REQUEST", message: "No rating to dispute" })
+      if (commission.ratingFlagged) throw new TRPCError({ code: "BAD_REQUEST", message: "Rating already flagged" })
+
+      await ctx.prisma.$transaction([
+        ctx.prisma.commission.update({
+          where: { id: input.id },
+          data: { ratingFlagged: true },
+        }),
+        ctx.prisma.professionalMessage.create({
+          data: {
+            commissionId: input.id,
+            senderId: me,
+            text: "Artist has flagged this rating as potentially retaliatory. The rating has been queued for human review.",
+            isSystem: true,
+          },
+        }),
+      ])
+
+      return ctx.prisma.commission.findUnique({ where: { id: input.id } })
+    }),
+
   setDisplayPermission: protectedProcedure
     .input(z.object({
       id: z.string(),
@@ -683,6 +712,47 @@ export const commissionRouter = router({
         where: { id: input.id },
         data: { artistFeedShareOffered: true },
       })
+    }),
+
+  getTrustScore: publicProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const artist = await ctx.prisma.user.findFirst({
+        where: { username: { equals: input.username, mode: "insensitive" } },
+        select: { id: true },
+      })
+      if (!artist) throw new TRPCError({ code: "NOT_FOUND" })
+
+      const commissions = await ctx.prisma.commission.findMany({
+        where: {
+          artistId: artist.id,
+          status: { notIn: ["PENDING", "DECLINED"] },
+        },
+        select: { status: true, buyerRating: true, cancelledBy: true },
+      })
+
+      const completed = commissions.filter(c => c.status === "COMPLETE")
+      const completedCount = completed.length
+
+      const ratings = completed
+        .filter(c => c.buyerRating !== null)
+        .map(c => c.buyerRating as number)
+      const avgRating = ratings.length > 0
+        ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
+        : null
+
+      const artistCancels = commissions.filter(c => c.cancelledBy === "artist").length
+      const cancelRate = commissions.length > 0
+        ? Math.round((artistCancels / commissions.length) * 100)
+        : 0
+
+      return {
+        completedCount,
+        avgRating,
+        cancelRate,
+        ratingCount: ratings.length,
+        hasScore: completedCount >= 10,
+      }
     }),
 
   getApprovedWork: publicProcedure
