@@ -50,6 +50,7 @@ const statusLabel: Record<string, string> = {
   COMPLETE: "Complete",
   DECLINED: "Declined",
   CANCELLED: "Cancelled",
+  DISPUTED: "Disputed — under moderation review",
 }
 
 const statusColor: Record<string, string> = {
@@ -60,9 +61,10 @@ const statusColor: Record<string, string> = {
   COMPLETE: "bg-green-500/20 text-green-400",
   DECLINED: "bg-white/10 text-white/40",
   CANCELLED: "bg-white/10 text-white/40",
+  DISPUTED: "bg-red-500/20 text-red-400",
 }
 
-const CLOSED = ["COMPLETE", "DECLINED", "CANCELLED"]
+const CLOSED = ["COMPLETE", "DECLINED", "CANCELLED", "DISPUTED"]
 
 export default function CommissionThreadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -141,9 +143,20 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     onSuccess: () => utils.commission.getById.invalidate({ id }),
   })
 
-  // Cancel (buyer)
+  // Cancel (buyer or artist)
   const cancelMutation = trpc.commission.cancel.useMutation({
     onSuccess: () => utils.commission.getById.invalidate({ id }),
+  })
+
+  // Dispute
+  const [showDisputeModal, setShowDisputeModal] = useState(false)
+  const [disputeReason, setDisputeReason] = useState("")
+  const disputeMutation = trpc.commission.dispute.useMutation({
+    onSuccess: () => {
+      utils.commission.getById.invalidate({ id })
+      setShowDisputeModal(false)
+      setDisputeReason("")
+    },
   })
 
   // Confirm payment
@@ -420,6 +433,12 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
             <p className="text-sm font-semibold text-white/50">This commission was cancelled</p>
           </div>
         )}
+        {commission.status === "DISPUTED" && (
+          <div className="mb-4 rounded-2xl p-4 text-center" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+            <p className="text-sm font-semibold text-red-400">This commission is under dispute</p>
+            <p className="text-xs text-red-400/70 mt-1">Frozen pending moderation review. Escrow will not be released until resolved.</p>
+          </div>
+        )}
 
         {/* Messages */}
         {commission.messages.map(msg => {
@@ -602,7 +621,10 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                   {confirmPaymentMutation.isPending ? "Processing…" : `Confirm payment · $${commission.agreedPrice}`}
                 </button>
                 <button
-                  onClick={() => cancelMutation.mutate({ id })}
+                  onClick={() => {
+                    if (!confirm("Cancel this commission? If payment has been made, a cancellation will be recorded on your account.")) return
+                    cancelMutation.mutate({ id })
+                  }}
                   disabled={cancelMutation.isPending}
                   className="text-xs text-red-400 hover:text-red-300 underline transition-colors disabled:opacity-50 flex-shrink-0"
                 >
@@ -616,11 +638,62 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
           {isBuyer && commission.status === "PENDING" && (
             <div className="flex justify-end">
               <button
-                onClick={() => cancelMutation.mutate({ id })}
+                onClick={() => {
+                  if (!confirm("Cancel this commission? If payment has been made, a cancellation will be recorded on your account.")) return
+                  cancelMutation.mutate({ id })
+                }}
                 disabled={cancelMutation.isPending}
                 className="text-xs text-red-400 hover:text-red-300 underline transition-colors disabled:opacity-50"
               >
                 {cancelMutation.isPending ? "Withdrawing…" : "Withdraw Request"}
+              </button>
+            </div>
+          )}
+
+          {/* Cancel — artist side: PENDING, ACCEPTED, IN_PROGRESS */}
+          {isArtist && ["PENDING", "ACCEPTED", "IN_PROGRESS"].includes(commission.status) && (
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={() => {
+                  if (!confirm(
+                    commission.status === "IN_PROGRESS"
+                      ? "Cancel this commission? Since payment has been made, a strike will be recorded against you and the buyer will be refunded."
+                      : "Cancel this commission?"
+                  )) return
+                  cancelMutation.mutate({ id })
+                }}
+                disabled={cancelMutation.isPending}
+                style={{ padding: "8px 16px", borderRadius: 10, background: "rgba(239,68,68,0.15)", color: "#f87171", fontSize: 14, border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer" }}
+              >
+                {cancelMutation.isPending ? "Cancelling…" : "Cancel commission"}
+              </button>
+            </div>
+          )}
+
+          {/* Cancel — buyer side: IN_PROGRESS */}
+          {isBuyer && commission.status === "IN_PROGRESS" && (
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={() => {
+                  if (!confirm("Cancel this commission? Since payment has been made, a cancellation will be recorded on your account.")) return
+                  cancelMutation.mutate({ id })
+                }}
+                disabled={cancelMutation.isPending}
+                style={{ padding: "8px 16px", borderRadius: 10, background: "rgba(239,68,68,0.15)", color: "#f87171", fontSize: 14, border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer" }}
+              >
+                {cancelMutation.isPending ? "Cancelling…" : "Cancel commission"}
+              </button>
+            </div>
+          )}
+
+          {/* Dispute — buyer only, DELIVERED stage */}
+          {isBuyer && commission.status === "DELIVERED" && (
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={() => setShowDisputeModal(true)}
+                style={{ padding: "8px 16px", borderRadius: 10, background: "rgba(239,68,68,0.15)", color: "#f87171", fontSize: 14, border: "1px solid rgba(239,68,68,0.3)", cursor: "pointer" }}
+              >
+                Raise a dispute
               </button>
             </div>
           )}
@@ -740,6 +813,46 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
       {isClosed && (
         <div className="flex-shrink-0 px-4 py-3 text-center" style={{ borderTop: "1px solid #ffffff10", background: "#160b30" }}>
           <p className="text-xs text-white/40">This commission is closed</p>
+        </div>
+      )}
+
+      {/* Dispute modal */}
+      {showDisputeModal && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          onClick={() => setShowDisputeModal(false)}
+        >
+          <div
+            style={{ background: "#1a1a1f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 480 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ color: "#fff", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Raise a Dispute</h3>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginBottom: 16 }}>
+              Explain the issue. This will freeze the commission and escrow pending moderation review. Only raise a dispute for clear ToS violations — Gallery does not mediate subjective quality disagreements.
+            </p>
+            <textarea
+              value={disputeReason}
+              onChange={e => setDisputeReason(e.target.value)}
+              placeholder="Describe the violation clearly…"
+              rows={5}
+              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#fff", fontSize: 14, resize: "vertical", outline: "none", boxSizing: "border-box" }}
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button
+                onClick={() => setShowDisputeModal(false)}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "none", cursor: "pointer", fontSize: 14 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => disputeMutation.mutate({ id, reason: disputeReason })}
+                disabled={disputeReason.trim().length < 10 || disputeMutation.isPending}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, background: "rgba(239,68,68,0.3)", color: "#f87171", border: "1px solid rgba(239,68,68,0.4)", cursor: "pointer", fontSize: 14, opacity: disputeReason.trim().length < 10 ? 0.4 : 1 }}
+              >
+                {disputeMutation.isPending ? "Submitting…" : "Submit dispute"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
