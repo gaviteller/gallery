@@ -314,7 +314,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 20 }}>
           {isOwn ? (
             <>
-              <Link href="/settings" style={{ fontSize: 14, padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
+              <Link href="/settings" style={{ fontSize: 13, padding: "7px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
                 Edit profile
               </Link>
               <div style={{ padding: 1.5, background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", borderRadius: 20 }}>
@@ -328,14 +328,14 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               <button
                 onClick={() => followStatus?.following ? unfollowMutation.mutate({ username }) : followMutation.mutate({ username })}
                 disabled={followMutation.isPending || unfollowMutation.isPending}
-                style={{ flex: 1, padding: "10px 0", borderRadius: 12, fontWeight: 600, fontSize: 15, color: "white", background: followStatus?.following ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", border: followStatus?.following ? "1px solid rgba(255,255,255,0.2)" : "none" }}
+                style={{ padding: "8px 24px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: followStatus?.following ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", border: followStatus?.following ? "1px solid rgba(255,255,255,0.2)" : "none" }}
               >
                 {followMutation.isPending || unfollowMutation.isPending ? "…" : followStatus?.following ? "Following" : "Follow"}
               </button>
               <button
                 onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
                 disabled={getOrCreateDM.isPending}
-                style={{ padding: "10px 20px", borderRadius: 12, fontWeight: 600, fontSize: 15, color: "white", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
+                style={{ padding: "8px 18px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
               >
                 {getOrCreateDM.isPending ? "…" : "Message"}
               </button>
