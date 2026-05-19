@@ -404,8 +404,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           )}
         </div>
 
-      {/* ── Pill tabs ──────────────────────────────────────────── */}
-      <div className="mb-6 flex gap-2 flex-wrap">
+      {/* ── Pill tabs + New post button ───────────────────────── */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
         {(["Posts", "Shop", "Commissions", "About"] as const)
           .filter((t) => {
             if (isOwn) return true
@@ -439,20 +439,17 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               {t}
             </button>
           ))}
+        {isOwn && tab === "Posts" && (
+          <button onClick={() => setShowUpload(true)}
+            style={{ marginLeft: "auto", background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", color: "white", fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 10 }}>
+            + New post
+          </button>
+        )}
       </div>
 
       {/* ── Posts tab ─────────────────────────────────────────── */}
       {tab === "Posts" && (
         <>
-          {isOwn && (
-            <div className="mb-4 flex justify-end">
-              <button onClick={() => setShowUpload(true)}
-                className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-xl hover:opacity-80 transition-opacity"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-                + New post
-              </button>
-            </div>
-          )}
 
           {postsLoading ? (
             <div className="text-center py-16 text-white/40">Loading…</div>
