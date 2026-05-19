@@ -9,6 +9,7 @@ import PostModal from "@/components/PostModal"
 import CommissionRequestModal from "@/components/CommissionRequestModal"
 import StoryViewer from "@/components/StoryViewer"
 import StoryUpload from "@/components/StoryUpload"
+import ImageCropEditor from "@/components/ImageCropEditor"
 
 const statusColors = {
   OPEN: "bg-green-500/20 text-green-400",
@@ -91,7 +92,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
   // ── New post modal state ──────────────────────────────────────
   const [showUpload, setShowUpload] = useState(false)
-  const [uploadImage, setUploadImage] = useState<string | null>(null)
+  const [rawImage, setRawImage] = useState<string | null>(null)   // before crop
+  const [uploadImage, setUploadImage] = useState<string | null>(null) // after crop
   const [uploadDesc, setUploadDesc] = useState("")
   const [uploadIsAi, setUploadIsAi] = useState(false)
   const [uploadIsCommission, setUploadIsCommission] = useState(false)
@@ -106,6 +108,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       utils.post.getByUsername.invalidate({ username })
       utils.post.getCommissionsByUsername.invalidate({ username })
       setShowUpload(false)
+      setRawImage(null)
       setUploadImage(null)
       setUploadDesc("")
       setUploadIsAi(false)
@@ -118,7 +121,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     if (!file) return
     setImgProcessing(true)
     const result = await processImage(file, 1200)
-    setUploadImage(result)
+    setRawImage(result)   // show crop editor
     setImgProcessing(false)
   }
 
@@ -701,14 +704,20 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">New post</h2>
-              <button onClick={() => { setShowUpload(false); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false) }}
+              <button onClick={() => { setShowUpload(false); setRawImage(null); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false) }}
                 className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
             </div>
 
-            {uploadImage ? (
+            {rawImage && !uploadImage ? (
+              <ImageCropEditor
+                src={rawImage}
+                onConfirm={(cropped) => { setUploadImage(cropped); setRawImage(null) }}
+                onCancel={() => setRawImage(null)}
+              />
+            ) : uploadImage ? (
               <div className="relative">
-                <img src={uploadImage} alt="Preview" className="w-full rounded-xl object-cover max-h-72" />
-                <button onClick={() => setUploadImage(null)}
+                <img src={uploadImage} alt="Preview" className="w-full rounded-xl" style={{ aspectRatio: "1/1", objectFit: "cover" }} />
+                <button onClick={() => { setUploadImage(null) }}
                   className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70">
                   Change
                 </button>
@@ -721,12 +730,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               </label>
             )}
 
-            <textarea value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
+            {!rawImage && <textarea value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
               placeholder="Write a caption…" maxLength={500} rows={3}
               className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }} />
+              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }} />}
 
-            {[
+            {!rawImage && [
               { label: "AI generated", sub: "Let others know this was made with AI", value: uploadIsAi, set: setUploadIsAi },
               { label: "This is a commission", sub: "Show in your Commissions tab", value: uploadIsCommission, set: setUploadIsCommission },
             ].map(({ label, sub, value, set }) => (
@@ -745,15 +754,15 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               </div>
             ))}
 
-            {createPost.error && <p className="text-sm text-red-400">{createPost.error.message}</p>}
+            {!rawImage && createPost.error && <p className="text-sm text-red-400">{createPost.error.message}</p>}
 
-            <button
+            {!rawImage && <button
               onClick={() => { if (uploadImage) createPost.mutate({ image: uploadImage, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi, isCommission: uploadIsCommission }) }}
               disabled={createPost.isPending || !uploadImage || imgProcessing}
               className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
               {createPost.isPending ? "Posting…" : "Share"}
-            </button>
+            </button>}
           </div>
         </div>
       )}
