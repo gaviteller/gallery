@@ -462,23 +462,84 @@ export const commissionRouter = router({
   cancel: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const me = ctx.session.user.id
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
-      if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
-      if (!["PENDING", "ACCEPTED"].includes(commission.status)) {
+
+      const isArtist = commission.artistId === me
+      const isBuyer = commission.buyerId === me
+      if (!isArtist && !isBuyer) throw new TRPCError({ code: "FORBIDDEN" })
+
+      // Cannot cancel DELIVERED, COMPLETE, CANCELLED, or DISPUTED
+      const cancellableStatuses = ["PENDING", "ACCEPTED", "IN_PROGRESS"]
+      if (!cancellableStatuses.includes(commission.status)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Commission cannot be cancelled at this stage" })
       }
-      const updated = await ctx.prisma.commission.update({
-        where: { id: input.id },
-        data: { status: "CANCELLED" },
+
+      const isPaid = commission.status === "IN_PROGRESS"
+      const cancellerRole = isArtist ? "artist" : "buyer"
+
+      // Build system message
+      let systemMsg: string
+      if (!isPaid) {
+        systemMsg = `Commission cancelled by ${cancellerRole}.`
+      } else if (isArtist) {
+        systemMsg = "Commission cancelled by artist after payment. Full refund issued to buyer. A strike has been recorded against the artist."
+      } else {
+        systemMsg = "Commission cancelled by buyer after payment. Full refund issued."
+      }
+
+      await ctx.prisma.$transaction(async (tx) => {
+        // Cancel the commission
+        await tx.commission.update({
+          where: { id: input.id },
+          data: { status: "CANCELLED", cancelledBy: cancellerRole },
+        })
+
+        // Post-payment consequences
+        if (isPaid && isArtist) {
+          // Increment artist's monthly cancellation count — check if feature should be disabled
+          const monthStart = new Date()
+          monthStart.setDate(1)
+          monthStart.setHours(0, 0, 0, 0)
+
+          const monthlyCancels = await tx.commission.count({
+            where: {
+              artistId: commission.artistId,
+              cancelledBy: "artist",
+              status: "CANCELLED",
+              updatedAt: { gte: monthStart },
+            },
+          })
+
+          // 4 existing + this one = 5
+          if (monthlyCancels >= 4) {
+            await tx.user.update({
+              where: { id: commission.artistId },
+              data: { commissionFeatureDisabled: true },
+            })
+          }
+        }
+
+        if (isPaid && isBuyer) {
+          await tx.user.update({
+            where: { id: commission.buyerId },
+            data: { buyerCancellationCount: { increment: 1 } },
+          })
+        }
+
+        // Notifications
+        const notifyId = isArtist ? commission.buyerId : commission.artistId
+        await tx.notification.create({
+          data: { userId: notifyId, fromUserId: me, type: `commission_cancelled:${input.id}` },
+        })
+
+        await tx.professionalMessage.create({
+          data: { commissionId: input.id, senderId: me, text: systemMsg, isSystem: true },
+        })
       })
-      await ctx.prisma.notification.create({
-        data: { userId: commission.artistId, fromUserId: ctx.session.user.id, type: `commission_cancelled:${input.id}` },
-      })
-      await ctx.prisma.professionalMessage.create({
-        data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Commission cancelled.", isSystem: true },
-      })
-      return updated
+
+      return ctx.prisma.commission.findUnique({ where: { id: input.id } })
     }),
 
   checkAutoRelease: protectedProcedure
