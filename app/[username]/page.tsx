@@ -222,10 +222,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </div>
       )}
 
-      {/* ── Banner — full-width, taller on desktop ─────────────── */}
+      {/* ── Banner — full-width ────────────────────────────────── */}
       <div
-        className="w-full relative overflow-hidden h-[120px] md:h-[160px]"
         style={{
+          width: "100%",
+          height: 140,
+          position: "relative",
           background: (profileUser as { bannerImage?: string | null }).bannerImage
             ? undefined
             : "linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%)",
@@ -234,7 +236,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         {(profileUser as { bannerImage?: string | null }).bannerImage && (
           <img
             src={(profileUser as { bannerImage?: string | null }).bannerImage!}
-            className="w-full h-full object-cover"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             alt=""
           />
         )}
@@ -243,7 +245,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── Profile identity block ─────────────────────────────── */}
       <div style={{ maxWidth: "42rem", margin: "0 auto", paddingBottom: "6rem", paddingLeft: "1rem", paddingRight: "1rem" }}>
         {/* Avatar — overlapping banner by 40px */}
-        <div style={{ marginTop: -40, marginBottom: 12 }}>
+        <div style={{ marginTop: -44, marginBottom: 12, position: "relative", zIndex: 2 }}>
           <button
             onClick={() => {
               if (isOwn) setAddingStory(true)
