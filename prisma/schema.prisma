@@ -232,6 +232,7 @@ model Commission {
   deadline                  DateTime?
   deadlineNotificationSent  Boolean   @default(false)
   buyerRating               Int?
+  ratingFlagged             Boolean   @default(false)
   displayAsExample          Boolean   @default(false)
   displayPermissionAnswered Boolean   @default(false)
   artistFeedShareOffered    Boolean   @default(false)
