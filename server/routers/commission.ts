@@ -184,6 +184,9 @@ export const commissionRouter = router({
       if (!artist.sellingEnabled) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "This artist is not accepting commissions" })
       }
+      if (artist.commissionFeatureDisabled) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This artist's commission feature has been suspended" })
+      }
       const commission = await ctx.prisma.commission.create({
         data: {
           buyerId: ctx.session.user.id,
@@ -243,10 +246,11 @@ export const commissionRouter = router({
       }
 
       // Approaching-deadline notification (within 48 h, not yet sent)
+      // Skip if commission is frozen (DISPUTED) or already closed
       if (
         commission.deadline &&
         !commission.deadlineNotificationSent &&
-        !["COMPLETE", "DECLINED", "CANCELLED"].includes(commission.status)
+        !["COMPLETE", "DECLINED", "CANCELLED", "DISPUTED"].includes(commission.status)
       ) {
         const msUntil = new Date(commission.deadline).getTime() - Date.now()
         const fortyEightHours = 48 * 60 * 60 * 1000
