@@ -8,24 +8,24 @@ Last updated: 2026-05-19
 
 ### Stories
 - [x] Schema, router, components all built
-- [ ] Confirm DB migration applied to production
+- [ ] Confirm DB migration applied to production ⚠️ manual step — run `prisma migrate deploy` against prod DB
 
 ### Commission Polish
-- [ ] Dispute flow — freeze commission, notify both parties, moderation review, resolution path
-- [ ] Cancellation rules post-payment — artist cancel = strike, buyer cancel = cancellation record
-- [ ] 5+ artist cancellations in one calendar month = commission feature disabled (appealable)
+- [x] Dispute flow — freeze commission (DISPUTED status), notify both parties, block auto-release
+- [x] Cancellation rules post-payment — artist cancel = strike recorded + monthly count, buyer cancel = cancellation count incremented
+- [x] 5+ artist cancellations in one calendar month = commissionFeatureDisabled flag set on User (appealable)
 
 ### Trust Score
-- [ ] Aggregate buyer ratings (stored but never averaged or displayed)
-- [ ] Cancellation count visible to artists before accepting a request
-- [ ] Trust Score = avg rating + cancellation rate + selling-related strikes
-- [ ] Displayed after 10 completions — "New Artist" before that
-- [ ] Tap to view full score breakdown
-- [ ] Rating dispute flow — artist submits evidence, human review; retaliatory rating = Minor strike
+- [x] Aggregate buyer ratings — getTrustScore tRPC procedure computes avg, cancel rate, completed count
+- [x] Cancellation count visible to artists before accepting a request (shown in commission thread on PENDING)
+- [x] Trust Score = avg rating + cancellation rate (selling-related strikes in Tier 2)
+- [x] Displayed after 10 completions — "New Artist" badge before that
+- [x] Tap to view full score breakdown
+- [x] Rating dispute flow — artist flags rating, system message queued; Minor strike enforcement in Tier 2
 
 ### DM Unread Count
-- [ ] Write lastReadAt on message read (fields exist, never used)
-- [ ] Fix unread count logic
+- [x] Write lastReadAt on message read (getMessages + send both write lastReadAtA/B)
+- [x] Fix unread count logic (counts messages newer than lastReadAt, not sent by me)
 
 ---
 
@@ -169,9 +169,13 @@ Last updated: 2026-05-19
 - Ranked home feed — infinite scroll, square crop, single column
 - Post upload — crop editor, hashtags, AI flag, pin/unpin, delete, comments
 - Full commission lifecycle — request → accept → pay (simulated) → deliver → approve → complete
-- Auto-cancel 3 days PENDING, auto-release 5 days DELIVERED
+- Auto-cancel 3 days PENDING, auto-release 5 days DELIVERED (blocked on DISPUTED)
 - Commission thread UI — pinned brief, reference photos, deadline badges, all action buttons
 - Rating after completion, display permission grant, share-to-feed card
+- Commission dispute flow — DISPUTED status, buyer raises dispute on DELIVERED, escrow frozen
+- Post-payment cancellation rules — artist cancel = monthly strike count (disable at 5/month), buyer cancel = cancellation count
+- Trust Score — avg rating + cancel rate, "New Artist" badge until 10 completions, tap for breakdown, flag retaliatory ratings
+- DM unread count — lastReadAt written on open + send, accurate unread count badge
 - Artist Dashboard — commission settings, custom categories, business overview
 - Social DMs and Professional DMs (commission threads)
 - In-app notifications (15+ types), push notifications (WebPush + service worker)
