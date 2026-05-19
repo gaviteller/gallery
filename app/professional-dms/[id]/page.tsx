@@ -186,6 +186,11 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     onSuccess: () => utils.commission.getById.invalidate({ id }),
   })
 
+  // Flag rating
+  const flagRatingMutation = trpc.commission.flagRating.useMutation({
+    onSuccess: () => utils.commission.getById.invalidate({ id }),
+  })
+
   // Display permission
   const setDisplayPermissionMutation = trpc.commission.setDisplayPermission.useMutation({
     onSuccess: () => utils.commission.getById.invalidate({ id }),
@@ -306,6 +311,13 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                   </div>
                 </div>
               )}
+              {isArtist && commission.status === "PENDING" && (commission.buyer as { buyerCancellationCount: number }).buyerCancellationCount > 0 && (
+                <div className="mt-2 pt-2" style={{ borderTop: "1px solid #ffffff10" }}>
+                  <p style={{ fontSize: 12, color: "#f87171", marginTop: 4 }}>
+                    ⚠ This buyer has {(commission.buyer as { buyerCancellationCount: number }).buyerCancellationCount} previous cancellation{(commission.buyer as { buyerCancellationCount: number }).buyerCancellationCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              )}
               {commission.deadline && (
                 <div className="mt-2 pt-2 flex items-center gap-2" style={{ borderTop: "1px solid #ffffff10" }}>
                   <svg className="w-3.5 h-3.5 text-white/40 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -331,6 +343,22 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
           <div className="mb-4 bg-green-500/20 rounded-2xl p-4 text-center" style={{ border: "1px solid #ffffff10" }}>
             <p className="text-sm font-semibold text-green-400">Commission complete ✓</p>
             <p className="text-xs text-green-400/70 mt-1">Payment has been released to the artist.</p>
+          </div>
+        )}
+
+        {/* Flag rating button — artist only, shown when rating exists and not yet flagged */}
+        {isArtist && commission.status === "COMPLETE" && commission.buyerRating !== null && !(commission as { ratingFlagged: boolean }).ratingFlagged && (
+          <div className="mb-2 flex justify-end">
+            <button
+              onClick={() => {
+                if (!confirm("Flag this rating as retaliatory? It will be queued for human review.")) return
+                flagRatingMutation.mutate({ id })
+              }}
+              disabled={flagRatingMutation.isPending}
+              style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+            >
+              {flagRatingMutation.isPending ? "Flagging…" : "Flag rating as retaliatory"}
+            </button>
           </div>
         )}
 

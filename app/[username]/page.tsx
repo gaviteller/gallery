@@ -68,6 +68,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: commissions, isLoading: commissionsLoading } = trpc.post.getCommissionsByUsername.useQuery({ username })
   const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
   const { data: commissionProfile } = trpc.commission.getProfile.useQuery({ username })
+  const { data: trustScore } = trpc.commission.getTrustScore.useQuery({ username })
   const { data: approvedWork } = trpc.commission.getApprovedWork.useQuery({ username })
   const { data: commissionCategories } = trpc.commission.getCategories.useQuery({ username })
   const { data: followStatus, refetch: refetchFollow } = trpc.follow.status.useQuery(
@@ -87,6 +88,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [viewPost, setViewPost] = useState<PostItem | null>(null)
   const [showCommissionRequest, setShowCommissionRequest] = useState(false)
   const [showMutuals, setShowMutuals] = useState(false)
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false)
   const [viewingStory, setViewingStory] = useState(false)
   const [addingStory, setAddingStory] = useState(false)
 
@@ -309,6 +311,56 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <button onClick={() => setShowMutuals(true)} style={{ fontSize: 14, color: "#22d3ee" }}>{mutualData.count} mutual</button>
           )}
         </div>
+
+        {/* Trust Score */}
+        {trustScore && (commissionProfile?.commissionStatus === "OPEN" || commissionProfile?.commissionStatus === "LIMITED" || (isOwn && commissionProfile)) && (
+          <div style={{ marginTop: 10 }}>
+            {trustScore.hasScore ? (
+              <div>
+                <button
+                  onClick={() => setShowScoreBreakdown(prev => !prev)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "5px 12px", cursor: "pointer" }}
+                >
+                  {/* Stars */}
+                  <span style={{ color: "#facc15", fontSize: 13 }}>
+                    {"★".repeat(Math.round(trustScore.avgRating ?? 0))}{"☆".repeat(5 - Math.round(trustScore.avgRating ?? 0))}
+                  </span>
+                  <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 600 }}>
+                    {trustScore.avgRating?.toFixed(1) ?? "—"} / 5.0
+                  </span>
+                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>
+                    ({trustScore.ratingCount} {trustScore.ratingCount === 1 ? "rating" : "ratings"})
+                  </span>
+                  <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
+                    {showScoreBreakdown ? "▲" : "▼"}
+                  </span>
+                </button>
+
+                {/* Breakdown panel */}
+                {showScoreBreakdown && (
+                  <div style={{ marginTop: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Average rating</span>
+                      <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.avgRating?.toFixed(1) ?? "—"} / 5.0</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Completed commissions</span>
+                      <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.completedCount}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Artist cancel rate</span>
+                      <span style={{ color: trustScore.cancelRate > 20 ? "#f87171" : "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.cancelRate}%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "5px 12px", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+                ✦ New Artist
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Action buttons */}
         <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 20 }}>
