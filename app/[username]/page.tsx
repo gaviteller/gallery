@@ -223,11 +223,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       )}
 
       {/* ── Profile card ───────────────────────────────────────── */}
-      <div style={{ maxWidth: "42rem", margin: "0 auto", paddingBottom: "5rem" }}>
+      <div style={{ width: "100%", paddingBottom: "5rem" }}>
 
         {/* Banner */}
         <div style={{
-          width: "100%", height: 140, position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden",
+          width: "100%", height: 160, position: "relative",
           background: (profileUser as { bannerImage?: string | null }).bannerImage
             ? undefined : "linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%)",
         }}>
@@ -286,118 +286,60 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           </button>
         </div>
 
-        {/* Artist name (Space Grotesk) */}
-        <h1
-          className="text-white font-bold leading-tight"
-          style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 22 }}
-        >
+        {/* Name */}
+        <h1 style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 22, fontWeight: 700, color: "white", lineHeight: 1.2 }}>
           {profileUser.name ?? profileUser.username}
         </h1>
-        <p className="text-white/50 text-sm mt-0.5">@{profileUser.username}</p>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, marginTop: 2 }}>@{profileUser.username}</p>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-4 mt-2 flex-wrap">
-          <span className="text-sm text-white/70">
-            <span className="font-bold text-white">{posts?.length ?? 0}</span> posts
-          </span>
-          <span className="text-sm text-white/70">
-            <span className="font-bold text-white">
-              {followStatus?.followerCount ?? 0}
-            </span>{" "}
-            followers
-          </span>
-          <span className="text-sm text-white/70">
-            <span className="font-bold text-white">
-              {followStatus?.followingCount ?? 0}
-            </span>{" "}
-            following
-          </span>
+        {/* Commission badge */}
+        {commissionProfile && (commissionProfile.commissionStatus === "OPEN" || commissionProfile.commissionStatus === "LIMITED") && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(176,68,248,0.15)", border: "1px solid rgba(176,68,248,0.3)", borderRadius: 20, padding: "3px 10px", marginTop: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "linear-gradient(135deg, #FF1CF7, #B044F8)" }} />
+            <span style={{ fontSize: 12, fontWeight: 600, background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Commission open</span>
+          </div>
+        )}
+
+        {/* Stats */}
+        <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}><strong style={{ color: "white" }}>{posts?.length ?? 0}</strong> posts</span>
+          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}><strong style={{ color: "white" }}>{followStatus?.followerCount ?? 0}</strong> followers</span>
+          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}><strong style={{ color: "white" }}>{followStatus?.followingCount ?? 0}</strong> following</span>
           {!isOwn && mutualData && mutualData.count > 0 && (
-            <button
-              onClick={() => setShowMutuals(true)}
-              className="text-sm text-cyan-400 hover:underline"
-            >
-              {mutualData.count} mutual
-            </button>
+            <button onClick={() => setShowMutuals(true)} style={{ fontSize: 14, color: "#22d3ee" }}>{mutualData.count} mutual</button>
           )}
         </div>
 
-        {/* Commission open badge */}
-        {commissionProfile &&
-          (commissionProfile.commissionStatus === "OPEN" ||
-            commissionProfile.commissionStatus === "LIMITED") && (
-            <span className="inline-block text-xs font-semibold brand-gradient-text mt-1.5">
-              Commission open ↗
-            </span>
-          )}
-
         {/* Action buttons */}
-        <div className="flex items-center gap-2 mt-3 mb-6">
+        <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 20 }}>
           {isOwn ? (
             <>
-              <Link
-                href="/settings"
-                className="text-sm px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors"
-                style={{ border: "1px solid #ffffff20" }}
-              >
+              <Link href="/settings" style={{ fontSize: 14, padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
                 Edit profile
               </Link>
-              {/* + Story gradient-border pill */}
-              <div
-                style={{
-                  padding: 1.5,
-                  background:
-                    "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
-                  borderRadius: 20,
-                }}
-              >
-                <button
-                  onClick={() => setAddingStory(true)}
-                  className="text-xs font-semibold text-white px-3 py-1 rounded-full"
-                  style={{ background: "#0D0D0F" }}
-                >
+              <div style={{ padding: 1.5, background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", borderRadius: 20 }}>
+                <button onClick={() => setAddingStory(true)} style={{ fontSize: 12, fontWeight: 600, color: "white", padding: "6px 14px", borderRadius: 20, background: "#0D0D0F" }}>
                   + Story
                 </button>
               </div>
             </>
-          ) : (
-            session && (
-              <>
-                <button
-                  onClick={() =>
-                    followStatus?.following
-                      ? unfollowMutation.mutate({ username })
-                      : followMutation.mutate({ username })
-                  }
-                  disabled={followMutation.isPending || unfollowMutation.isPending}
-                  className="text-sm px-4 py-1.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
-                  style={
-                    followStatus?.following
-                      ? { background: "#ffffff15", border: "1px solid #ffffff30" }
-                      : {
-                          background:
-                            "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
-                        }
-                  }
-                >
-                  {followMutation.isPending || unfollowMutation.isPending
-                    ? "…"
-                    : followStatus?.following
-                    ? "Following"
-                    : "Follow"}
-                </button>
-                <button
-                  onClick={() =>
-                    getOrCreateDM.mutate({ otherUserId: profileUser.id })
-                  }
-                  disabled={getOrCreateDM.isPending}
-                  className="text-sm px-3 py-1.5 rounded-lg text-white/60 hover:text-white transition-colors disabled:opacity-50"
-                  style={{ border: "1px solid #ffffff20" }}
-                >
-                  {getOrCreateDM.isPending ? "Opening…" : "Message"}
-                </button>
-              </>
-            )
+          ) : session && (
+            <>
+              <button
+                onClick={() => followStatus?.following ? unfollowMutation.mutate({ username }) : followMutation.mutate({ username })}
+                disabled={followMutation.isPending || unfollowMutation.isPending}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 12, fontWeight: 600, fontSize: 15, color: "white", background: followStatus?.following ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", border: followStatus?.following ? "1px solid rgba(255,255,255,0.2)" : "none" }}
+              >
+                {followMutation.isPending || unfollowMutation.isPending ? "…" : followStatus?.following ? "Following" : "Follow"}
+              </button>
+              <button
+                onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
+                disabled={getOrCreateDM.isPending}
+                style={{ padding: "10px 20px", borderRadius: 12, fontWeight: 600, fontSize: 15, color: "white", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
+              >
+                {getOrCreateDM.isPending ? "…" : "Message"}
+              </button>
+            </>
           )}
         </div>
 
