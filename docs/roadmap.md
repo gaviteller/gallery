@@ -66,6 +66,12 @@ Last updated: 2026-05-19
 - [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
 - [ ] "Opt out of location-based ad targeting" toggle in Settings
 
+### Discovery & Search (core selling point)
+- [ ] Hidden Gems vs Recommended two-tier AI discovery feed
+- [ ] Commission browse filters — style, medium, price range
+- [ ] Full search — artists, posts, shop, commissions in one grouped results page
+- [ ] Rising Stars / Artist Spotlight rotating feature slot
+
 ### Performance
 - [ ] Optimistic like button (avoid full feed refetch on every like)
 - [ ] Skeleton loading states (replace all "Loading…" with shimmer)
@@ -111,12 +117,9 @@ Last updated: 2026-05-19
 - [ ] Physical shipping flow — tracking number required, 30-day confirmation window
 - [ ] Sale notifications to artist
 
-### Discovery & Search
-- [ ] Full search — artists, posts, shop, commissions in one grouped results page
-- [ ] Commission browse filters — style, medium, price range
-- [ ] Hidden Gems vs Recommended two-tier AI discovery
-- [ ] Rising Stars / Artist Spotlight rotating feature slot
-- [ ] Collections and wishlists
+### Collections and Wishlists
+- [ ] Save posts to named private boards
+- [ ] Wishlist items from shop
 
 ### Push Notifications (expand)
 - [ ] Like on your post
