@@ -558,12 +558,21 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               {/* Info card */}
               <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
                 {/* Trust score */}
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white/40" style={{ background: "#ffffff10" }}>
-                    New Artist
-                  </span>
-                </div>
+                {trustScore && (
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
+                    {trustScore.hasScore ? (
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white/80" style={{ background: "#ffffff10" }}>
+                        <span style={{ color: "#facc15" }}>{"★".repeat(Math.round(trustScore.avgRating ?? 0))}</span>
+                        {" "}{trustScore.avgRating?.toFixed(1)} / 5.0
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full text-white/40" style={{ background: "#ffffff10" }}>
+                        New Artist
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {commissionProfile.commissionDescription && (
                   <p className="text-sm text-white/70 mb-4">{commissionProfile.commissionDescription}</p>

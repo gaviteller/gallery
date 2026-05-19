@@ -138,21 +138,22 @@ export const dmRouter = router({
         participantB: true,
         lastReadAtA: true,
         lastReadAtB: true,
+        // Only fetch the single most recent message NOT sent by me — all we need to determine unread status
         messages: {
+          where: { senderId: { not: me } },
           orderBy: { createdAt: "desc" },
-          select: { senderId: true, createdAt: true },
+          take: 1,
+          select: { createdAt: true },
         },
       },
     })
 
     const count = convos.filter(c => {
+      const lastOtherMsg = c.messages[0]
+      if (!lastOtherMsg) return false                                        // no messages from them
       const myLastReadAt = c.participantA === me ? c.lastReadAtA : c.lastReadAtB
-      const unreadMessages = c.messages.filter(m => {
-        if (m.senderId === me) return false
-        if (!myLastReadAt) return true
-        return m.createdAt > myLastReadAt
-      })
-      return unreadMessages.length > 0
+      if (!myLastReadAt) return true                                         // never opened this convo
+      return lastOtherMsg.createdAt > myLastReadAt                           // their last msg is newer than my last read
     }).length
 
     return { count }

@@ -512,8 +512,9 @@ export const commissionRouter = router({
             },
           })
 
-          // 4 existing + this one = 5
-          if (monthlyCancels >= 4) {
+          // The current commission is already updated above, so it's included in the count.
+          // monthlyCancels >= 5 means this is the 5th+ cancellation this month.
+          if (monthlyCancels >= 5) {
             await tx.user.update({
               where: { id: commission.artistId },
               data: { commissionFeatureDisabled: true },
