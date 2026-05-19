@@ -93,13 +93,17 @@ export const dmRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" })
       }
 
+      const isA = convo.participantA === me
       const [msg] = await ctx.prisma.$transaction([
         ctx.prisma.directMessage.create({
           data: { conversationId: input.conversationId, senderId: me, text: input.text },
         }),
         ctx.prisma.conversation.update({
           where: { id: input.conversationId },
-          data: { updatedAt: new Date() },
+          data: {
+            updatedAt: new Date(),
+            ...(isA ? { lastReadAtA: new Date() } : { lastReadAtB: new Date() }),
+          },
         }),
       ])
 
