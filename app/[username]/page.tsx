@@ -222,28 +222,23 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </div>
       )}
 
-      {/* ── Banner — full-width ────────────────────────────────── */}
-      <div
-        style={{
-          width: "100%",
-          height: 140,
-          position: "relative",
+      {/* ── Profile card ───────────────────────────────────────── */}
+      <div style={{ maxWidth: "42rem", margin: "0 auto", paddingBottom: "5rem" }}>
+
+        {/* Banner */}
+        <div style={{
+          width: "100%", height: 140, position: "relative", borderRadius: "16px 16px 0 0", overflow: "hidden",
           background: (profileUser as { bannerImage?: string | null }).bannerImage
-            ? undefined
-            : "linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%)",
-        }}
-      >
-        {(profileUser as { bannerImage?: string | null }).bannerImage && (
-          <img
-            src={(profileUser as { bannerImage?: string | null }).bannerImage!}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            alt=""
-          />
-        )}
-      </div>
+            ? undefined : "linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%)",
+        }}>
+          {(profileUser as { bannerImage?: string | null }).bannerImage && (
+            <img src={(profileUser as { bannerImage?: string | null }).bannerImage!}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="" />
+          )}
+        </div>
 
       {/* ── Profile identity block ─────────────────────────────── */}
-      <div style={{ maxWidth: "42rem", margin: "0 auto", paddingBottom: "6rem", paddingLeft: "1rem", paddingRight: "1rem" }}>
+      <div style={{ paddingLeft: "1rem", paddingRight: "1rem" }}>
         {/* Avatar — overlapping banner by 40px */}
         <div style={{ marginTop: -44, marginBottom: 12, position: "relative", zIndex: 2 }}>
           <button
@@ -443,7 +438,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           ))}
         {isOwn && tab === "Posts" && (
           <button onClick={() => setShowUpload(true)}
-            style={{ marginLeft: "auto", background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", color: "white", fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 10 }}>
+            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", color: "white", fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 10 }}>
             + New post
           </button>
         )}
@@ -697,6 +692,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </div>
       )}
 
+      </div> {/* end profile identity block */}
+      </div> {/* end profile card */}
+
       {/* ── New post modal ────────────────────────────────────── */}
       {showUpload && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -860,7 +858,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           } : undefined}
         />
       )}
-    </div>
   </>
   )
 }
