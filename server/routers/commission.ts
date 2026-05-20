@@ -757,7 +757,7 @@ export const commissionRouter = router({
       const sellingStrikeCount = 0
 
       const finalScore = avgRating !== null
-        ? Math.max(1.0, Math.round((avgRating - strikeDeduction) * 10) / 10)
+        ? Math.max(1.0, Math.min(5.0, Math.round((avgRating - strikeDeduction) * 10) / 10))
         : null
 
       const hasScore = completedCount >= 10
