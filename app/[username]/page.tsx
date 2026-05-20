@@ -10,6 +10,7 @@ import CommissionRequestModal from "@/components/CommissionRequestModal"
 import StoryViewer from "@/components/StoryViewer"
 import StoryUpload from "@/components/StoryUpload"
 import ImageCropEditor from "@/components/ImageCropEditor"
+import { TIER_LABELS, TIER_COLORS } from "@/server/lib/trustScore"
 
 const statusColors = {
   OPEN: "bg-green-500/20 text-green-400",
@@ -315,49 +316,61 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         {/* Trust Score */}
         {trustScore && (commissionProfile?.commissionStatus === "OPEN" || commissionProfile?.commissionStatus === "LIMITED" || (isOwn && commissionProfile)) && (
           <div style={{ marginTop: 10 }}>
-            {trustScore.hasScore ? (
-              <div>
-                <button
-                  onClick={() => setShowScoreBreakdown(prev => !prev)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "5px 12px", cursor: "pointer" }}
-                >
-                  {/* Stars */}
-                  <span style={{ color: "#facc15", fontSize: 13 }}>
-                    {"★".repeat(Math.round(trustScore.avgRating ?? 0))}{"☆".repeat(5 - Math.round(trustScore.avgRating ?? 0))}
-                  </span>
-                  <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 600 }}>
-                    {trustScore.avgRating?.toFixed(1) ?? "—"} / 5.0
-                  </span>
-                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>
-                    ({trustScore.ratingCount} {trustScore.ratingCount === 1 ? "rating" : "ratings"})
-                  </span>
-                  <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
-                    {showScoreBreakdown ? "▲" : "▼"}
-                  </span>
-                </button>
-
-                {/* Breakdown panel */}
-                {showScoreBreakdown && (
-                  <div style={{ marginTop: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Average rating</span>
-                      <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.avgRating?.toFixed(1) ?? "—"} / 5.0</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Completed commissions</span>
-                      <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.completedCount}</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Artist cancel rate</span>
-                      <span style={{ color: trustScore.cancelRate > 20 ? "#f87171" : "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.cancelRate}%</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "5px 12px", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-                ✦ New Artist
+            <button
+              onClick={() => setShowScoreBreakdown(prev => !prev)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "5px 12px", cursor: "pointer" }}
+            >
+              {/* Tier colour dot */}
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: TIER_COLORS[trustScore.tier], flexShrink: 0 }} />
+              {/* Tier label */}
+              <span style={{ color: TIER_COLORS[trustScore.tier], fontSize: 13, fontWeight: 700 }}>
+                {TIER_LABELS[trustScore.tier]}
               </span>
+              {/* Numeric score — only shown when there is a score */}
+              {trustScore.finalScore !== null && (
+                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
+                  {trustScore.finalScore.toFixed(1)}
+                </span>
+              )}
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
+                {showScoreBreakdown ? "▲" : "▼"}
+              </span>
+            </button>
+
+            {/* Breakdown panel */}
+            {showScoreBreakdown && (
+              <div style={{ marginTop: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                {/* Label + score header */}
+                <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 6, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <span style={{ color: TIER_COLORS[trustScore.tier], fontSize: 13, fontWeight: 700 }}>{TIER_LABELS[trustScore.tier]}</span>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
+                    {trustScore.finalScore !== null ? `${trustScore.finalScore.toFixed(1)} / 5.0` : "—"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Average buyer rating</span>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
+                    {trustScore.avgRating !== null ? `${trustScore.avgRating.toFixed(1)} / 5.0` : "—"}
+                    {trustScore.ratingCount > 0 && <span style={{ color: "rgba(255,255,255,0.35)", fontWeight: 400 }}> ({trustScore.ratingCount})</span>}
+                  </span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Completed commissions</span>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.completedCount}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Artist cancel rate</span>
+                  <span style={{ color: trustScore.cancelRate > 20 ? "#f87171" : "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.cancelRate}%</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Selling strikes</span>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
+                    {trustScore.sellingStrikeCount === 0
+                      ? "None"
+                      : `−${trustScore.strikeDeduction.toFixed(1)} from ${trustScore.sellingStrikeCount} strike${trustScore.sellingStrikeCount === 1 ? "" : "s"}`}
+                  </span>
+                </div>
+              </div>
             )}
           </div>
         )}
