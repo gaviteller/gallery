@@ -761,6 +761,7 @@ export const commissionRouter = router({
         : null
 
       const hasScore = completedCount >= 10
+      // isSuspended always false until Zero Tolerance ban field ships in Tier 2
       const tier = computeTier(finalScore, hasScore, false)
 
       return {
