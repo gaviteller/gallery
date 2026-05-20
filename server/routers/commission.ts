@@ -2,6 +2,7 @@ import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { Prisma } from "@prisma/client"
+import { computeTier } from "@/server/lib/trustScore"
 
 const priceRangeSchema = z.array(z.object({
   label: z.string().min(1).max(100),
@@ -751,12 +752,27 @@ export const commissionRouter = router({
         ? Math.round((artistCancels / commissions.length) * 100)
         : 0
 
+      // Strike deductions are 0 until the Strike model ships in Tier 2
+      const strikeDeduction = 0
+      const sellingStrikeCount = 0
+
+      const finalScore = avgRating !== null
+        ? Math.max(1.0, Math.round((avgRating - strikeDeduction) * 10) / 10)
+        : null
+
+      const hasScore = completedCount >= 10
+      const tier = computeTier(finalScore, hasScore, false)
+
       return {
         completedCount,
         avgRating,
+        finalScore,
+        tier,
         cancelRate,
         ratingCount: ratings.length,
-        hasScore: completedCount >= 10,
+        hasScore,
+        strikeDeduction,
+        sellingStrikeCount,
       }
     }),
 
