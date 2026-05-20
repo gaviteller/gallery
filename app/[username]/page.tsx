@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, use, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -23,6 +23,8 @@ const statusLabels = {
   LIMITED: "Limited slots",
   CLOSED: "Closed for commissions",
 }
+
+const CANCEL_RATE_WARNING_THRESHOLD = 20
 
 type PostItem = {
   id: string
@@ -136,6 +138,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [shopPrice, setShopPrice] = useState("")
   const [shopImgProcessing, setShopImgProcessing] = useState(false)
   const [viewShopItem, setViewShopItem] = useState<{ id: string; image: string; title: string; description: string | null; price: number; createdAt: Date } | null>(null)
+
+  // Reset breakdown panel when navigating to a different profile
+  useEffect(() => { setShowScoreBreakdown(false) }, [username])
 
   const createShopItem = trpc.shop.create.useMutation({
     onSuccess: () => {
@@ -360,7 +365,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Artist cancel rate</span>
-                  <span style={{ color: trustScore.cancelRate > 20 ? "#f87171" : "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.cancelRate}%</span>
+                  <span style={{ color: trustScore.cancelRate > CANCEL_RATE_WARNING_THRESHOLD ? "#f87171" : "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.cancelRate}%</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Selling strikes</span>
