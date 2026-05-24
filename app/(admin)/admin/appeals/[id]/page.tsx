@@ -11,16 +11,19 @@ const LEVEL_COLORS: Record<string, string> = {
 export default function AdminAppealDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const { data: appeal, refetch } = trpc.admin.getAppeal.useQuery({ appealId: id })
+  const { data: appeal, isLoading, error } = trpc.admin.getAppeal.useQuery({ appealId: id })
 
   const approveAppeal = trpc.admin.approveAppeal.useMutation({
     onSuccess: () => router.push("/admin/appeals"),
+    onError: (err) => alert(err.message),
   })
   const denyAppeal = trpc.admin.denyAppeal.useMutation({
     onSuccess: () => router.push("/admin/appeals"),
+    onError: (err) => alert(err.message),
   })
 
-  if (!appeal) return <div style={{ color: "rgba(255,255,255,0.4)", padding: 24 }}>Loading…</div>
+  if (isLoading) return <div style={{ color: "rgba(255,255,255,0.4)", padding: 24 }}>Loading…</div>
+  if (error || !appeal) return <div style={{ color: "#f87171", padding: 24 }}>Appeal not found.</div>
 
   const isPending = appeal.status === "PENDING"
 
@@ -75,14 +78,14 @@ export default function AdminAppealDetailPage({ params }: { params: Promise<{ id
         <div style={{ display: "flex", gap: 12 }}>
           <button
             onClick={() => approveAppeal.mutate({ appealId: id })}
-            disabled={approveAppeal.isPending}
+            disabled={approveAppeal.isPending || denyAppeal.isPending}
             style={{ flex: 1, padding: "12px", borderRadius: 12, fontSize: 14, fontWeight: 600, background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.4)", color: "#4ade80", cursor: "pointer" }}
           >
             {approveAppeal.isPending ? "Approving…" : "✓ Approve — Reverse strike & lift ban"}
           </button>
           <button
             onClick={() => denyAppeal.mutate({ appealId: id })}
-            disabled={denyAppeal.isPending}
+            disabled={approveAppeal.isPending || denyAppeal.isPending}
             style={{ flex: 1, padding: "12px", borderRadius: 12, fontSize: 14, fontWeight: 600, background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.4)", color: "#f87171", cursor: "pointer" }}
           >
             {denyAppeal.isPending ? "Denying…" : "✕ Deny"}
