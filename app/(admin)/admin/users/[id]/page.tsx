@@ -11,6 +11,14 @@ const LEVEL_COLORS: Record<string, string> = {
   ZERO_TOLERANCE: "#dc2626",
 }
 
+const ALL_VIOLATIONS = [
+  "ARTIST_CANCEL", "FAKE_DELIVERY", "FALSE_ADVERTISING", "BAIT_AND_SWITCH",
+  "OFF_PLATFORM_PAYMENT", "COMMISSION_FARMING", "SHOP_FALSE_ADVERTISING",
+  "UNLABELLED_AI", "GORE", "HARASSMENT", "HATE_SPEECH", "SPAM",
+  "DMCA_VIOLATION", "FTC_DISCLOSURE", "NCMEC_VIOLATION",
+  "CHARGEBACK_FRAUD", "ZERO_TOLERANCE_CONDUCT",
+]
+
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { data: session } = useSession()
@@ -42,14 +50,6 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const MINOR_COUNT = user.receivedStrikes.filter(s => s.level === "MINOR" && !s.reversed).length
   const MODERATE_COUNT = user.receivedStrikes.filter(s => s.level === "MODERATE" && !s.reversed).length
   const SEVERE_COUNT = user.receivedStrikes.filter(s => s.level === "SEVERE" && !s.reversed).length
-
-  const ALL_VIOLATIONS = [
-    "ARTIST_CANCEL", "FAKE_DELIVERY", "FALSE_ADVERTISING", "BAIT_AND_SWITCH",
-    "OFF_PLATFORM_PAYMENT", "COMMISSION_FARMING", "SHOP_FALSE_ADVERTISING",
-    "UNLABELLED_AI", "GORE", "HARASSMENT", "HATE_SPEECH", "SPAM",
-    "DMCA_VIOLATION", "FTC_DISCLOSURE", "NCMEC_VIOLATION",
-    "CHARGEBACK_FRAUD", "ZERO_TOLERANCE_CONDUCT",
-  ]
 
   return (
     <div style={{ maxWidth: 700 }}>
@@ -139,7 +139,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   {s.reversed && <span style={{ color: "rgba(74,222,128,0.7)", fontSize: 11, marginLeft: 8 }}>REVERSED</span>}
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>by @{s.issuedBy.username}</p>
+                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>by @{s.issuedBy.username ?? "—"}</p>
                   <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{new Date(s.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>

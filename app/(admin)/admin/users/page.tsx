@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 
 export default function AdminUsersPage() {
   const [query, setQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
 
   const { data: users, isLoading } = trpc.admin.listUsers.useQuery({ query: debouncedQuery || undefined })
@@ -17,7 +18,12 @@ export default function AdminUsersPage() {
       <input
         type="text"
         value={query}
-        onChange={e => { setQuery(e.target.value); setTimeout(() => setDebouncedQuery(e.target.value), 300) }}
+        onChange={e => {
+          const value = e.target.value
+          setQuery(value)
+          if (debounceRef.current) clearTimeout(debounceRef.current)
+          debounceRef.current = setTimeout(() => setDebouncedQuery(value), 300)
+        }}
         placeholder="Search by username or email…"
         style={{
           width: "100%", padding: "10px 14px", borderRadius: 10, marginBottom: 16,
