@@ -2,12 +2,10 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 
 export default function AppealPage() {
   const { data: session } = useSession()
-  const router = useRouter()
   const [text, setText] = useState("")
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | undefined>()
 
