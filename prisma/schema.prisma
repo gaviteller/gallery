@@ -63,6 +63,10 @@ model User {
   commissionStatus   CommissionStatus @default(CLOSED)
   buyerCancellationCount      Int     @default(0)
   commissionFeatureDisabled   Boolean @default(false)
+  isAdmin        Boolean   @default(false)
+  isModerator    Boolean   @default(false)
+  bannedUntil    DateTime?
+  banReason      String?
   bannerImage        String?          @db.Text
 
   websiteUrl         String?
@@ -103,6 +107,11 @@ model User {
   commentLikes          CommentLike[]
   stories               Story[]
   storyViews            StoryView[]
+
+  receivedStrikes  Strike[]  @relation("ReceivedStrikes")
+  issuedStrikes    Strike[]  @relation("IssuedStrikes")
+  submittedAppeals Appeal[]  @relation("SubmittedAppeals")
+  reviewedAppeals  Appeal[]  @relation("ReviewedAppeals")
 }
 
 model Follow {
@@ -213,6 +222,77 @@ enum CommissionRequestStatus {
   DECLINED
   CANCELLED
   DISPUTED
+}
+
+enum StrikeLevel {
+  MINOR
+  MODERATE
+  SEVERE
+  ZERO_TOLERANCE
+}
+
+enum StrikeViolation {
+  ARTIST_CANCEL
+  FAKE_DELIVERY
+  FALSE_ADVERTISING
+  BAIT_AND_SWITCH
+  OFF_PLATFORM_PAYMENT
+  COMMISSION_FARMING
+  SHOP_FALSE_ADVERTISING
+  UNLABELLED_AI
+  GORE
+  HARASSMENT
+  HATE_SPEECH
+  SPAM
+  DMCA_VIOLATION
+  FTC_DISCLOSURE
+  NCMEC_VIOLATION
+  CHARGEBACK_FRAUD
+  ZERO_TOLERANCE_CONDUCT
+}
+
+enum AppealStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+model Strike {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation("ReceivedStrikes", fields: [userId], references: [id], onDelete: Cascade)
+  issuedById  String
+  issuedBy    User            @relation("IssuedStrikes", fields: [issuedById], references: [id])
+  level       StrikeLevel
+  violation   StrikeViolation
+  isSelling   Boolean         @default(false)
+  contentId   String?
+  contentType String?
+  notes       String?         @db.Text
+  reversed    Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+
+  appeals     Appeal[]
+
+  @@index([userId])
+  @@index([issuedById])
+}
+
+model Appeal {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation("SubmittedAppeals", fields: [userId], references: [id], onDelete: Cascade)
+  strikeId     String?
+  strike       Strike?      @relation(fields: [strikeId], references: [id])
+  text         String       @db.Text
+  status       AppealStatus @default(PENDING)
+  reviewedById String?
+  reviewedBy   User?        @relation("ReviewedAppeals", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  createdAt    DateTime     @default(now())
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Commission {
