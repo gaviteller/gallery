@@ -262,7 +262,7 @@ model Strike {
   userId      String
   user        User            @relation("ReceivedStrikes", fields: [userId], references: [id], onDelete: Cascade)
   issuedById  String
-  issuedBy    User            @relation("IssuedStrikes", fields: [issuedById], references: [id])
+  issuedBy    User            @relation("IssuedStrikes", fields: [issuedById], references: [id], onDelete: Restrict)
   level       StrikeLevel
   violation   StrikeViolation
   isSelling   Boolean         @default(false)
@@ -293,6 +293,7 @@ model Appeal {
 
   @@index([userId])
   @@index([status])
+  @@index([strikeId])
 }
 
 model Commission {

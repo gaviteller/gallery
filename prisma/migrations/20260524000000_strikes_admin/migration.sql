@@ -57,3 +57,4 @@ ALTER TABLE "Appeal" ADD CONSTRAINT "Appeal_reviewedById_fkey"
   FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 CREATE INDEX "Appeal_userId_idx" ON "Appeal"("userId");
 CREATE INDEX "Appeal_status_idx" ON "Appeal"("status");
+CREATE INDEX "Appeal_strikeId_idx" ON "Appeal"("strikeId");
