@@ -1,4 +1,5 @@
 import { router } from "@/lib/trpc"
+import { adminRouter } from "./admin"
 import { userRouter } from "./user"
 import { postRouter } from "./post"
 import { followRouter } from "./follow"
@@ -13,6 +14,7 @@ import { pushRouter } from "./push"
 import { storyRouter } from "./story"
 
 export const appRouter = router({
+  admin: adminRouter,
   user: userRouter,
   post: postRouter,
   follow: followRouter,
