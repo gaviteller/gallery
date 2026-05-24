@@ -3,6 +3,15 @@ import { router, modProcedure, adminProcedure, protectedProcedure } from "@/lib/
 import { TRPCError } from "@trpc/server"
 import { isSellingViolation } from "@/server/lib/strikes"
 
+function getBanDate(duration: "3d" | "14d" | "30d" | "permanent"): Date {
+  switch (duration) {
+    case "3d": return new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+    case "14d": return new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    case "30d": return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    case "permanent": return new Date("9999-12-31")
+  }
+}
+
 export const adminRouter = router({
 
   // ── User management ─────────────────────────────────────────────────────────
@@ -50,6 +59,13 @@ export const adminRouter = router({
   setModerator: adminProcedure
     .input(z.object({ userId: z.string(), isModerator: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
+      const target = await ctx.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { isAdmin: true },
+      })
+      if (!target) throw new TRPCError({ code: "NOT_FOUND" })
+      if (target.isAdmin) throw new TRPCError({ code: "FORBIDDEN", message: "Cannot modify admin roles" })
+
       return ctx.prisma.user.update({
         where: { id: input.userId },
         data: { isModerator: input.isModerator },
@@ -75,24 +91,36 @@ export const adminRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const strike = await ctx.prisma.strike.create({
-        data: {
-          userId: input.userId,
-          issuedById: ctx.session.user.id,
-          level: input.level,
-          violation: input.violation,
-          isSelling: isSellingViolation(input.violation),
-          contentId: input.contentId,
-          contentType: input.contentType,
-          notes: input.notes,
-        },
+      const target = await ctx.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { isAdmin: true, isModerator: true },
       })
-      await ctx.prisma.notification.create({
-        data: {
-          userId: input.userId,
-          fromUserId: ctx.session.user.id,
-          type: "strike",
-        },
+      if (!target) throw new TRPCError({ code: "NOT_FOUND" })
+      if (target.isAdmin || target.isModerator) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cannot take moderation actions against staff accounts" })
+      }
+
+      const strike = await ctx.prisma.$transaction(async tx => {
+        const s = await tx.strike.create({
+          data: {
+            userId: input.userId,
+            issuedById: ctx.session.user.id,
+            level: input.level,
+            violation: input.violation,
+            isSelling: isSellingViolation(input.violation),
+            contentId: input.contentId,
+            contentType: input.contentType,
+            notes: input.notes,
+          },
+        })
+        await tx.notification.create({
+          data: {
+            userId: input.userId,
+            fromUserId: ctx.session.user.id,
+            type: "strike",
+          },
+        })
+        return s
       })
       return strike
     }),
@@ -106,23 +134,29 @@ export const adminRouter = router({
       reason: z.string().min(1).max(500),
     }))
     .mutation(async ({ ctx, input }) => {
-      const DURATIONS: Record<string, Date> = {
-        "3d": new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-        "14d": new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        "30d": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        "permanent": new Date("9999-12-31"),
-      }
-      const user = await ctx.prisma.user.update({
+      const target = await ctx.prisma.user.findUnique({
         where: { id: input.userId },
-        data: { bannedUntil: DURATIONS[input.duration], banReason: input.reason },
-        select: { id: true, bannedUntil: true },
+        select: { isAdmin: true, isModerator: true },
       })
-      await ctx.prisma.notification.create({
-        data: {
-          userId: input.userId,
-          fromUserId: ctx.session.user.id,
-          type: "ban",
-        },
+      if (!target) throw new TRPCError({ code: "NOT_FOUND" })
+      if (target.isAdmin || target.isModerator) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cannot take moderation actions against staff accounts" })
+      }
+
+      const user = await ctx.prisma.$transaction(async tx => {
+        const u = await tx.user.update({
+          where: { id: input.userId },
+          data: { bannedUntil: getBanDate(input.duration), banReason: input.reason },
+          select: { id: true, bannedUntil: true },
+        })
+        await tx.notification.create({
+          data: {
+            userId: input.userId,
+            fromUserId: ctx.session.user.id,
+            type: "ban",
+          },
+        })
+        return u
       })
       return user
     }),
@@ -130,6 +164,15 @@ export const adminRouter = router({
   liftBan: modProcedure
     .input(z.object({ userId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const target = await ctx.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { isAdmin: true, isModerator: true },
+      })
+      if (!target) throw new TRPCError({ code: "NOT_FOUND" })
+      if (target.isAdmin || target.isModerator) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cannot take moderation actions against staff accounts" })
+      }
+
       return ctx.prisma.user.update({
         where: { id: input.userId },
         data: { bannedUntil: null, banReason: null },
@@ -194,11 +237,13 @@ export const adminRouter = router({
             data: { reversed: true },
           })
         }
-        // Lift the ban
-        await tx.user.update({
-          where: { id: appeal.userId },
-          data: { bannedUntil: null, banReason: null },
-        })
+        // Only lift ban if user is currently banned
+        if (appeal.user.bannedUntil && appeal.user.bannedUntil > new Date()) {
+          await tx.user.update({
+            where: { id: appeal.userId },
+            data: { bannedUntil: null, banReason: null },
+          })
+        }
         // Notify user
         await tx.notification.create({
           data: {
@@ -221,16 +266,18 @@ export const adminRouter = router({
       if (!appeal) throw new TRPCError({ code: "NOT_FOUND" })
       if (appeal.status !== "PENDING") throw new TRPCError({ code: "BAD_REQUEST", message: "Appeal already reviewed" })
 
-      await ctx.prisma.appeal.update({
-        where: { id: input.appealId },
-        data: { status: "DENIED", reviewedById: ctx.session.user.id, reviewedAt: new Date() },
-      })
-      await ctx.prisma.notification.create({
-        data: {
-          userId: appeal.userId,
-          fromUserId: ctx.session.user.id,
-          type: "appeal_denied",
-        },
+      await ctx.prisma.$transaction(async tx => {
+        await tx.appeal.update({
+          where: { id: input.appealId },
+          data: { status: "DENIED", reviewedById: ctx.session.user.id, reviewedAt: new Date() },
+        })
+        await tx.notification.create({
+          data: {
+            userId: appeal.userId,
+            fromUserId: ctx.session.user.id,
+            type: "appeal_denied",
+          },
+        })
       })
       return { success: true }
     }),
@@ -255,6 +302,16 @@ export const adminRouter = router({
         where: { userId: ctx.session.user.id, status: "PENDING" },
       })
       if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "You already have a pending appeal" })
+
+      if (input.strikeId) {
+        const strike = await ctx.prisma.strike.findUnique({
+          where: { id: input.strikeId },
+          select: { userId: true },
+        })
+        if (!strike || strike.userId !== ctx.session.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Strike not found or does not belong to you" })
+        }
+      }
 
       return ctx.prisma.appeal.create({
         data: {

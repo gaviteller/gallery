@@ -7,12 +7,14 @@ const createCaller = createCallerFactory(appRouter)
 const mockMod = { id: "mod-1", isAdmin: false, isModerator: true }
 const mockAdmin = { id: "admin-1", isAdmin: true, isModerator: false }
 const mockUser = { id: "user-1", isAdmin: false, isModerator: false }
+const mockTarget = { isAdmin: false, isModerator: false }
 
 const mockPrisma = {
   user: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
-  strike: { create: vi.fn(), findMany: vi.fn() },
-  appeal: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+  strike: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() },
+  appeal: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   notification: { create: vi.fn() },
+  $transaction: vi.fn((fn: any) => fn(mockPrisma)),
 }
 
 function modSession() {
@@ -52,7 +54,10 @@ describe("admin.issueStrike", () => {
   })
 
   it("allows moderators to issue strikes", async () => {
-    mockPrisma.user.findUnique.mockResolvedValue(mockMod)
+    // First call: middleware checks caller (mockMod), second call: target privilege check (mockTarget)
+    mockPrisma.user.findUnique
+      .mockResolvedValueOnce(mockMod)
+      .mockResolvedValueOnce(mockTarget)
     mockPrisma.strike.create.mockResolvedValue({ id: "strike-1" })
     mockPrisma.notification.create.mockResolvedValue({})
     const caller = getCaller(modSession())
@@ -76,7 +81,9 @@ describe("admin.issueStrike", () => {
   })
 
   it("sets isSelling true for selling violations", async () => {
-    mockPrisma.user.findUnique.mockResolvedValue(mockMod)
+    mockPrisma.user.findUnique
+      .mockResolvedValueOnce(mockMod)
+      .mockResolvedValueOnce(mockTarget)
     mockPrisma.strike.create.mockResolvedValue({ id: "strike-2" })
     mockPrisma.notification.create.mockResolvedValue({})
     const caller = getCaller(modSession())
@@ -91,6 +98,16 @@ describe("admin.issueStrike", () => {
       })
     )
   })
+
+  it("throws FORBIDDEN when targeting a staff account", async () => {
+    mockPrisma.user.findUnique
+      .mockResolvedValueOnce(mockMod)
+      .mockResolvedValueOnce({ isAdmin: false, isModerator: true })
+    const caller = getCaller(modSession())
+    await expect(
+      caller.admin.issueStrike({ userId: "mod-2", level: "MINOR", violation: "SPAM" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" })
+  })
 })
 
 describe("admin.setModerator", () => {
@@ -103,10 +120,23 @@ describe("admin.setModerator", () => {
   })
 
   it("allows admin to set moderator", async () => {
-    mockPrisma.user.findUnique.mockResolvedValue(mockAdmin)
+    // First call: middleware checks caller (mockAdmin), second call: target check (mockUser)
+    mockPrisma.user.findUnique
+      .mockResolvedValueOnce(mockAdmin)
+      .mockResolvedValueOnce(mockUser)
     mockPrisma.user.update.mockResolvedValue({ id: "user-1", isModerator: true })
     const caller = getCaller(adminSession())
     const result = await caller.admin.setModerator({ userId: "user-1", isModerator: true })
     expect(result.isModerator).toBe(true)
+  })
+
+  it("throws FORBIDDEN when trying to modify an admin account", async () => {
+    mockPrisma.user.findUnique
+      .mockResolvedValueOnce(mockAdmin)
+      .mockResolvedValueOnce({ isAdmin: true })
+    const caller = getCaller(adminSession())
+    await expect(
+      caller.admin.setModerator({ userId: "admin-2", isModerator: false })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" })
   })
 })
