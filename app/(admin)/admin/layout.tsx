@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
 
   // Check mod/admin status via a lightweight query
-  const { data: me } = trpc.user.me.useQuery(undefined, { enabled: !!session })
+  const { data: me, isFetched: meFetched } = trpc.user.me.useQuery(undefined, { enabled: !!session })
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/")
@@ -21,9 +21,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Show loader until we confirm the user is authorized — prevents flashing
   // admin UI (and firing modProcedure queries) for non-admin authenticated users
-  if (status === "loading" || !me) {
+  if (status === "loading" || (!!session && !meFetched)) {
     return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "rgba(255,255,255,0.4)" }}>Loading…</p></div>
   }
+  if (!me) return null  // session exists but user not found — redirect fires via useEffect
   if (!me.isAdmin && !me.isModerator) return null
 
   const navItems = [
@@ -47,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         ))}
         <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-          {me.isAdmin ? "Admin" : "Moderator"} · @{me.username}
+          {me.isAdmin ? "Admin" : "Moderator"} · @{me.username ?? "—"}
         </span>
       </div>
       <div style={{ padding: "24px 20px", maxWidth: 900, margin: "0 auto" }}>
