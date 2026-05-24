@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
+import { checkNotBanned } from "@/server/lib/ban"
 
 export const shopRouter = router({
   getByUsername: publicProcedure
@@ -24,6 +25,7 @@ export const shopRouter = router({
       price: z.number().positive(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       return ctx.prisma.shopItem.create({
         data: {
           userId: ctx.session.user.id,
@@ -38,6 +40,7 @@ export const shopRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const item = await ctx.prisma.shopItem.findUnique({ where: { id: input.id } })
       if (!item) throw new TRPCError({ code: "NOT_FOUND" })
       if (item.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })

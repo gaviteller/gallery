@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
+import { checkNotBanned } from "@/server/lib/ban"
 
 export const postRouter = router({
   create: protectedProcedure
@@ -11,6 +12,7 @@ export const postRouter = router({
       isCommission: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const tags = [
         ...new Set(
           (input.description ?? "")
@@ -144,6 +146,7 @@ export const postRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const post = await ctx.prisma.post.findUnique({ where: { id: input.id } })
       if (!post) throw new TRPCError({ code: "NOT_FOUND" })
       if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })

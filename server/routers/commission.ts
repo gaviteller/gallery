@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { Prisma } from "@prisma/client"
 import { computeTier } from "@/server/lib/trustScore"
+import { checkNotBanned } from "@/server/lib/ban"
 
 const priceRangeSchema = z.array(z.object({
   label: z.string().min(1).max(100),
@@ -174,6 +175,7 @@ export const commissionRouter = router({
       referencePhotos: z.array(z.string()).max(5).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       if (input.artistId === ctx.session.user.id) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot commission yourself" })
       }
@@ -286,6 +288,7 @@ export const commissionRouter = router({
   accept: protectedProcedure
     .input(acceptInputSchema)
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
@@ -467,6 +470,7 @@ export const commissionRouter = router({
   cancel: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const me = ctx.session.user.id
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
@@ -554,6 +558,7 @@ export const commissionRouter = router({
       reason: z.string().min(10).max(2000),
     }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const me = ctx.session.user.id
       const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })

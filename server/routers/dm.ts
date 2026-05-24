@@ -2,6 +2,7 @@ import { z } from "zod"
 import { router, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { sendPushToUser } from "@/lib/sendPush"
+import { checkNotBanned } from "@/server/lib/ban"
 
 export const dmRouter = router({
 
@@ -82,6 +83,7 @@ export const dmRouter = router({
       text: z.string().min(1).max(4000),
     }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const me = ctx.session.user.id
 
       const convo = await ctx.prisma.conversation.findUnique({
