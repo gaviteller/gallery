@@ -7,6 +7,7 @@ import { Providers } from "@/components/providers"
 import Navbar from "@/components/Navbar"
 import BottomNav from "@/components/BottomNav"
 import PushInit from "@/components/PushInit"
+import BanBanner from "@/components/BanBanner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
+          <BanBanner />
           <PushInit />
           {/* Navbar: visible on mobile only — desktop uses the sidebar in BottomNav */}
           <div className="md:hidden">
