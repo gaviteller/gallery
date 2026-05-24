@@ -12,7 +12,7 @@ export async function checkNotBanned(
   if (user?.bannedUntil && user.bannedUntil > new Date()) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "FORBIDDEN: Your account is currently suspended.",
+      message: "Your account is currently suspended.",
     })
   }
 }

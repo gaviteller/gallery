@@ -21,12 +21,12 @@ describe("checkNotBanned", () => {
   it("throws FORBIDDEN when ban is active", async () => {
     const futureDate = new Date(Date.now() + 86400000)
     mockPrisma.user.findUnique.mockResolvedValue({ bannedUntil: futureDate })
-    await expect(checkNotBanned(mockPrisma as any, "user-1")).rejects.toThrow("FORBIDDEN")
+    await expect(checkNotBanned(mockPrisma as any, "user-1")).rejects.toMatchObject({ code: "FORBIDDEN" })
   })
 
   it("throws FORBIDDEN for permanent ban (year 9999)", async () => {
     const permanentDate = new Date("9999-12-31")
     mockPrisma.user.findUnique.mockResolvedValue({ bannedUntil: permanentDate })
-    await expect(checkNotBanned(mockPrisma as any, "user-1")).rejects.toThrow("FORBIDDEN")
+    await expect(checkNotBanned(mockPrisma as any, "user-1")).rejects.toMatchObject({ code: "FORBIDDEN" })
   })
 })
