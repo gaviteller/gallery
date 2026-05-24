@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
+import { checkNotBanned } from "@/server/lib/ban"
 
 const commentSelect = {
   id: true,
@@ -15,6 +16,7 @@ export const interactionRouter = router({
   toggleLike: protectedProcedure
     .input(z.object({ postId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const existing = await ctx.prisma.like.findUnique({
         where: { userId_postId: { userId: ctx.session.user.id, postId: input.postId } },
       })
@@ -73,6 +75,7 @@ export const interactionRouter = router({
   toggleCommentLike: protectedProcedure
     .input(z.object({ commentId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       const existing = await ctx.prisma.commentLike.findUnique({
         where: { userId_commentId: { userId: ctx.session.user.id, commentId: input.commentId } },
       })
@@ -89,6 +92,7 @@ export const interactionRouter = router({
   addComment: protectedProcedure
     .input(z.object({ postId: z.string(), text: z.string().min(1).max(500), parentId: z.string().nullish() }))
     .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
       await ctx.prisma.comment.create({
         data: {
           userId: ctx.session.user.id,

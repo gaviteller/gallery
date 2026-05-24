@@ -67,7 +67,12 @@ export const authOptions: NextAuthOptions = {
         token.username = (user as any).username ?? null
         token.sellingEnabled = (user as any).sellingEnabled ?? false
         token.onboardingComplete = (user as any).onboardingComplete ?? false
-        token.bannedUntil = null
+        // Fetch ban status at sign-in time
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub! },
+          select: { bannedUntil: true },
+        })
+        token.bannedUntil = dbUser?.bannedUntil?.toISOString() ?? null
       }
       // Strip fields NextAuth adds by default that we don't need in the cookie
       delete token.name

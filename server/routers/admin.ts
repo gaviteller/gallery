@@ -17,7 +17,7 @@ export const adminRouter = router({
   // ── User management ─────────────────────────────────────────────────────────
 
   listUsers: modProcedure
-    .input(z.object({ query: z.string().optional() }))
+    .input(z.object({ query: z.string().max(100).optional() }))
     .query(async ({ ctx, input }) => {
       return ctx.prisma.user.findMany({
         where: input.query ? {
@@ -217,14 +217,14 @@ export const adminRouter = router({
   approveAppeal: modProcedure
     .input(z.object({ appealId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const appeal = await ctx.prisma.appeal.findUnique({
-        where: { id: input.appealId },
-        include: { user: true },
-      })
-      if (!appeal) throw new TRPCError({ code: "NOT_FOUND" })
-      if (appeal.status !== "PENDING") throw new TRPCError({ code: "BAD_REQUEST", message: "Appeal already reviewed" })
-
       await ctx.prisma.$transaction(async tx => {
+        const appeal = await tx.appeal.findUnique({
+          where: { id: input.appealId },
+          include: { user: true },
+        })
+        if (!appeal) throw new TRPCError({ code: "NOT_FOUND" })
+        if (appeal.status !== "PENDING") throw new TRPCError({ code: "BAD_REQUEST", message: "Appeal is no longer pending." })
+
         // Mark appeal approved
         await tx.appeal.update({
           where: { id: input.appealId },
