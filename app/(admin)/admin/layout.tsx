@@ -16,12 +16,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/")
-    if (me && !me.isAdmin && !(me as any).isModerator) router.push("/")
+    if (me && !me.isAdmin && !me.isModerator) router.push("/")
   }, [status, me, router])
 
+  // Show loader until we confirm the user is authorized — prevents flashing
+  // admin UI (and firing modProcedure queries) for non-admin authenticated users
   if (status === "loading" || !me) {
     return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "rgba(255,255,255,0.4)" }}>Loading…</p></div>
   }
+  if (!me.isAdmin && !me.isModerator) return null
 
   const navItems = [
     { href: "/admin", label: "Dashboard" },
@@ -44,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         ))}
         <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-          {(me as any).isAdmin ? "Admin" : "Moderator"} · @{me.username}
+          {me.isAdmin ? "Admin" : "Moderator"} · @{me.username}
         </span>
       </div>
       <div style={{ padding: "24px 20px", maxWidth: 900, margin: "0 auto" }}>
