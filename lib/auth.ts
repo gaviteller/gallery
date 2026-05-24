@@ -59,6 +59,7 @@ export const authOptions: NextAuthOptions = {
           token.username = fresh.username
           token.sellingEnabled = fresh.sellingEnabled
           token.onboardingComplete = fresh.onboardingComplete
+          token.bannedUntil = fresh.bannedUntil?.toISOString() ?? null
         }
       }
       if (user) {
@@ -66,6 +67,7 @@ export const authOptions: NextAuthOptions = {
         token.username = (user as any).username ?? null
         token.sellingEnabled = (user as any).sellingEnabled ?? false
         token.onboardingComplete = (user as any).onboardingComplete ?? false
+        token.bannedUntil = null
       }
       // Strip fields NextAuth adds by default that we don't need in the cookie
       delete token.name
@@ -79,6 +81,7 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username as string | null
         session.user.sellingEnabled = token.sellingEnabled as boolean
         session.user.onboardingComplete = token.onboardingComplete as boolean
+        session.user.bannedUntil = (token.bannedUntil as string | null) ?? null
       }
       return session
     },

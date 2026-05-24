@@ -7,6 +7,7 @@ declare module "next-auth" {
       username: string | null
       sellingEnabled: boolean
       onboardingComplete: boolean
+      bannedUntil: string | null  // ISO string or null
     } & DefaultSession["user"]
   }
 
@@ -23,5 +24,6 @@ declare module "next-auth/jwt" {
     username: string | null
     sellingEnabled: boolean
     onboardingComplete: boolean
+    bannedUntil: string | null  // ISO string or null
   }
 }
