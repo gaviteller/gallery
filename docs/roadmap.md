@@ -48,8 +48,8 @@ Last updated: 2026-05-19
 - [ ] Forgot password / password reset flow
 
 ### Safety & Moderation
-- [ ] Strikes system — 4 levels: Minor / Moderate / Severe / Zero Tolerance
-- [ ] Strike accumulation logic and temp ban triggers (6 Minor = 3d ban, 4 Moderate = 14d ban, 1 Severe = 30d ban, 2 Severe ever = permanent)
+- [x] Strikes system — 4 levels: Minor / Moderate / Severe / Zero Tolerance
+- [x] Strike accumulation logic and temp ban triggers (manual — mods issue bans informed by thresholds)
 - [ ] Community report button on posts (3 reports from distinct accounts = hiding + flag)
 - [ ] Content Pending state — 14-day challenge window before auto-removal
 - [ ] Auto-watermark on artwork: format `Gallery | @username`

@@ -730,7 +730,7 @@ export const commissionRouter = router({
     .query(async ({ ctx, input }) => {
       const artist = await ctx.prisma.user.findFirst({
         where: { username: { equals: input.username, mode: "insensitive" } },
-        select: { id: true },
+        select: { id: true, bannedUntil: true },
       })
       if (!artist) throw new TRPCError({ code: "NOT_FOUND" })
 
@@ -757,17 +757,24 @@ export const commissionRouter = router({
         ? Math.round((artistCancels / commissions.length) * 100)
         : 0
 
-      // Strike deductions are 0 until the Strike model ships in Tier 2
-      const strikeDeduction = 0
-      const sellingStrikeCount = 0
+      // Pull selling-related strikes (non-reversed only)
+      const sellingStrikes = await ctx.prisma.strike.findMany({
+        where: { userId: artist.id, isSelling: true, reversed: false },
+        select: { level: true },
+      })
+      const sellingStrikeCount = sellingStrikes.length
+      const strikeDeduction =
+        sellingStrikes.filter(s => s.level === "MINOR").length * 0.1 +
+        sellingStrikes.filter(s => s.level === "MODERATE").length * 0.3 +
+        sellingStrikes.filter(s => s.level === "SEVERE").length * 0.8
 
       const finalScore = avgRating !== null
         ? Math.max(1.0, Math.min(5.0, Math.round((avgRating - strikeDeduction) * 10) / 10))
         : null
 
       const hasScore = completedCount >= 10
-      // isSuspended always false until Zero Tolerance ban field ships in Tier 2
-      const tier = computeTier(finalScore, hasScore, false)
+      const isSuspended = !!(artist.bannedUntil && artist.bannedUntil > new Date())
+      const tier = computeTier(finalScore, hasScore, isSuspended)
 
       return {
         completedCount,
