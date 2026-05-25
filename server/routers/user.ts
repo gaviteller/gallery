@@ -156,6 +156,16 @@ export const userRouter = router({
       })
     }),
 
+  updateShowRealName: protectedProcedure
+    .input(z.object({ showRealName: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: { showRealName: input.showRealName },
+        select: { id: true, showRealName: true },
+      })
+    }),
+
   updateProfile: protectedProcedure
     .input(
       z.object({

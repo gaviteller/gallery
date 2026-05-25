@@ -97,3 +97,33 @@ describe("user.updateSellingEnabled", () => {
     expect(result.sellingEnabled).toBe(false)
   })
 })
+
+describe("user.updateShowRealName", () => {
+  it("sets showRealName to true", async () => {
+    const updated = { id: "user-1", showRealName: true }
+    mockPrisma.user.update.mockResolvedValue(updated)
+    const caller = getCaller()
+    const result = await caller.user.updateShowRealName({ showRealName: true })
+    expect(result.showRealName).toBe(true)
+    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { showRealName: true },
+      select: { id: true, showRealName: true },
+    })
+  })
+
+  it("sets showRealName to false", async () => {
+    const updated = { id: "user-1", showRealName: false }
+    mockPrisma.user.update.mockResolvedValue(updated)
+    const caller = getCaller()
+    const result = await caller.user.updateShowRealName({ showRealName: false })
+    expect(result.showRealName).toBe(false)
+  })
+
+  it("throws UNAUTHORIZED when not logged in", async () => {
+    const unauthCaller = getCaller(null as any)
+    await expect(
+      unauthCaller.user.updateShowRealName({ showRealName: true })
+    ).rejects.toThrow("UNAUTHORIZED")
+  })
+})
