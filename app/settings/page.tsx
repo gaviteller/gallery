@@ -37,6 +37,7 @@ function SettingsForm() {
   const [twitterHandle, setTwitterHandle] = useState("")
   const [instagramHandle, setInstagramHandle] = useState("")
   const [artstationHandle, setArtstationHandle] = useState("")
+  const [showRealName, setShowRealName] = useState(false)
   const [photoProcessing, setPhotoProcessing] = useState(false)
   const [bannerImage, setBannerImage] = useState<string | null>(null)
   const [bannerProcessing, setBannerProcessing] = useState(false)
@@ -51,6 +52,7 @@ function SettingsForm() {
       setTwitterHandle(user.twitterHandle ?? "")
       setInstagramHandle(user.instagramHandle ?? "")
       setArtstationHandle(user.artstationHandle ?? "")
+      setShowRealName((user as { showRealName?: boolean }).showRealName ?? false)
     }
   }, [user])
 
@@ -74,6 +76,9 @@ function SettingsForm() {
     },
   })
 
+  const updateShowRealName = trpc.user.updateShowRealName.useMutation({
+    onSuccess: () => utils.user.me.invalidate(),
+  })
 
   const changeUsername = trpc.user.changeUsername.useMutation({
     onSuccess: async () => {
@@ -265,6 +270,29 @@ function SettingsForm() {
             maxLength={100}
             className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {user?.name && (
+            <div className="flex items-center justify-between mt-3">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Show my real name on my profile</p>
+                <p className="text-xs text-gray-400 mt-0.5">When on, your real name appears on your public profile page.</p>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !showRealName
+                  setShowRealName(next)
+                  updateShowRealName.mutate({ showRealName: next })
+                }}
+                disabled={updateShowRealName.isPending}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+                  showRealName ? "bg-blue-600" : "bg-gray-200"
+                }`}
+                role="switch"
+                aria-checked={showRealName}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showRealName ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Bio */}
