@@ -296,9 +296,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
         {/* Name */}
         <h1 style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 22, fontWeight: 700, color: "white", lineHeight: 1.2 }}>
-          {profileUser.name ?? profileUser.username}
+          @{profileUser.username}
         </h1>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, marginTop: 2 }}>@{profileUser.username}</p>
+        {(profileUser as { showRealName?: boolean; name?: string | null }).showRealName &&
+          profileUser.name && (
+          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, marginTop: 2 }}>{profileUser.name}</p>
+        )}
 
         {/* Commission badge */}
         {commissionProfile && (commissionProfile.commissionStatus === "OPEN" || commissionProfile.commissionStatus === "LIMITED") && (
