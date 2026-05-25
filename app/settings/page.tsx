@@ -78,6 +78,7 @@ function SettingsForm() {
 
   const updateShowRealName = trpc.user.updateShowRealName.useMutation({
     onSuccess: () => utils.user.me.invalidate(),
+    onError: () => setShowRealName(prev => !prev),
   })
 
   const changeUsername = trpc.user.changeUsername.useMutation({

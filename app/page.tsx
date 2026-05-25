@@ -165,7 +165,7 @@ export default function FeedPage() {
                         className="text-sm font-semibold text-white truncate"
                         style={{ fontFamily: "Space Grotesk, sans-serif" }}
                       >
-                        {post.user.name ?? `@${post.user.username}`}
+                        @{post.user.username}
                       </Link>
                       {(post.user.commissionStatus === "OPEN" ||
                         post.user.commissionStatus === "LIMITED") && (
