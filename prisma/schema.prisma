@@ -113,6 +113,16 @@ model User {
   issuedStrikes    Strike[] @relation("IssuedStrikes")
   submittedAppeals Appeal[] @relation("SubmittedAppeals")
   reviewedAppeals  Appeal[] @relation("ReviewedAppeals")
+
+  // Casino
+  casinoWallet     CasinoWallet?
+  itemSubmissions  ItemSubmission[]
+  itemPurchases    ItemPurchase[]
+  slotSpins        SlotSpin[]
+  blackjackPlays   BlackjackPlayer[]
+  pokerSeats       PokerSeat[]
+  pokerHandPlays   PokerHandPlayer[]
+  pokerActions     PokerAction[]
 }
 
 model Follow {
@@ -438,4 +448,267 @@ model StoryView {
 
   @@unique([storyId, viewerId])
   @@index([viewerId])
+}
+
+// ── Casino ────────────────────────────────────────────────────────────────────
+
+model CasinoWallet {
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  transactions CasinoTransaction[]
+}
+
+enum CasinoTxType {
+  ITEM_DEPOSIT
+  ITEM_PURCHASE
+  GAME_WIN
+  GAME_BET
+  CASHOUT_REQUEST
+  ADMIN_GRANT
+}
+
+model CasinoTransaction {
+  id           String       @id @default(cuid())
+  walletId     String
+  wallet       CasinoWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type         CasinoTxType
+  amount       Int
+  balanceAfter Int
+  description  String?
+  gameRef      String?
+  createdAt    DateTime     @default(now())
+
+  @@index([walletId])
+}
+
+enum ItemSubmissionStatus {
+  PENDING
+  APPRAISED
+  REJECTED
+  IN_STORE
+  SOLD
+}
+
+model ItemSubmission {
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?              @db.Text
+  images         String[]             @default([])
+  askingValue    Int?
+  status         ItemSubmissionStatus @default(PENDING)
+  appraisedValue Int?
+  adminNotes     String?              @db.Text
+  storeItem      CasinoStoreItem?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model CasinoStoreItem {
+  id           String          @id @default(cuid())
+  title        String
+  description  String?         @db.Text
+  images       String[]        @default([])
+  price        Int
+  stock        Int             @default(1)
+  submissionId String?         @unique
+  submission   ItemSubmission? @relation(fields: [submissionId], references: [id])
+  purchases    ItemPurchase[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([stock])
+}
+
+model ItemPurchase {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId    String
+  item      CasinoStoreItem @relation(fields: [itemId], references: [id])
+  pricePaid Int
+  createdAt DateTime        @default(now())
+
+  @@index([userId])
+  @@index([itemId])
+}
+
+// ── Slots ─────────────────────────────────────────────────────────────────────
+
+model SlotSpin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bet       Int
+  reels     String[]
+  payout    Int
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ── Blackjack ────────────────────────────────────────────────────────────────
+
+enum BlackjackStatus {
+  BETTING
+  PLAYING
+  DONE
+}
+
+model BlackjackTable {
+  id        String          @id @default(cuid())
+  minBet    Int             @default(10)
+  maxBet    Int             @default(500)
+  maxSeats  Int             @default(5)
+  hands     BlackjackHand[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model BlackjackHand {
+  id              String            @id @default(cuid())
+  tableId         String
+  table           BlackjackTable    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  dealerCards     String[]          @default([])
+  dealerScore     Int               @default(0)
+  status          BlackjackStatus   @default(BETTING)
+  bettingDeadline DateTime?
+  players         BlackjackPlayer[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([tableId])
+}
+
+enum BJPlayerStatus {
+  BETTING
+  PLAYING
+  STAND
+  BUST
+  BLACKJACK
+  DONE
+}
+
+model BlackjackPlayer {
+  id        String         @id @default(cuid())
+  handId    String
+  hand      BlackjackHand  @relation(fields: [handId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards     String[]       @default([])
+  score     Int            @default(0)
+  bet       Int            @default(0)
+  payout    Int            @default(0)
+  status    BJPlayerStatus @default(BETTING)
+  seatIndex Int
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([handId, userId])
+  @@unique([handId, seatIndex])
+  @@index([userId])
+}
+
+// ── Poker ─────────────────────────────────────────────────────────────────────
+
+enum PokerStatus {
+  WAITING
+  PRE_FLOP
+  FLOP
+  TURN
+  RIVER
+  SHOWDOWN
+  DONE
+}
+
+model PokerTable {
+  id         String      @id @default(cuid())
+  name       String
+  minBuy     Int         @default(100)
+  maxBuy     Int         @default(2000)
+  smallBlind Int         @default(5)
+  bigBlind   Int         @default(10)
+  maxSeats   Int         @default(6)
+  status     PokerStatus @default(WAITING)
+  seats      PokerSeat[]
+  hands      PokerHand[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model PokerSeat {
+  id             String     @id @default(cuid())
+  tableId        String
+  table          PokerTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chips          Int        @default(0)
+  seatIndex      Int
+  sitOutNextHand Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+
+  @@unique([tableId, userId])
+  @@unique([tableId, seatIndex])
+  @@index([tableId])
+}
+
+model PokerHand {
+  id             String            @id @default(cuid())
+  tableId        String
+  table          PokerTable        @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  communityCards String[]          @default([])
+  pot            Int               @default(0)
+  status         PokerStatus       @default(PRE_FLOP)
+  dealerSeat     Int
+  currentSeat    Int               @default(0)
+  currentBetSize Int               @default(0)
+  players        PokerHandPlayer[]
+  actions        PokerAction[]
+  winners        Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([tableId])
+}
+
+model PokerHandPlayer {
+  id         String    @id @default(cuid())
+  handId     String
+  hand       PokerHand @relation(fields: [handId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seatIndex  Int
+  holeCards  String[]  @default([])
+  chipsBefore Int
+  currentBet Int       @default(0)
+  totalBet   Int       @default(0)
+  folded     Boolean   @default(false)
+  allIn      Boolean   @default(false)
+  payout     Int       @default(0)
+
+  @@unique([handId, userId])
+  @@unique([handId, seatIndex])
+  @@index([userId])
+}
+
+model PokerAction {
+  id        String    @id @default(cuid())
+  handId    String
+  hand      PokerHand @relation(fields: [handId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  amount    Int       @default(0)
+  street    String
+  createdAt DateTime  @default(now())
+
+  @@index([handId])
 }
