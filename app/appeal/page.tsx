@@ -9,10 +9,10 @@ export default function AppealPage() {
   const [text, setText] = useState("")
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | undefined>()
 
-  const { data: strikes } = trpc.admin.getMyStrikes.useQuery(undefined, { enabled: !!session })
-  const { data: appeals } = trpc.admin.getMyAppeals.useQuery(undefined, { enabled: !!session })
+  const { data: strikes } = trpc.user.getMyStrikes.useQuery(undefined, { enabled: !!session })
+  const { data: appeals } = trpc.user.getMyAppeals.useQuery(undefined, { enabled: !!session })
 
-  const submitAppeal = trpc.admin.submitAppeal.useMutation({
+  const submitAppeal = trpc.user.submitAppeal.useMutation({
     onSuccess: () => {
       setText("")
       setSelectedStrikeId(undefined)

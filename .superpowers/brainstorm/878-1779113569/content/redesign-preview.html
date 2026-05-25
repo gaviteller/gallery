@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Gallery Redesign Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0c; color: white; font-family: 'Inter', sans-serif; padding: 24px; }
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  h2 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: white; margin-bottom: 6px; }
+  .subtitle { color: rgba(255,255,255,0.4); font-size: 13px; margin-bottom: 28px; }
+
+  .gradient { background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); }
+  .gradient-text { background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .gradient-border { padding: 2px; border-radius: 50%; background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); }
+  .gradient-border-rect { padding: 1.5px; border-radius: 10px; background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 960px; margin: 0 auto; }
+
+  .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.3); margin-bottom: 12px; font-weight: 600; }
+
+  /* ── FEED ── */
+  .feed { width: 100%; max-width: 380px; }
+  .featured-strip { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 14px; margin-bottom: 4px; scrollbar-width: none; }
+  .featured-card { flex-shrink: 0; width: 64px; cursor: pointer; }
+  .featured-card .art-preview { width: 64px; height: 56px; border-radius: 10px; overflow: hidden; position: relative; }
+  .featured-card .art-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .featured-card .art-preview.has-story { outline: 2.5px solid transparent; background-clip: padding-box; }
+  .featured-card .story-ring { padding: 2px; border-radius: 12px; background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); }
+  .featured-card .story-ring-inner { border-radius: 10px; overflow: hidden; border: 2px solid #0D0D0F; }
+  .featured-card .no-story-wrap { border-radius: 10px; overflow: hidden; }
+  .featured-card .art-label { font-size: 9px; color: rgba(255,255,255,0.5); text-align: center; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* post card */
+  .post-card { background: #141414; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; margin: 0 12px 12px; }
+  .post-header { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+  .avatar-wrap { flex-shrink: 0; }
+  .avatar-ring { padding: 1.5px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,28,247,0.4) 0%, rgba(176,68,248,0.4) 50%, rgba(0,180,238,0.4) 100%); }
+  .avatar-ring.active { background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); }
+  .avatar-inner { border-radius: 50%; background: #0D0D0F; padding: 2px; }
+  .avatar-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; }
+  .post-meta { flex: 1; min-width: 0; }
+  .post-meta .display-name { font-size: 13px; font-weight: 600; color: white; font-family: 'Space Grotesk', sans-serif; }
+  .post-meta .username-time { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+  .commission-badge { font-size: 10px; font-weight: 600; background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; white-space: nowrap; }
+  .post-image { width: 100%; aspect-ratio: 1; object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 64px; }
+  .post-image-wrap { margin: 0 8px; border-radius: 12px; overflow: hidden; }
+  .post-title { font-size: 12px; font-weight: 600; color: white; padding: 8px 12px 4px; font-family: 'Space Grotesk', sans-serif; }
+  .post-actions { display: flex; gap: 14px; padding: 6px 12px 12px; }
+  .post-actions span { font-size: 12px; color: rgba(255,255,255,0.4); }
+  .post-actions span.liked { color: #ef4444; }
+
+  /* ── PROFILE ── */
+  .profile { width: 100%; max-width: 380px; background: #0D0D0F; border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+  .profile-banner { height: 120px; background: linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%); position: relative; }
+  .profile-banner::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(176,68,248,0.3), transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(0,180,238,0.2), transparent 60%); }
+  .profile-avatar-area { padding: 0 16px; margin-top: -28px; position: relative; z-index: 1; }
+  .profile-avatar-ring { display: inline-block; padding: 2.5px; border-radius: 50%; background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); }
+  .profile-avatar-inner { border-radius: 50%; background: #0D0D0F; padding: 3px; }
+  .profile-avatar-img { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #FF1CF7, #B044F8); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: white; }
+  .profile-info { padding: 10px 16px 12px; }
+  .profile-name { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: white; letter-spacing: -0.3px; }
+  .profile-username { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .profile-stats { display: flex; gap: 16px; margin: 10px 0; }
+  .profile-stats span { font-size: 12px; color: rgba(255,255,255,0.5); }
+  .profile-stats b { color: white; font-weight: 600; }
+  .profile-buttons { display: flex; gap: 8px; margin-bottom: 14px; }
+  .btn-follow { flex: 1; padding: 8px; border-radius: 10px; background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); font-size: 13px; font-weight: 600; color: white; border: none; cursor: pointer; font-family: 'Inter', sans-serif; }
+  .btn-msg { padding: 8px 14px; border-radius: 10px; background: rgba(255,255,255,0.08); font-size: 13px; font-weight: 600; color: white; border: 1px solid rgba(255,255,255,0.12); cursor: pointer; font-family: 'Inter', sans-serif; }
+  .comm-badge-inline { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; background: rgba(176,68,248,0.15); color: #B044F8; margin-top: 6px; }
+
+  /* pill tabs */
+  .tabs { display: flex; gap: 6px; padding: 0 16px 12px; }
+  .tab { font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
+  .tab.active { background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%); color: white; }
+  .tab.inactive { color: rgba(255,255,255,0.35); background: transparent; }
+
+  /* grid */
+  .profile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin: 0; }
+  .grid-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+
+  /* compare label */
+  .compare { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; margin-bottom: 28px; }
+  .compare h3 { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.6); margin-bottom: 10px; }
+  .compare ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .compare ul li { font-size: 12px; color: rgba(255,255,255,0.5); padding-left: 16px; position: relative; }
+  .compare ul li::before { content: attr(data-icon); position: absolute; left: 0; }
+</style>
+</head>
+<body>
+
+<h2>Gallery Redesign</h2>
+<p class="subtitle">Feed (left) and Profile (right) — how it'll look after the redesign</p>
+
+<div class="split">
+
+  <!-- ── FEED ── -->
+  <div>
+    <div class="label">Feed</div>
+
+    <div class="feed">
+
+      <!-- Featured Artists Strip (replaces story bubbles) -->
+      <div class="label" style="margin-bottom:6px">Featured Artists Strip</div>
+      <div class="featured-strip">
+        <!-- Own card with + -->
+        <div class="featured-card">
+          <div class="gradient-border-rect">
+            <div class="no-story-wrap" style="background:#1a0535;width:60px;height:52px;display:flex;align-items:center;justify-content:center;position:relative">
+              <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#FF1CF7,#B044F8);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">G</div>
+              <div style="position:absolute;bottom:4px;right:4px;width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#FF1CF7,#B044F8);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">+</div>
+            </div>
+          </div>
+          <div class="art-label">Your story</div>
+        </div>
+        <!-- Artist with story -->
+        <div class="featured-card">
+          <div class="story-ring">
+            <div class="story-ring-inner">
+              <div style="width:60px;height:52px;background:linear-gradient(135deg,#1a0535,#2a1545);display:flex;align-items:center;justify-content:center;font-size:24px">🎨</div>
+            </div>
+          </div>
+          <div class="art-label">@maya</div>
+        </div>
+        <!-- Artist without story -->
+        <div class="featured-card">
+          <div class="no-story-wrap" style="border:1.5px solid rgba(176,68,248,0.25);border-radius:10px">
+            <div style="width:60px;height:52px;background:linear-gradient(135deg,#0d1a35,#0a1535);display:flex;align-items:center;justify-content:center;font-size:24px">✏️</div>
+          </div>
+          <div class="art-label">@j_ink</div>
+        </div>
+        <!-- More artists -->
+        <div class="featured-card">
+          <div class="story-ring">
+            <div class="story-ring-inner">
+              <div style="width:60px;height:52px;background:linear-gradient(135deg,#0a1a20,#1a0535);display:flex;align-items:center;justify-content:center;font-size:24px">🖌️</div>
+            </div>
+          </div>
+          <div class="art-label">@anna</div>
+        </div>
+        <div class="featured-card">
+          <div class="no-story-wrap" style="border:1.5px solid rgba(176,68,248,0.25);border-radius:10px">
+            <div style="width:60px;height:52px;background:linear-gradient(135deg,#1a1a0d,#0d1a2a);display:flex;align-items:center;justify-content:center;font-size:24px">🎭</div>
+          </div>
+          <div class="art-label">@lee</div>
+        </div>
+      </div>
+
+      <!-- Post Card 1 -->
+      <div class="post-card">
+        <div class="post-header">
+          <div class="avatar-wrap">
+            <div class="avatar-ring active">
+              <div class="avatar-inner">
+                <div class="avatar-img" style="background:linear-gradient(135deg,#FF1CF7,#B044F8)">M</div>
+              </div>
+            </div>
+          </div>
+          <div class="post-meta">
+            <div class="display-name">Maya Draws</div>
+            <div class="username-time">@maya_draws · 2h</div>
+          </div>
+          <div class="commission-badge">Commission open ↗</div>
+        </div>
+        <div class="post-image-wrap">
+          <div class="post-image" style="background:linear-gradient(135deg,#1a0535,#2a1545,#0d1a35)">🎨</div>
+        </div>
+        <div class="post-title">Forest Spirit Study</div>
+        <div class="post-actions">
+          <span class="liked">♥ 142</span>
+          <span>💬 18</span>
+        </div>
+      </div>
+
+      <!-- Post Card 2 -->
+      <div class="post-card">
+        <div class="post-header">
+          <div class="avatar-wrap">
+            <div class="avatar-ring">
+              <div class="avatar-inner">
+                <div class="avatar-img" style="background:linear-gradient(135deg,#00B4EE,#B044F8)">J</div>
+              </div>
+            </div>
+          </div>
+          <div class="post-meta">
+            <div class="display-name">Jake Ink Works</div>
+            <div class="username-time">@j_ink · 5h</div>
+          </div>
+        </div>
+        <div class="post-image-wrap">
+          <div class="post-image" style="background:linear-gradient(135deg,#0d1a35,#1a1535);aspect-ratio:4/3">✏️</div>
+        </div>
+        <div class="post-title">Character Sheet #12</div>
+        <div class="post-actions">
+          <span>♥ 89</span>
+          <span>💬 7</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="compare" style="margin-top:20px;max-width:380px">
+      <h3>What changed vs Instagram</h3>
+      <ul>
+        <li data-icon="→">Story bubbles → rectangular art preview cards</li>
+        <li data-icon="→">Full-bleed images → floating cards with border + radius</li>
+        <li data-icon="→">@username only → Display Name + @username + Commission badge</li>
+        <li data-icon="→">Avatar: no ring → subtle gradient ring always visible</li>
+        <li data-icon="→">No titles → artwork title shown below image</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── PROFILE ── -->
+  <div>
+    <div class="label">Profile</div>
+
+    <div class="profile">
+      <!-- Banner -->
+      <div class="profile-banner"></div>
+
+      <!-- Avatar overlapping banner -->
+      <div class="profile-avatar-area">
+        <div class="profile-avatar-ring">
+          <div class="profile-avatar-inner">
+            <div class="profile-avatar-img">M</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="profile-info">
+        <div class="profile-name">Maya Draws</div>
+        <div class="profile-username">@maya_draws</div>
+        <div class="comm-badge-inline">● Commission open</div>
+        <div class="profile-stats">
+          <span><b>412</b> posts</span>
+          <span><b>8.2k</b> followers</span>
+          <span><b>201</b> following</span>
+        </div>
+        <div class="profile-buttons">
+          <button class="btn-follow">Follow</button>
+          <button class="btn-msg">Message</button>
+        </div>
+      </div>
+
+      <!-- Pill tabs -->
+      <div class="tabs">
+        <div class="tab active">Posts</div>
+        <div class="tab inactive">Shop</div>
+        <div class="tab inactive">Commissions</div>
+        <div class="tab inactive">About</div>
+      </div>
+
+      <!-- Grid -->
+      <div class="profile-grid">
+        <div class="grid-cell" style="background:linear-gradient(135deg,#1a0535,#2a0545)">🎨</div>
+        <div class="grid-cell" style="background:linear-gradient(135deg,#0d1a35,#1a0535)">✏️</div>
+        <div class="grid-cell" style="background:linear-gradient(135deg,#0a1a20,#1a0535)">🖌️</div>
+        <div class="grid-cell" style="background:linear-gradient(135deg,#1a1a0d,#1a0535)">🎭</div>
+        <div class="grid-cell" style="background:linear-gradient(135deg,#0d2a35,#1a0535)">🌸</div>
+        <div class="grid-cell" style="background:linear-gradient(135deg,#2a0a35,#0d1a35)">🦋</div>
+      </div>
+    </div>
+
+    <div class="compare" style="margin-top:20px;max-width:380px">
+      <h3>What changed vs Instagram</h3>
+      <ul>
+        <li data-icon="→">No banner → gradient banner behind avatar</li>
+        <li data-icon="→">Avatar: plain circle → gradient ring, overlaps banner</li>
+        <li data-icon="→">@username as heading → Big display name (Space Grotesk)</li>
+        <li data-icon="→">Underline tabs → pill tabs with gradient active state</li>
+        <li data-icon="→">Commission status buried → badge right under name</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<p style="text-align:center;color:rgba(255,255,255,0.3);font-size:12px;margin-top:8px">Tell me in the chat what you want to change, or say "looks good" to start building</p>
+
+</body>
+</html>

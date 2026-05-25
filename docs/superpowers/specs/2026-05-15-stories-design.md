@@ -1,5 +1,6 @@
 # Stories — Design Spec
 **Date:** 2026-05-15
+**Updated:** 2026-05-18
 **Status:** Approved
 
 ---
@@ -58,7 +59,7 @@ model StoryView {
 - Returns active stories (`expiresAt > now`) from: the current user + everyone they follow
 - Grouped by user: `{ userId, username, name, image, stories: Story[], hasUnviewed: boolean }`
 - `hasUnviewed` is true if any story in the group has no `StoryView` record for the current user
-- Current user's group is always first in the list
+- Current user's group is **always first** in the list, even if they have no stories (so the row is never empty for logged-in users)
 
 ### `story.getByUsername`
 - Public
@@ -79,12 +80,13 @@ Register `storyRouter` in `server/routers/_app.ts`.
 
 ### 4.1 StoriesRow component (`components/StoriesRow.tsx`)
 
-A horizontally scrollable row of avatar bubbles. Rendered at the top of the feed page, above the post list.
+A horizontally scrollable row of avatar bubbles. Rendered at the top of the feed page, above the post list. **Always visible** — at minimum shows the logged-in user's own bubble with a "+" icon.
 
 **Each bubble:**
 - Gradient ring if the user has at least one active story (`hasUnviewed` → bright gradient; all viewed → muted ring)
-- Own avatar: "+" icon overlay if no active story; gradient ring if one exists
-- Tap → opens `StoryViewer` for that user
+- Own avatar with no story: "+" icon overlay
+- Own avatar with active story: gradient ring, tap → opens `StoryViewer`
+- Other users: tap → opens `StoryViewer`
 
 **Own avatar is always first.**
 
@@ -96,7 +98,11 @@ Full-screen dark overlay triggered when a user taps a story bubble.
 - Username + avatar + "X hours ago" at the top
 - Close button top-right
 - Calls `story.markViewed` on open
-- If the user has multiple stories, show them in sequence (tap right side to advance, tap left to go back). Progress bar dots at the top showing position.
+- **Auto-advances** after **10 seconds** per story
+- **Progress bars** at the top: one bar per story, the active one fills left-to-right over 10 seconds
+- Tap right side of screen → advance immediately to next story (or close if last)
+- Tap left side → go back to previous story (or do nothing if first)
+- When the last story ends → closes the viewer
 
 ### 4.3 StoryUpload component (`components/StoryUpload.tsx`)
 
@@ -110,13 +116,16 @@ Modal triggered from two places (see 4.4 and 4.5).
 
 ### 4.4 Feed page (`app/page.tsx`)
 
-Add `<StoriesRow />` above the post feed. The `StoriesRow` renders own avatar with "+" if no story — tapping "+" opens `StoryUpload`.
+Add `<StoriesRow />` above the post feed. The `StoriesRow` renders own avatar:
+- No active story → "+" overlay → tap opens `StoryUpload`
+- Active story → gradient ring → tap opens `StoryViewer`
 
 ### 4.5 Profile page (`app/[username]/page.tsx`)
 
 - Avatar gets a gradient ring when `getByUsername` returns at least one active story
-- On own profile: "Add story" text button below the avatar (only shown to owner). Tapping opens `StoryUpload`.
-- On other profiles: tapping the avatar opens `StoryViewer` if they have an active story
+- **On own profile:** tapping the avatar always opens `StoryUpload` (to add another story or start one)
+- **On other profiles:** tapping the avatar opens `StoryViewer` if they have an active story
+- On own profile: "Add story" text button below the avatar
 
 ---
 
@@ -130,7 +139,20 @@ Same pattern as existing profile card image uploads:
 
 ---
 
-## 6. What Is NOT in This Spec
+## 6. Behaviour Decisions
+
+| Question | Decision |
+|---|---|
+| Auto-advance? | Yes — 10 seconds per story |
+| Progress indicator | Filling bar per story (not just dots) |
+| Stories row when user has no stories | Always visible — shows own "+" bubble |
+| Own feed bubble with active story | Tap → opens viewer |
+| Own profile avatar with active story | Tap → opens upload |
+| Last story ends | Closes viewer |
+
+---
+
+## 7. What Is NOT in This Spec
 
 - Video stories
 - Story replies (replying via DM)
@@ -138,3 +160,4 @@ Same pattern as existing profile card image uploads:
 - Story deletion UI (stories expire automatically)
 - Cleanup cron to purge expired stories from the database
 - "Seen by" viewer list
+- Pause on tap-and-hold

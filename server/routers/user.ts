@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs"
 import { router, publicProcedure, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 
+// ── User-facing moderation helpers ──────────────────────────────────────────
+
 export const userRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
     return ctx.prisma.user.findUnique({
@@ -105,6 +107,52 @@ export const userRouter = router({
       return ctx.prisma.user.update({
         where: { id: ctx.session.user.id },
         data: { password: hashed },
+      })
+    }),
+
+  getMyStrikes: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.prisma.strike.findMany({
+      where: { userId: ctx.session.user.id, reversed: false },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, level: true, violation: true, createdAt: true },
+    })
+  }),
+
+  getMyAppeals: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.prisma.appeal.findMany({
+      where: { userId: ctx.session.user.id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, status: true, text: true, createdAt: true, reviewedAt: true },
+    })
+  }),
+
+  submitAppeal: protectedProcedure
+    .input(z.object({
+      text: z.string().min(20).max(2000),
+      strikeId: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.prisma.appeal.findFirst({
+        where: { userId: ctx.session.user.id, status: "PENDING" },
+      })
+      if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "You already have a pending appeal" })
+
+      if (input.strikeId) {
+        const strike = await ctx.prisma.strike.findUnique({
+          where: { id: input.strikeId },
+          select: { userId: true },
+        })
+        if (!strike || strike.userId !== ctx.session.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Strike not found or does not belong to you" })
+        }
+      }
+
+      return ctx.prisma.appeal.create({
+        data: {
+          userId: ctx.session.user.id,
+          text: input.text,
+          strikeId: input.strikeId,
+        },
       })
     }),
 

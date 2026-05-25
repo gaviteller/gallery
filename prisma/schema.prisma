@@ -46,39 +46,39 @@ model VerificationToken {
 // ── Gallery user ──────────────────────────────────────────────────────────────
 
 model User {
-  id                 String           @id @default(cuid())
-  name               String?
-  email              String?          @unique
-  emailVerified      DateTime?
-  image              String?
-  password           String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Gallery profile
-  username           String?          @unique
-  bio                String?
-  sellingEnabled     Boolean          @default(false)
-  onboardingComplete Boolean          @default(false)
-  commissionStatus   CommissionStatus @default(CLOSED)
-  buyerCancellationCount      Int     @default(0)
-  commissionFeatureDisabled   Boolean @default(false)
-  isAdmin        Boolean   @default(false)
-  isModerator    Boolean   @default(false)
-  bannedUntil    DateTime?
-  banReason      String?
-  bannerImage        String?          @db.Text
+  username                  String?          @unique
+  bio                       String?
+  sellingEnabled            Boolean          @default(false)
+  onboardingComplete        Boolean          @default(false)
+  commissionStatus          CommissionStatus @default(CLOSED)
+  buyerCancellationCount    Int              @default(0)
+  commissionFeatureDisabled Boolean          @default(false)
+  isAdmin                   Boolean          @default(false)
+  isModerator               Boolean          @default(false)
+  bannedUntil               DateTime?
+  banReason                 String?
+  bannerImage               String?          @db.Text
 
-  websiteUrl         String?
-  twitterHandle      String?
-  instagramHandle    String?
-  artstationHandle   String?
+  websiteUrl       String?
+  twitterHandle    String?
+  instagramHandle  String?
+  artstationHandle String?
 
-  commissionDescription    String?                      @db.Text
-  commissionTurnaround     String?
-  commissionCardImages     String[]                     @default([])
-  artStyles                String[]                     @default([])
-  priceRanges              Json?
+  commissionDescription String?  @db.Text
+  commissionTurnaround  String?
+  commissionCardImages  String[] @default([])
+  artStyles             String[] @default([])
+  priceRanges           Json?
 
   buyerCommissions         Commission[]                 @relation("BuyerCommissions")
   artistCommissions        Commission[]                 @relation("ArtistCommissions")
@@ -87,31 +87,31 @@ model User {
   commissionFavorites      CommissionFavorite[]         @relation("UserFavorites")
   favoritedByUsers         CommissionFavorite[]         @relation("ArtistFavorited")
 
-  conversationsAsA     Conversation[]  @relation("ConversationA")
-  conversationsAsB     Conversation[]  @relation("ConversationB")
-  sentDirectMessages   DirectMessage[] @relation("SentDirectMessages")
-  pushSubscriptions    PushSubscription[]
-  blockedUsers         Block[]         @relation("BlockerRelation")
-  blockedByUsers       Block[]         @relation("BlockedRelation")
+  conversationsAsA   Conversation[]     @relation("ConversationA")
+  conversationsAsB   Conversation[]     @relation("ConversationB")
+  sentDirectMessages DirectMessage[]    @relation("SentDirectMessages")
+  pushSubscriptions  PushSubscription[]
+  blockedUsers       Block[]            @relation("BlockerRelation")
+  blockedByUsers     Block[]            @relation("BlockedRelation")
 
-  accounts              Account[]
-  sessions              Session[]
-  posts                 Post[]
-  shopItems             ShopItem[]
-  followers             Follow[]       @relation("Following")
-  following             Follow[]       @relation("Follower")
-  notifications         Notification[] @relation("ReceivedNotifications")
-  sentNotifications     Notification[] @relation("SentNotifications")
-  likes                 Like[]
-  comments              Comment[]
-  commentLikes          CommentLike[]
-  stories               Story[]
-  storyViews            StoryView[]
+  accounts          Account[]
+  sessions          Session[]
+  posts             Post[]
+  shopItems         ShopItem[]
+  followers         Follow[]       @relation("Following")
+  following         Follow[]       @relation("Follower")
+  notifications     Notification[] @relation("ReceivedNotifications")
+  sentNotifications Notification[] @relation("SentNotifications")
+  likes             Like[]
+  comments          Comment[]
+  commentLikes      CommentLike[]
+  stories           Story[]
+  storyViews        StoryView[]
 
-  receivedStrikes  Strike[]  @relation("ReceivedStrikes")
-  issuedStrikes    Strike[]  @relation("IssuedStrikes")
-  submittedAppeals Appeal[]  @relation("SubmittedAppeals")
-  reviewedAppeals  Appeal[]  @relation("ReviewedAppeals")
+  receivedStrikes  Strike[] @relation("ReceivedStrikes")
+  issuedStrikes    Strike[] @relation("IssuedStrikes")
+  submittedAppeals Appeal[] @relation("SubmittedAppeals")
+  reviewedAppeals  Appeal[] @relation("ReviewedAppeals")
 }
 
 model Follow {
@@ -129,7 +129,7 @@ model Notification {
   id         String   @id @default(cuid())
   userId     String
   fromUserId String
-  type       String   // "follow"
+  type       String // "follow"
   read       Boolean  @default(false)
   createdAt  DateTime @default(now())
   user       User     @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
@@ -149,20 +149,20 @@ model ShopItem {
 }
 
 model Post {
-  id             String    @id @default(cuid())
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  image          String    @db.Text
-  title          String?
-  description    String?
-  isAiGenerated  Boolean   @default(false)
-  isCommission   Boolean   @default(false)
-  pinned         Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  likes          Like[]
-  comments       Comment[]
-  hashtags       Hashtag[]
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image         String    @db.Text
+  title         String?
+  description   String?
+  isAiGenerated Boolean   @default(false)
+  isCommission  Boolean   @default(false)
+  pinned        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  likes         Like[]
+  comments      Comment[]
+  hashtags      Hashtag[]
 }
 
 model Hashtag {
@@ -272,7 +272,7 @@ model Strike {
   reversed    Boolean         @default(false)
   createdAt   DateTime        @default(now())
 
-  appeals     Appeal[]
+  appeals Appeal[]
 
   @@index([userId])
   @@index([issuedById])
@@ -297,29 +297,29 @@ model Appeal {
 }
 
 model Commission {
-  id                 String                  @id @default(cuid())
-  buyerId            String
-  artistId           String
-  buyer              User                    @relation("BuyerCommissions", fields: [buyerId], references: [id], onDelete: Cascade)
-  artist             User                    @relation("ArtistCommissions", fields: [artistId], references: [id], onDelete: Cascade)
-  status             CommissionRequestStatus @default(PENDING)
-  description        String                  @db.Text
-  dropdownSelections Json @default("{}")
-  referencePhotos    Json                    @default("[]")
-  agreedPrice        Float?
-  deliveredAt        DateTime?
-  cancelledBy        String?
-  disputedAt         DateTime?
+  id                        String                  @id @default(cuid())
+  buyerId                   String
+  artistId                  String
+  buyer                     User                    @relation("BuyerCommissions", fields: [buyerId], references: [id], onDelete: Cascade)
+  artist                    User                    @relation("ArtistCommissions", fields: [artistId], references: [id], onDelete: Cascade)
+  status                    CommissionRequestStatus @default(PENDING)
+  description               String                  @db.Text
+  dropdownSelections        Json                    @default("{}")
+  referencePhotos           Json                    @default("[]")
+  agreedPrice               Float?
+  deliveredAt               DateTime?
+  cancelledBy               String?
+  disputedAt                DateTime?
   deadline                  DateTime?
-  deadlineNotificationSent  Boolean   @default(false)
+  deadlineNotificationSent  Boolean                 @default(false)
   buyerRating               Int?
-  ratingFlagged             Boolean   @default(false)
-  displayAsExample          Boolean   @default(false)
-  displayPermissionAnswered Boolean   @default(false)
-  artistFeedShareOffered    Boolean   @default(false)
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
-  messages           ProfessionalMessage[]
+  ratingFlagged             Boolean                 @default(false)
+  displayAsExample          Boolean                 @default(false)
+  displayPermissionAnswered Boolean                 @default(false)
+  artistFeedShareOffered    Boolean                 @default(false)
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  messages                  ProfessionalMessage[]
 }
 
 model CommissionDropdownCategory {
@@ -414,14 +414,14 @@ model DirectMessage {
 }
 
 model Story {
-  id        String      @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  image     String      @db.Text
-  createdAt DateTime    @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image     String   @db.Text
+  createdAt DateTime @default(now())
   expiresAt DateTime
 
-  views     StoryView[]
+  views StoryView[]
 
   @@index([userId])
   @@index([expiresAt])

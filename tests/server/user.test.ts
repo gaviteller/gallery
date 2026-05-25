@@ -36,6 +36,7 @@ const mockSession = {
     username: null,
     sellingEnabled: false,
     onboardingComplete: false,
+    bannedUntil: null,
   },
   expires: new Date(Date.now() + 86400000).toISOString(),
 }
