@@ -6,9 +6,49 @@ import AppleProvider from "next-auth/providers/apple"
 import EmailProvider from "next-auth/providers/email"
 import bcrypt from "bcryptjs"
 import { prisma } from "./prisma"
+import { normalizeEmail } from "./normalizeEmail"
+
+async function runBanEvasionCheck(userId: string, email: string) {
+  const normalized = normalizeEmail(email)
+  await prisma.user.update({
+    where: { id: userId },
+    data: { normalizedEmail: normalized },
+  })
+  const bannedMatches = await prisma.user.findMany({
+    where: {
+      normalizedEmail: normalized,
+      id: { not: userId },
+      bannedUntil: { not: null },
+    },
+    select: { id: true, bannedUntil: true },
+  })
+  const hasBannedMatch = bannedMatches.some(
+    u => u.bannedUntil && u.bannedUntil > new Date()
+  )
+  if (hasBannedMatch) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { banEvasionFlag: true },
+    })
+  }
+}
+
+function buildAdapter() {
+  const base = PrismaAdapter(prisma)
+  return {
+    ...base,
+    async createUser(data: Parameters<NonNullable<typeof base.createUser>>[0]) {
+      const newUser = await base.createUser!(data)
+      if (newUser.email) {
+        await runBanEvasionCheck(newUser.id, newUser.email)
+      }
+      return newUser
+    },
+  }
+}
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: buildAdapter(),
   session: { strategy: "jwt" },
   providers: [
     CredentialsProvider({
