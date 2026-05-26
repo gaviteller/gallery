@@ -8,6 +8,7 @@ import { trpc } from "@/components/providers"
 import MentionText from "@/components/MentionText"
 import PostModal from "@/components/PostModal"
 import FeaturedArtistsStrip from "@/components/FeaturedArtistsStrip"
+import ReportModal from "@/components/ReportModal"
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
@@ -43,6 +44,8 @@ export default function FeedPage() {
   const utils = trpc.useUtils()
   const [viewPost, setViewPost] = useState<FeedPost | null>(null)
   const [focusComment, setFocusComment] = useState(false)
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null)
+  const [localReported, setLocalReported] = useState<Set<string>>(new Set())
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -271,6 +274,23 @@ export default function FeedPage() {
                       {post._count.comments}
                     </span>
                   </button>
+                  {session && !post.isOwnPost && (
+                    localReported.has(post.id) ? (
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: "auto" }}>
+                        Reported
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setReportingPostId(post.id)}
+                        style={{
+                          background: "none", border: "none", color: "rgba(255,255,255,0.3)",
+                          fontSize: 11, cursor: "pointer", marginLeft: "auto", padding: "2px 6px",
+                        }}
+                      >
+                        ⚑ Report
+                      </button>
+                    )
+                  )}
                 </div>
 
                 {/* Caption */}
@@ -301,6 +321,17 @@ export default function FeedPage() {
             )}
           </div>
         </>
+      )}
+
+      {reportingPostId && (
+        <ReportModal
+          postId={reportingPostId}
+          onClose={() => setReportingPostId(null)}
+          onReported={() => {
+            setLocalReported(prev => new Set([...prev, reportingPostId!]))
+            setReportingPostId(null)
+          }}
+        />
       )}
 
       {viewPost && (

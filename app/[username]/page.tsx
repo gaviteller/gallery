@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { trpc } from "@/components/providers"
 import PostModal from "@/components/PostModal"
+import ReportModal from "@/components/ReportModal"
 import CommissionRequestModal from "@/components/CommissionRequestModal"
 import StoryViewer from "@/components/StoryViewer"
 import StoryUpload from "@/components/StoryUpload"
@@ -89,6 +90,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
   const [tab, setTab] = useState("Posts")
   const [viewPost, setViewPost] = useState<PostItem | null>(null)
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null)
+  const [localReported, setLocalReported] = useState<Set<string>>(new Set())
   const [showCommissionRequest, setShowCommissionRequest] = useState(false)
   const [showMutuals, setShowMutuals] = useState(false)
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false)
@@ -468,32 +471,51 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           ) : posts && posts.length > 0 ? (
             <div className="grid grid-cols-3" style={{ gap: 2 }}>
               {posts.map((post) => (
-                <button key={post.id} onClick={() => setViewPost(post as PostItem)}
-                  className="relative aspect-square overflow-hidden group" style={{ background: "#ffffff08", borderRadius: 4 }}>
-                  <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
-                  <div className="absolute top-1.5 left-1.5 flex gap-1">
-                    {post.isAiGenerated && (
-                      <span className="text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
-                    )}
-                    {(post as PostItem).isCommission && (
-                      <span className="text-xs font-medium bg-blue-600/80 text-white px-1.5 py-0.5 rounded-md">Comm</span>
-                    )}
-                  </div>
-                  {isOwn && (post as PostItem).pinned && (
-                    <div className="absolute top-1.5 right-1.5">
-                      <svg className="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 12V4h1a1 1 0 000-2H7a1 1 0 000 2h1v8l-2 2v2h5v5l1 1 1-1v-5h5v-2l-2-2z"/>
-                      </svg>
+                <div key={post.id} className="relative" style={{ background: "#ffffff08", borderRadius: 4 }}>
+                  <button onClick={() => setViewPost(post as PostItem)}
+                    className="relative aspect-square overflow-hidden group w-full" style={{ borderRadius: 4 }}>
+                    <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
+                    <div className="absolute top-1.5 left-1.5 flex gap-1">
+                      {post.isAiGenerated && (
+                        <span className="text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
+                      )}
+                      {(post as PostItem).isCommission && (
+                        <span className="text-xs font-medium bg-blue-600/80 text-white px-1.5 py-0.5 rounded-md">Comm</span>
+                      )}
                     </div>
-                  )}
-                  {post.description && (
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                      <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
-                        {post.description}
+                    {isOwn && (post as PostItem).pinned && (
+                      <div className="absolute top-1.5 right-1.5">
+                        <svg className="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M16 12V4h1a1 1 0 000-2H7a1 1 0 000 2h1v8l-2 2v2h5v5l1 1 1-1v-5h5v-2l-2-2z"/>
+                        </svg>
+                      </div>
+                    )}
+                    {post.description && (
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
+                          {post.description}
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                  {session && !isOwn && (
+                    localReported.has(post.id) ? (
+                      <span style={{ display: "block", textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.3)", padding: "2px 0" }}>
+                        Reported
                       </span>
-                    </div>
+                    ) : (
+                      <button
+                        onClick={() => setReportingPostId(post.id)}
+                        style={{
+                          display: "block", width: "100%", background: "none", border: "none",
+                          color: "rgba(255,255,255,0.3)", fontSize: 10, cursor: "pointer", padding: "2px 0",
+                        }}
+                      >
+                        ⚑ Report
+                      </button>
+                    )
                   )}
-                </button>
+                </div>
               ))}
             </div>
           ) : (
@@ -859,6 +881,17 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <StoryUpload
           onClose={() => setAddingStory(false)}
           onSuccess={() => setAddingStory(false)}
+        />
+      )}
+
+      {reportingPostId && (
+        <ReportModal
+          postId={reportingPostId}
+          onClose={() => setReportingPostId(null)}
+          onReported={() => {
+            setLocalReported(prev => new Set([...prev, reportingPostId!]))
+            setReportingPostId(null)
+          }}
         />
       )}
 
