@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest"
+import { describe, it, expect, afterEach, afterAll } from "vitest"
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
@@ -9,6 +9,10 @@ describe("account enforcement schema fields", () => {
   afterEach(async () => {
     await prisma.user.deleteMany({ where: { id: { in: createdIds } } })
     createdIds.length = 0
+  })
+
+  afterAll(async () => {
+    await prisma.$disconnect()
   })
 
   it("new User has correct defaults for enforcement fields", async () => {
