@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar"
 import BottomNav from "@/components/BottomNav"
 import PushInit from "@/components/PushInit"
 import BanBanner from "@/components/BanBanner"
+import Link from "next/link"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -33,6 +34,11 @@ export default function RootLayout({
           </div>
           <div className="pb-20 md:pb-0 md:pl-16 min-h-screen">
             {children}
+            <footer style={{ padding: "16px 24px", textAlign: "center" }}>
+              <Link href="/dmca" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                DMCA / Copyright
+              </Link>
+            </footer>
           </div>
           <BottomNav />
         </Providers>
