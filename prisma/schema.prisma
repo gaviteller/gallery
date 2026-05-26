@@ -70,6 +70,11 @@ model User {
   bannerImage               String?          @db.Text
   showRealName              Boolean          @default(false)
 
+  chargebackCount  Int     @default(0)
+  accountNotes     String? @db.Text
+  normalizedEmail  String?
+  banEvasionFlag   Boolean @default(false)
+
   websiteUrl       String?
   twitterHandle    String?
   instagramHandle  String?
@@ -113,6 +118,8 @@ model User {
   issuedStrikes    Strike[] @relation("IssuedStrikes")
   submittedAppeals Appeal[] @relation("SubmittedAppeals")
   reviewedAppeals  Appeal[] @relation("ReviewedAppeals")
+
+  @@index([normalizedEmail])
 }
 
 model Follow {
