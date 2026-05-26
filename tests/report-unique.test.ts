@@ -38,6 +38,21 @@ describe("Report @@unique constraint", () => {
   it("throws on duplicate [postId, reporterId]", async () => {
     await expect(
       prisma.report.create({ data: { postId, reporterId, reason: "OTHER" } })
-    ).rejects.toThrow()
+    ).rejects.toMatchObject({ code: "P2002" })
+  })
+
+  it("deletes Report rows when Post is deleted", async () => {
+    // Create a fresh post and report
+    const newPostId = (await prisma.post.create({
+      data: { userId: ownerId, image: "data:image/png;base64,cascade" },
+    })).id
+    await prisma.report.create({
+      data: { postId: newPostId, reporterId, reason: "SPAM" },
+    })
+    // Delete the post
+    await prisma.post.delete({ where: { id: newPostId } })
+    // Reports should be gone
+    const remaining = await prisma.report.count({ where: { postId: newPostId } })
+    expect(remaining).toBe(0)
   })
 })

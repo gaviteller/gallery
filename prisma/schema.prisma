@@ -190,8 +190,8 @@ model Report {
   id         String       @id @default(cuid())
   postId     String
   post       Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporterId String
-  reporter   User         @relation("SubmittedReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId String?
+  reporter   User?        @relation("SubmittedReports", fields: [reporterId], references: [id], onDelete: SetNull)
   reason     ReportReason
   notes      String?      @db.Text
   status     ReportStatus @default(PENDING)
@@ -377,6 +377,7 @@ model Appeal {
   @@index([userId])
   @@index([status])
   @@index([strikeId])
+  @@index([dmcaRequestId])
 }
 
 model Commission {
