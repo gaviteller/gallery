@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { trpc } from "@/components/providers"
+import { ReportReason } from "@prisma/client"
 
 const REASON_LABELS: Record<string, string> = {
   SPAM: "Spam",
@@ -105,7 +106,7 @@ export default function ReportModal({ postId, onClose, onReported }: ReportModal
             Cancel
           </button>
           <button
-            onClick={() => report.mutate({ postId, reason: reason as never, notes: notes || undefined })}
+            onClick={() => report.mutate({ postId, reason: reason as ReportReason, notes: notes || undefined })}
             disabled={report.isPending}
             style={{
               background: "#7c3aed", border: "none", color: "white",

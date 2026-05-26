@@ -129,6 +129,11 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                 appeal_approved: "Your appeal has been approved.",
                 appeal_denied: "Your appeal has been denied.",
                 strike_reversed: "A moderation action has been reversed.",
+                post_pending_review: "Your post is under review by our moderation team.",
+                post_removed_tos: "A post was removed for violating our Terms of Service.",
+                post_removed_dmca: "A post was removed due to a DMCA copyright claim.",
+                post_auto_removed: "A post was automatically removed after 14 days under review.",
+                post_removed_moderator: "A post was removed by a moderator.",
               }
               const prefix = n.type.split(":")[0]
               return map[prefix] ?? n.type
