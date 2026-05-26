@@ -135,7 +135,7 @@ model Notification {
   read       Boolean   @default(false)
   createdAt  DateTime  @default(now())
   user       User      @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  fromUser   User?     @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: Cascade)
+  fromUser   User?     @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: SetNull)
 }
 
 model ShopItem {
