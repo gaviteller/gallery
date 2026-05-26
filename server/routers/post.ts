@@ -2,6 +2,7 @@ import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
+import { ReportReason } from "@prisma/client"
 
 export const postRouter = router({
   create: protectedProcedure
@@ -180,6 +181,75 @@ export const postRouter = router({
       if (!post) throw new TRPCError({ code: "NOT_FOUND" })
       if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       return ctx.prisma.post.update({ where: { id: input.id }, data: { pinned: false } })
+    }),
+
+  report: protectedProcedure
+    .input(z.object({
+      postId: z.string(),
+      reason: z.nativeEnum(ReportReason),
+      notes: z.string().max(500).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const callerId = ctx.session.user.id
+
+      // 1. Verify post exists and caller is not the owner
+      const post = await ctx.prisma.post.findUnique({
+        where: { id: input.postId },
+        select: { id: true, userId: true, status: true, reportCount: true },
+      })
+      if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." })
+      if (post.userId === callerId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot report your own post." })
+      }
+
+      // 2. Create Report row (unique constraint will throw on duplicate)
+      try {
+        await ctx.prisma.report.create({
+          data: {
+            postId: input.postId,
+            reporterId: callerId,
+            reason: input.reason,
+            notes: input.notes ?? null,
+          },
+        })
+      } catch (e: unknown) {
+        // Prisma unique constraint violation = P2002
+        if ((e as { code?: string })?.code === "P2002") {
+          throw new TRPCError({ code: "CONFLICT", message: "You have already reported this post." })
+        }
+        throw e
+      }
+
+      // 3. Increment reportCount atomically and check threshold
+      const updated = await ctx.prisma.post.update({
+        where: { id: input.postId },
+        data: { reportCount: { increment: 1 } },
+        select: { reportCount: true, status: true },
+      })
+
+      // 4. If threshold reached and post is still PUBLISHED, move to PENDING_REVIEW
+      if (updated.reportCount >= 3 && updated.status === "PUBLISHED") {
+        await ctx.prisma.$transaction(async (tx) => {
+          await tx.post.update({
+            where: { id: input.postId },
+            data: {
+              status: "PENDING_REVIEW",
+              pendingAt: new Date(),
+              flagReason: "Reached community report threshold",
+            },
+          })
+          // Notify post owner — system notification (no human sender)
+          await tx.notification.create({
+            data: {
+              userId: post.userId,
+              fromUserId: null,
+              type: "post_pending_review",
+            },
+          })
+        })
+      }
+
+      return { success: true }
     }),
 
   getMyPostStats: protectedProcedure.query(async ({ ctx }) => {
