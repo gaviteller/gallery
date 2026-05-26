@@ -29,14 +29,18 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
           <p className="text-sm text-gray-400 text-center py-8">No notifications yet</p>
         ) : (
           notifications.map((n) => {
-            function getNotificationLink(type: string): string {
-              if (type === "follow") return `/@${n.fromUser.username}`
-              const [prefix, id] = type.split(":")
+            const isSystem = n.fromUserId === null || n.fromUser === null
+
+            function getNotificationLink(): string | null {
+              if (isSystem) return null
+              if (n.type === "follow") return `/@${n.fromUser!.username}`
+              const [prefix, id] = n.type.split(":")
               if (prefix === "dm") return `/messages/${id}`
               return `/professional-dms/${id}`
             }
-            function getNotificationText(type: string): string {
-              const prefix = type.split(":")[0]
+            function getNotificationText(): string {
+              if (n.message) return n.message
+              const prefix = n.type.split(":")[0]
               const map: Record<string, string> = {
                 follow: "started following you",
                 dm: "sent you a message",
@@ -51,18 +55,42 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                 commission_deadline_set: "set a deadline for your commission",
                 commission_deadline_updated: "updated the commission deadline",
                 commission_deadline_approaching: "commission deadline is approaching",
+                ban: "Your account has been suspended.",
+                lift_ban: "Your account suspension has been lifted.",
+                post_deleted: "A post was removed from your account.",
+                appeal_approved: "Your appeal has been approved.",
+                appeal_denied: "Your appeal has been denied.",
+                strike_reversed: "A moderation action has been reversed.",
               }
-              return map[prefix] ?? type
+              return map[prefix] ?? n.type
             }
+
+            const link = getNotificationLink()
+
             return (
               <button
                 key={n.id}
-                onClick={() => { onClose(); router.push(getNotificationLink(n.type)) }}
+                onClick={() => { onClose(); if (link) router.push(link) }}
                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${!n.read ? "bg-blue-50/50" : ""}`}
               >
-                <Avatar src={n.fromUser.image} name={n.fromUser.name} username={n.fromUser.username} size={32} />
+                {isSystem ? (
+                  <div
+                    className="flex-shrink-0 flex items-center justify-center text-white font-bold text-base"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)",
+                    }}
+                  >
+                    🛡
+                  </div>
+                ) : (
+                  <Avatar src={n.fromUser!.image} name={n.fromUser!.name} username={n.fromUser!.username} size={32} />
+                )}
                 <p className="text-sm text-gray-800">
-                  <span className="font-semibold">@{n.fromUser.username}</span> {getNotificationText(n.type)}
+                  <span className="font-semibold">{isSystem ? "Gallery" : `@${n.fromUser!.username}`}</span>{" "}
+                  {getNotificationText()}
                 </p>
               </button>
             )

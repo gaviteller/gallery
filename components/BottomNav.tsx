@@ -103,14 +103,18 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
           <p className="text-sm text-white/40 text-center py-8">No notifications yet</p>
         ) : (
           notifications.map((n) => {
-            function getLink(type: string) {
-              if (type === "follow") return `/@${n.fromUser.username}`
-              const [prefix, id] = type.split(":")
+            const isSystem = n.fromUserId === null || n.fromUser === null
+
+            function getLink(): string | null {
+              if (isSystem) return null
+              if (n.type === "follow") return `/@${n.fromUser!.username}`
+              const [prefix, id] = n.type.split(":")
               if (prefix === "dm") return `/messages/${id}`
               return `/professional-dms/${id}`
             }
-            function getText(type: string) {
-              const prefix = type.split(":")[0]
+
+            function getText(): string {
+              if (n.message) return n.message
               const map: Record<string, string> = {
                 follow: "started following you",
                 dm: "sent you a message",
@@ -119,25 +123,52 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                 commission_declined: "declined your commission",
                 commission_delivered: "delivered your commission",
                 commission_complete: "marked commission complete",
+                ban: "Your account has been suspended.",
+                lift_ban: "Your account suspension has been lifted.",
+                post_deleted: "A post was removed from your account.",
+                appeal_approved: "Your appeal has been approved.",
+                appeal_denied: "Your appeal has been denied.",
+                strike_reversed: "A moderation action has been reversed.",
               }
-              return map[prefix] ?? type
+              const prefix = n.type.split(":")[0]
+              return map[prefix] ?? n.type
             }
+
+            const link = getLink()
+
             return (
               <button
                 key={n.id}
                 onClick={() => {
                   onClose()
                   markAllRead.mutate(undefined, { onSuccess: () => utils.notification.unreadCount.invalidate() })
-                  router.push(getLink(n.type))
+                  if (link) router.push(link)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
                 style={{ background: !n.read ? "rgba(176,68,248,0.08)" : "transparent" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
                 onMouseLeave={e => (e.currentTarget.style.background = !n.read ? "rgba(176,68,248,0.08)" : "transparent")}
               >
-                <Avatar src={n.fromUser.image} name={n.fromUser.name} username={n.fromUser.username} size={32} />
+                {isSystem ? (
+                  <div
+                    className="flex-shrink-0 flex items-center justify-center text-white font-bold text-base"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)",
+                    }}
+                  >
+                    🛡
+                  </div>
+                ) : (
+                  <Avatar src={n.fromUser!.image} name={n.fromUser!.name} username={n.fromUser!.username} size={32} />
+                )}
                 <p className="text-sm text-white/80 flex-1 min-w-0">
-                  <span className="font-semibold text-white">@{n.fromUser.username}</span> {getText(n.type)}
+                  <span className="font-semibold text-white">
+                    {isSystem ? "Gallery" : `@${n.fromUser!.username}`}
+                  </span>{" "}
+                  {getText()}
                 </p>
               </button>
             )
