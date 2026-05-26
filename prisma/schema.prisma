@@ -127,14 +127,15 @@ model Follow {
 }
 
 model Notification {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
-  fromUserId String
-  type       String // "follow"
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  user       User     @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  fromUser   User     @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: Cascade)
+  fromUserId String?
+  type       String
+  message    String?
+  read       Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  user       User      @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  fromUser   User?     @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: Cascade)
 }
 
 model ShopItem {
