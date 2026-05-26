@@ -46,7 +46,13 @@ export const postRouter = router({
 
       // Pull a large recent pool to rank from
       const posts = await ctx.prisma.post.findMany({
-        where: { user: { username: { not: null } } },
+        where: {
+          user: { username: { not: null } },
+          OR: [
+            { status: "PUBLISHED" },
+            ...(ctx.session?.user?.id ? [{ status: "PENDING_REVIEW" as const, userId: ctx.session.user.id }] : []),
+          ],
+        },
         orderBy: { createdAt: "desc" },
         take: POOL,
         include: {
@@ -59,12 +65,13 @@ export const postRouter = router({
       let followingSet = new Set<string>()
       let likedSet = new Set<string>()
       let likedArtistSet = new Set<string>()
+      let reportedSet = new Set<string>()
 
       if (userId) {
         const postIds = posts.map((p) => p.id)
         const userIds = [...new Set(posts.map((p) => p.userId))]
 
-        const [follows, myLikes, myRecentLikes] = await Promise.all([
+        const [follows, myLikes, myRecentLikes, myReports] = await Promise.all([
           ctx.prisma.follow.findMany({
             where: { followerId: userId, followingId: { in: userIds } },
             select: { followingId: true },
@@ -80,11 +87,16 @@ export const postRouter = router({
             orderBy: { createdAt: "desc" },
             take: 300,
           }),
+          ctx.prisma.report.findMany({
+            where: { reporterId: userId, postId: { in: postIds } },
+            select: { postId: true },
+          }),
         ])
 
         followingSet = new Set(follows.map((f) => f.followingId))
         likedSet = new Set(myLikes.map((l) => l.postId))
         likedArtistSet = new Set(myRecentLikes.map((l) => l.post.userId))
+        reportedSet = new Set(myReports.map((r) => r.postId))
       }
 
       // Score every post
@@ -104,6 +116,7 @@ export const postRouter = router({
           isFollowing: followingSet.has(post.userId),
           isOwnPost: post.userId === userId,
           likedByMe: likedSet.has(post.id),
+          viewerHasReported: reportedSet.has(post.id),
           _score: recency + engagement + followBoost + interestBoost,
         }
       })
@@ -119,14 +132,19 @@ export const postRouter = router({
     }),
 
   getByUsername: publicProcedure
-    .input(z.object({ username: z.string() }))
+    .input(z.object({ username: z.string(), viewerUserId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const user = await ctx.prisma.user.findFirst({
         where: { username: { equals: input.username, mode: "insensitive" } },
       })
       if (!user) throw new TRPCError({ code: "NOT_FOUND" })
+
+      const isOwner = input.viewerUserId === user.id
       return ctx.prisma.post.findMany({
-        where: { userId: user.id },
+        where: {
+          userId: user.id,
+          status: isOwner ? { in: ["PUBLISHED", "PENDING_REVIEW"] } : "PUBLISHED",
+        },
         orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       })
     }),

@@ -36,6 +36,7 @@ type PostItem = {
   isCommission: boolean
   pinned: boolean
   createdAt: Date
+  status: string
 }
 
 function processImage(file: File, maxSize: number): Promise<string> {
@@ -68,7 +69,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: session } = useSession()
   const router = useRouter()
   const { data: profileUser, isLoading: userLoading } = trpc.user.getByUsername.useQuery({ username })
-  const { data: posts, isLoading: postsLoading } = trpc.post.getByUsername.useQuery({ username })
+  const { data: posts, isLoading: postsLoading } = trpc.post.getByUsername.useQuery({ username, viewerUserId: session?.user?.id })
   const { data: commissions, isLoading: commissionsLoading } = trpc.post.getCommissionsByUsername.useQuery({ username })
   const { data: shopItems, isLoading: shopLoading } = trpc.shop.getByUsername.useQuery({ username })
   const { data: commissionProfile } = trpc.commission.getProfile.useQuery({ username })
@@ -494,6 +495,19 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                         <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
                           {post.description}
+                        </span>
+                      </div>
+                    )}
+                    {(post as PostItem).status === "PENDING_REVIEW" && (
+                      <div style={{
+                        position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "rgba(0,0,0,0.55)", borderRadius: "inherit",
+                      }}>
+                        <span style={{
+                          background: "#854d0e", color: "#fef08a", fontSize: 11, fontWeight: 700,
+                          padding: "4px 10px", borderRadius: 20, border: "1px solid #a16207",
+                        }}>
+                          Under Review
                         </span>
                       </div>
                     )}

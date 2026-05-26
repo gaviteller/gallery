@@ -28,6 +28,8 @@ type FeedPost = {
   isFollowing: boolean
   isOwnPost: boolean
   likedByMe: boolean
+  viewerHasReported: boolean
+  status: string
   _count: { likes: number; comments: number }
   user: {
     id: string
@@ -200,6 +202,15 @@ export default function FeedPage() {
                       AI
                     </span>
                   )}
+                  {post.status === "PENDING_REVIEW" && (
+                    <span style={{
+                      background: "#854d0e", color: "#fef08a", fontSize: 11, fontWeight: 700,
+                      padding: "3px 8px", borderRadius: 12, border: "1px solid #a16207",
+                      marginLeft: 8,
+                    }}>
+                      Under Review
+                    </span>
+                  )}
                 </div>
 
                 {/* Image — rounded inside the card, slight margin */}
@@ -275,7 +286,7 @@ export default function FeedPage() {
                     </span>
                   </button>
                   {session && !post.isOwnPost && (
-                    localReported.has(post.id) ? (
+                    localReported.has(post.id) || post.viewerHasReported ? (
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: "auto" }}>
                         Reported
                       </span>
