@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
-import { normalizeEmail } from "@/lib/normalizeEmail"
+import { runBanEvasionCheck } from "@/lib/auth"
 
 export async function POST(req: Request) {
   try {
@@ -35,28 +35,8 @@ export async function POST(req: Request) {
       data: { name, email, username, password: hashedPassword },
     })
 
-    // Ban evasion detection: normalize email and check against existing banned accounts
-    const normalized = normalizeEmail(email)
-    await prisma.user.update({
-      where: { id: newUser.id },
-      data: { normalizedEmail: normalized },
-    })
-    const bannedMatches = await prisma.user.findMany({
-      where: {
-        normalizedEmail: normalized,
-        id: { not: newUser.id },
-        bannedUntil: { not: null },
-      },
-      select: { id: true, bannedUntil: true },
-    })
-    const hasBannedMatch = bannedMatches.some(
-      u => u.bannedUntil && u.bannedUntil > new Date()
-    )
-    if (hasBannedMatch) {
-      await prisma.user.update({
-        where: { id: newUser.id },
-        data: { banEvasionFlag: true },
-      })
+    if (newUser.email) {
+      await runBanEvasionCheck(newUser.id, newUser.email)
     }
 
     return NextResponse.json({ success: true })

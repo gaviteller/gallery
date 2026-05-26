@@ -8,7 +8,7 @@ import bcrypt from "bcryptjs"
 import { prisma } from "./prisma"
 import { normalizeEmail } from "./normalizeEmail"
 
-async function runBanEvasionCheck(userId: string, email: string) {
+export async function runBanEvasionCheck(userId: string, email: string) {
   const normalized = normalizeEmail(email)
   await prisma.user.update({
     where: { id: userId },

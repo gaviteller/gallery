@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, afterAll } from "vitest"
 import { PrismaClient } from "@prisma/client"
 import { normalizeEmail } from "@/lib/normalizeEmail"
+import { runBanEvasionCheck } from "@/lib/auth"
 
 const prisma = new PrismaClient()
 
@@ -36,29 +37,7 @@ describe("ban evasion detection logic", () => {
     })
     createdIds.push(newUser.id)
 
-    // Simulate auth callback logic
-    const normalized = normalizeEmail("evader+alt@example.com")
-    await prisma.user.update({
-      where: { id: newUser.id },
-      data: { normalizedEmail: normalized },
-    })
-    const bannedMatches = await prisma.user.findMany({
-      where: {
-        normalizedEmail: normalized,
-        id: { not: newUser.id },
-        bannedUntil: { not: null },
-      },
-      select: { id: true, bannedUntil: true },
-    })
-    const hasBannedMatch = bannedMatches.some(
-      u => u.bannedUntil && u.bannedUntil > new Date()
-    )
-    if (hasBannedMatch) {
-      await prisma.user.update({
-        where: { id: newUser.id },
-        data: { banEvasionFlag: true },
-      })
-    }
+    await runBanEvasionCheck(newUser.id, "evader+alt@example.com")
 
     const updated = await prisma.user.findUnique({ where: { id: newUser.id } })
     expect(updated?.banEvasionFlag).toBe(true)
@@ -83,28 +62,7 @@ describe("ban evasion detection logic", () => {
     })
     createdIds.push(newUser.id)
 
-    const normalized = normalizeEmail("clean+tag@example.com")
-    await prisma.user.update({
-      where: { id: newUser.id },
-      data: { normalizedEmail: normalized },
-    })
-    const bannedMatches = await prisma.user.findMany({
-      where: {
-        normalizedEmail: normalized,
-        id: { not: newUser.id },
-        bannedUntil: { not: null },
-      },
-      select: { id: true, bannedUntil: true },
-    })
-    const hasBannedMatch = bannedMatches.some(
-      u => u.bannedUntil && u.bannedUntil > new Date()
-    )
-    if (hasBannedMatch) {
-      await prisma.user.update({
-        where: { id: newUser.id },
-        data: { banEvasionFlag: true },
-      })
-    }
+    await runBanEvasionCheck(newUser.id, "clean+tag@example.com")
 
     const updated = await prisma.user.findUnique({ where: { id: newUser.id } })
     expect(updated?.banEvasionFlag).toBe(false)
