@@ -118,6 +118,7 @@ model User {
   issuedStrikes    Strike[] @relation("IssuedStrikes")
   submittedAppeals Appeal[] @relation("SubmittedAppeals")
   reviewedAppeals  Appeal[] @relation("ReviewedAppeals")
+  submittedReports Report[] @relation("SubmittedReports")
 
   @@index([normalizedEmail])
 }
@@ -169,15 +170,55 @@ model Post {
   pinned        Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  status      PostStatus @default(PUBLISHED)
+  pendingAt   DateTime?
+  flagReason  String?
+  reportCount Int        @default(0)
   likes         Like[]
   comments      Comment[]
   hashtags      Hashtag[]
+  reports     Report[]
 }
 
 model Hashtag {
   id    String @id @default(cuid())
   tag   String @unique
   posts Post[]
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  postId     String
+  post       Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User         @relation("SubmittedReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     ReportReason
+  notes      String?      @db.Text
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  reviewedAt DateTime?
+
+  @@unique([postId, reporterId])
+  @@index([postId])
+  @@index([status])
+}
+
+model DmcaRequest {
+  id            String     @id @default(cuid())
+  claimantName  String
+  claimantEmail String
+  postId        String?
+  postUrl       String?    @db.Text
+  description   String     @db.Text
+  status        DmcaStatus @default(PENDING)
+  createdAt     DateTime   @default(now())
+  reviewedAt    DateTime?
+  resolution    String?    @db.Text
+
+  appeals Appeal[]
+
+  @@index([status])
+  @@index([claimantEmail])
 }
 
 model Like {
@@ -214,6 +255,37 @@ model CommentLike {
   createdAt DateTime @default(now())
 
   @@unique([userId, commentId])
+}
+
+enum PostStatus {
+  PUBLISHED
+  PENDING_REVIEW
+  REMOVED
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  HATE_SPEECH
+  GORE
+  CSAM
+  COPYRIGHT
+  UNLABELLED_AI
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED_REMOVED
+  REVIEWED_KEPT
+}
+
+enum DmcaStatus {
+  PENDING
+  REMOVED
+  COUNTER_FILED
+  RESOLVED
+  REJECTED
 }
 
 enum CommissionStatus {
@@ -293,6 +365,8 @@ model Appeal {
   user         User         @relation("SubmittedAppeals", fields: [userId], references: [id], onDelete: Cascade)
   strikeId     String?
   strike       Strike?      @relation(fields: [strikeId], references: [id])
+  dmcaRequestId String?
+  dmcaRequest   DmcaRequest? @relation(fields: [dmcaRequestId], references: [id])
   text         String       @db.Text
   status       AppealStatus @default(PENDING)
   reviewedById String?
