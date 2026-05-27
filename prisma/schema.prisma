@@ -178,6 +178,7 @@ model Post {
   comments      Comment[]
   hashtags      Hashtag[]
   reports     Report[]
+  appeals     Appeal[]
 }
 
 model Hashtag {
@@ -367,6 +368,8 @@ model Appeal {
   strike       Strike?      @relation(fields: [strikeId], references: [id])
   dmcaRequestId String?
   dmcaRequest   DmcaRequest? @relation(fields: [dmcaRequestId], references: [id])
+  postId        String?
+  post          Post?        @relation(fields: [postId], references: [id], onDelete: SetNull)
   text         String       @db.Text
   status       AppealStatus @default(PENDING)
   reviewedById String?
