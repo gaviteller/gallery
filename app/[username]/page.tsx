@@ -815,9 +815,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             {!rawImage && <button
               onClick={async () => {
                 if (!uploadImage) return
+                const imageToPost = uploadImage
                 setIsWatermarking(true)
                 try {
-                  const watermarked = await applyWatermark(uploadImage, session?.user?.username ?? "gallery")
+                  const watermarked = await applyWatermark(imageToPost, session?.user?.username ?? "gallery")
                   createPost.mutate({
                     image: watermarked,
                     description: uploadDesc.trim() || undefined,
@@ -825,9 +826,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     isCommission: uploadIsCommission,
                   })
                 } catch {
-                  // applyWatermark failed — fall back to posting without watermark
+                  console.warn("[watermark] applyWatermark failed, posting without watermark")
                   createPost.mutate({
-                    image: uploadImage,
+                    image: imageToPost,
                     description: uploadDesc.trim() || undefined,
                     isAiGenerated: uploadIsAi,
                     isCommission: uploadIsCommission,
