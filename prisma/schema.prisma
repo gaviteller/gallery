@@ -381,6 +381,7 @@ model Appeal {
   @@index([status])
   @@index([strikeId])
   @@index([dmcaRequestId])
+  @@index([postId])
 }
 
 model Commission {
