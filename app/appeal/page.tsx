@@ -8,14 +8,17 @@ export default function AppealPage() {
   const { data: session } = useSession()
   const [text, setText] = useState("")
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | undefined>()
+  const [selectedPostId, setSelectedPostId] = useState<string | undefined>()
 
   const { data: strikes } = trpc.user.getMyStrikes.useQuery(undefined, { enabled: !!session })
   const { data: appeals } = trpc.user.getMyAppeals.useQuery(undefined, { enabled: !!session })
+  const { data: removedPosts } = trpc.user.getMyRemovedPosts.useQuery(undefined, { enabled: !!session })
 
   const submitAppeal = trpc.user.submitAppeal.useMutation({
     onSuccess: () => {
       setText("")
       setSelectedStrikeId(undefined)
+      setSelectedPostId(undefined)
     },
   })
 
@@ -66,6 +69,58 @@ export default function AppealPage() {
         </div>
       )}
 
+      {/* Removed posts */}
+      {removedPosts && removedPosts.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+            Your removed posts
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {removedPosts.map(p => {
+              const alreadyAppealed = appeals?.some(a => a.postId === p.id && a.status === "PENDING")
+              const isSelected = selectedPostId === p.id
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => {
+                    if (alreadyAppealed) return
+                    setSelectedPostId(prev => prev === p.id ? undefined : p.id)
+                    setSelectedStrikeId(undefined)
+                  }}
+                  style={{
+                    position: "relative",
+                    width: 72, height: 72,
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    cursor: alreadyAppealed ? "default" : "pointer",
+                    border: `2px solid ${isSelected ? "rgba(176,68,248,0.8)" : "rgba(255,255,255,0.1)"}`,
+                    opacity: alreadyAppealed ? 0.5 : 1,
+                  }}
+                >
+                  <img src={p.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  {alreadyAppealed && (
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      background: "rgba(0,0,0,0.6)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 9, textAlign: "center", padding: "0 4px" }}>
+                        Appealed
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          {selectedPostId && (
+            <p style={{ color: "rgba(176,68,248,0.8)", fontSize: 12, marginTop: 8 }}>
+              Post selected — your appeal will reference this removed post.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Appeal form or pending state */}
       {pendingAppeal ? (
         <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -97,14 +152,14 @@ export default function AppealPage() {
             <p style={{ color: "#f87171", fontSize: 13, marginTop: 8 }}>{submitAppeal.error.message}</p>
           )}
           <button
-            onClick={() => submitAppeal.mutate({ text, strikeId: selectedStrikeId })}
-            disabled={submitAppeal.isPending || text.length < 20}
+            onClick={() => submitAppeal.mutate({ text, strikeId: selectedStrikeId, postId: selectedPostId })}
+            disabled={submitAppeal.isPending || text.length < 20 || (!selectedStrikeId && !selectedPostId)}
             style={{
               marginTop: 12, width: "100%", padding: "12px", borderRadius: 12,
               background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
               color: "white", fontSize: 14, fontWeight: 600,
-              opacity: submitAppeal.isPending || text.length < 20 ? 0.5 : 1,
-              cursor: submitAppeal.isPending || text.length < 20 ? "not-allowed" : "pointer",
+              opacity: submitAppeal.isPending || text.length < 20 || (!selectedStrikeId && !selectedPostId) ? 0.5 : 1,
+              cursor: submitAppeal.isPending || text.length < 20 || (!selectedStrikeId && !selectedPostId) ? "not-allowed" : "pointer",
               border: "none",
             }}
           >
