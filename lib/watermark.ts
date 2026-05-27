@@ -42,7 +42,7 @@ export async function applyWatermark(dataUrl: string, username: string): Promise
     ctx.fillText(text, 0, 0)
     ctx.restore()
 
-    return canvas.toDataURL("image/jpeg", { quality: 0.9 })
+    return canvas.toDataURL("image/jpeg", 0.9)
   } catch {
     // Fallback for browser environment where canvas module is not available
     return new Promise((resolve, reject) => {
