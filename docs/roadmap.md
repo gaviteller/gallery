@@ -52,8 +52,8 @@ Last updated: 2026-05-19
 - [x] Strike accumulation logic and temp ban triggers (manual — mods issue bans informed by thresholds)
 - [ ] Community report button on posts (3 reports from distinct accounts = hiding + flag)
 - [ ] Content Pending state — 14-day challenge window before auto-removal
-- [ ] Auto-watermark on artwork: format `Gallery | @username`
-- [ ] Moderation review queue + appeals flow (human reviewer, 5 business day SLA)
+- [x] Auto-watermark on artwork: format `Gallery | @username`
+- [x] Moderation review queue + appeals flow (human reviewer, 5 business day SLA)
 - [ ] Email notification on content flagged/removed
 
 ### Blocking
