@@ -12,6 +12,7 @@ import StoryViewer from "@/components/StoryViewer"
 import StoryUpload from "@/components/StoryUpload"
 import ImageCropEditor from "@/components/ImageCropEditor"
 import { TIER_LABELS, TIER_COLORS } from "@/server/lib/trustScore"
+import { applyWatermark } from "@/lib/watermark"
 
 const statusColors = {
   OPEN: "bg-green-500/20 text-green-400",
@@ -107,6 +108,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [uploadIsAi, setUploadIsAi] = useState(false)
   const [uploadIsCommission, setUploadIsCommission] = useState(false)
   const [imgProcessing, setImgProcessing] = useState(false)
+  const [isWatermarking, setIsWatermarking] = useState(false)
 
   const getOrCreateDM = trpc.dm.getOrCreate.useMutation({
     onSuccess: (convo) => router.push(`/messages/${convo.id}`),
@@ -811,11 +813,33 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             {!rawImage && createPost.error && <p className="text-sm text-red-400">{createPost.error.message}</p>}
 
             {!rawImage && <button
-              onClick={() => { if (uploadImage) createPost.mutate({ image: uploadImage, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi, isCommission: uploadIsCommission }) }}
-              disabled={createPost.isPending || !uploadImage || imgProcessing}
+              onClick={async () => {
+                if (!uploadImage) return
+                setIsWatermarking(true)
+                try {
+                  const watermarked = await applyWatermark(uploadImage, session?.user?.username ?? "gallery")
+                  createPost.mutate({
+                    image: watermarked,
+                    description: uploadDesc.trim() || undefined,
+                    isAiGenerated: uploadIsAi,
+                    isCommission: uploadIsCommission,
+                  })
+                } catch {
+                  // applyWatermark failed — fall back to posting without watermark
+                  createPost.mutate({
+                    image: uploadImage,
+                    description: uploadDesc.trim() || undefined,
+                    isAiGenerated: uploadIsAi,
+                    isCommission: uploadIsCommission,
+                  })
+                } finally {
+                  setIsWatermarking(false)
+                }
+              }}
+              disabled={createPost.isPending || !uploadImage || imgProcessing || isWatermarking}
               className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-              {createPost.isPending ? "Posting…" : "Share"}
+              {createPost.isPending || isWatermarking ? "Posting…" : "Share"}
             </button>}
           </div>
         </div>
