@@ -5,16 +5,12 @@ const prisma = new PrismaClient()
 
 describe("post removal appeals", () => {
   let ownerId: string
-  let otherId: string
   let removedPostId: string
   let publishedPostId: string
 
   beforeAll(async () => {
     ownerId = (await prisma.user.create({
       data: { email: `owner-${Date.now()}@t.com`, username: `owner${Date.now()}` },
-    })).id
-    otherId = (await prisma.user.create({
-      data: { email: `other-${Date.now()}@t.com`, username: `other${Date.now()}` },
     })).id
     removedPostId = (await prisma.post.create({
       data: { userId: ownerId, image: "data:image/png;base64,x", status: "REMOVED" },
@@ -27,7 +23,7 @@ describe("post removal appeals", () => {
   afterAll(async () => {
     await prisma.appeal.deleteMany({ where: { userId: ownerId } })
     await prisma.post.deleteMany({ where: { userId: ownerId } })
-    await prisma.user.deleteMany({ where: { id: { in: [ownerId, otherId] } } })
+    await prisma.user.deleteMany({ where: { id: { in: [ownerId] } } })
     await prisma.$disconnect()
   })
 

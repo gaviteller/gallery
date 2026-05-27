@@ -155,12 +155,6 @@ export const userRouter = router({
     .mutation(async ({ ctx, input }) => {
       const callerId = ctx.session.user.id
 
-      // Only one pending appeal at a time
-      const existing = await ctx.prisma.appeal.findFirst({
-        where: { userId: callerId, status: "PENDING" },
-      })
-      if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "You already have a pending appeal." })
-
       if (input.strikeId) {
         const strike = await ctx.prisma.strike.findUnique({
           where: { id: input.strikeId },
@@ -182,7 +176,7 @@ export const userRouter = router({
         if (post.status !== "REMOVED") {
           throw new TRPCError({ code: "BAD_REQUEST", message: "This post is not removed." })
         }
-        // No duplicate post appeal
+        // Duplicate post appeal → CONFLICT (checked before the global guard so CONFLICT fires first)
         const dupPostAppeal = await ctx.prisma.appeal.findFirst({
           where: { userId: callerId, postId: input.postId, status: "PENDING" },
         })
@@ -190,6 +184,12 @@ export const userRouter = router({
           throw new TRPCError({ code: "CONFLICT", message: "You already have a pending appeal for this post." })
         }
       }
+
+      // Global one-pending-appeal guard (covers strike appeals and cross-type collisions)
+      const existing = await ctx.prisma.appeal.findFirst({
+        where: { userId: callerId, status: "PENDING" },
+      })
+      if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "You already have a pending appeal." })
 
       return ctx.prisma.appeal.create({
         data: {
