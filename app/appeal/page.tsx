@@ -46,7 +46,7 @@ export default function AppealPage() {
           {strikes.map(s => (
             <div
               key={s.id}
-              onClick={() => setSelectedStrikeId(prev => prev === s.id ? undefined : s.id)}
+              onClick={() => { setSelectedStrikeId(prev => prev === s.id ? undefined : s.id); setSelectedPostId(undefined) }}
               style={{
                 padding: "10px 12px", borderRadius: 10, marginBottom: 6, cursor: "pointer",
                 background: selectedStrikeId === s.id ? "rgba(176,68,248,0.15)" : "rgba(255,255,255,0.05)",
