@@ -122,36 +122,81 @@ export const userRouter = router({
     return ctx.prisma.appeal.findMany({
       where: { userId: ctx.session.user.id },
       orderBy: { createdAt: "desc" },
-      select: { id: true, status: true, text: true, createdAt: true, reviewedAt: true },
+      select: {
+        id: true,
+        status: true,
+        text: true,
+        createdAt: true,
+        reviewedAt: true,
+        strikeId: true,
+        postId: true,
+      },
+    })
+  }),
+
+  getMyRemovedPosts: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.prisma.post.findMany({
+      where: { userId: ctx.session.user.id, status: "REMOVED" },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, image: true, updatedAt: true, flagReason: true },
     })
   }),
 
   submitAppeal: protectedProcedure
-    .input(z.object({
-      text: z.string().min(20).max(2000),
-      strikeId: z.string().optional(),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.prisma.appeal.findFirst({
-        where: { userId: ctx.session.user.id, status: "PENDING" },
+    .input(
+      z.object({
+        text:     z.string().min(20).max(2000),
+        strikeId: z.string().optional(),
+        postId:   z.string().optional(),
+      }).refine(d => d.strikeId || d.postId, {
+        message: "Must specify a strike or a removed post to appeal.",
       })
-      if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "You already have a pending appeal" })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const callerId = ctx.session.user.id
+
+      // Only one pending appeal at a time
+      const existing = await ctx.prisma.appeal.findFirst({
+        where: { userId: callerId, status: "PENDING" },
+      })
+      if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "You already have a pending appeal." })
 
       if (input.strikeId) {
         const strike = await ctx.prisma.strike.findUnique({
           where: { id: input.strikeId },
           select: { userId: true },
         })
-        if (!strike || strike.userId !== ctx.session.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Strike not found or does not belong to you" })
+        if (!strike || strike.userId !== callerId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Strike not found or does not belong to you." })
+        }
+      }
+
+      if (input.postId) {
+        const post = await ctx.prisma.post.findUnique({
+          where: { id: input.postId },
+          select: { userId: true, status: true },
+        })
+        if (!post || post.userId !== callerId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Post not found or does not belong to you." })
+        }
+        if (post.status !== "REMOVED") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "This post is not removed." })
+        }
+        // No duplicate post appeal
+        const dupPostAppeal = await ctx.prisma.appeal.findFirst({
+          where: { userId: callerId, postId: input.postId, status: "PENDING" },
+        })
+        if (dupPostAppeal) {
+          throw new TRPCError({ code: "CONFLICT", message: "You already have a pending appeal for this post." })
         }
       }
 
       return ctx.prisma.appeal.create({
         data: {
-          userId: ctx.session.user.id,
-          text: input.text,
-          strikeId: input.strikeId,
+          userId:   callerId,
+          text:     input.text,
+          strikeId: input.strikeId ?? null,
+          postId:   input.postId ?? null,
         },
       })
     }),
