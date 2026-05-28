@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { sendPostAutoRemovedEmail } from "@/lib/email"
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization")
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
 
   const expired = await prisma.post.findMany({
     where: { status: "PENDING_REVIEW", pendingAt: { lt: cutoff } },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, user: { select: { email: true, username: true } } },
   })
 
   for (const post of expired) {
@@ -21,13 +22,12 @@ export async function GET(req: Request) {
         data: { status: "REMOVED" },
       })
       await tx.notification.create({
-        data: {
-          userId: post.userId,
-          fromUserId: null,
-          type: "post_auto_removed",
-        },
+        data: { userId: post.userId, fromUserId: null, type: "post_auto_removed" },
       })
     })
+    if (post.user.email) {
+      void sendPostAutoRemovedEmail(post.user.email, { username: post.user.username ?? "there" })
+    }
   }
 
   return NextResponse.json({ removed: expired.length })

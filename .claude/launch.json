@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mockup",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "C:/Users/gavri/OneDrive/Documents/Projects/gallery-admin/.claude/mockups"],
+      "port": 4445,
+      "autoPort": true
+    }
+  ]
+}

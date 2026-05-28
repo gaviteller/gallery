@@ -58,9 +58,15 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                 ban: "Your account has been suspended.",
                 lift_ban: "Your account suspension has been lifted.",
                 post_deleted: "A post was removed from your account.",
+                post_removed_tos: "A post was removed for violating our Terms of Service.",
+                post_removed_dmca: "A post was removed following a DMCA copyright claim.",
+                post_removed_moderator: "A post was removed following a moderation review.",
+                post_auto_removed: "A post was automatically removed after 14 days in pending review.",
+                post_pending_review: "One of your posts has been flagged and is under review.",
                 appeal_approved: "Your appeal has been approved.",
                 appeal_denied: "Your appeal has been denied.",
                 strike_reversed: "A moderation action has been reversed.",
+                site_notice: n.message ?? "A message from the Gallery team.",
               }
               return map[prefix] ?? n.type
             }

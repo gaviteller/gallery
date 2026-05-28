@@ -50,8 +50,8 @@ Last updated: 2026-05-19
 ### Safety & Moderation
 - [x] Strikes system — 4 levels: Minor / Moderate / Severe / Zero Tolerance
 - [x] Strike accumulation logic and temp ban triggers (manual — mods issue bans informed by thresholds)
-- [ ] Community report button on posts (3 reports from distinct accounts = hiding + flag)
-- [ ] Content Pending state — 14-day challenge window before auto-removal
+- [x] Community report button on posts (3 reports from distinct accounts = hiding + flag)
+- [x] Content Pending state — 14-day challenge window before auto-removal
 - [x] Auto-watermark on artwork: format `Gallery | @username`
 - [x] Moderation review queue + appeals flow (human reviewer, 5 business day SLA)
 - [ ] Email notification on content flagged/removed
@@ -77,6 +77,21 @@ Last updated: 2026-05-19
 - [ ] Optimistic like button (avoid full feed refetch on every like)
 - [ ] Skeleton loading states (replace all "Loading…" with shimmer)
 - [ ] Lazy load images on feed + profile
+
+---
+
+## 🤖 AI Moderation — Automate the mod queue
+
+> **Goal:** Replace or assist human moderators with an AI pipeline so the queue runs itself.
+
+- [ ] AI image scan on upload — flag NSFW, gore, stolen art (reverse image search), CSAM (PhotoDNA)
+- [ ] Auto-action on high-confidence violations — skip PENDING_REVIEW, go straight to REMOVED + notify user
+- [ ] Low-confidence flags routed to human review queue as normal
+- [ ] AI-generated text moderation — scan post descriptions and comments for harassment, hate speech, spam
+- [ ] Report triage — AI pre-scores incoming reports so the most severe float to the top of the queue
+- [ ] Strike suggestion — AI recommends strike level (Minor/Moderate/Severe/Zero Tolerance) for mod to confirm
+- [ ] False positive tracking — if appealed and approved, feed that back to improve the model
+- [ ] Mod dashboard audit log — every AI action logged with confidence score so mods can review
 
 ---
 
