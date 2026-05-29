@@ -96,6 +96,11 @@ function SettingsForm() {
     },
   })
 
+  const { data: blockedUsers = [], refetch: refetchBlocked } = trpc.block.getMyBlocked.useQuery()
+  const unblockMutation = trpc.block.toggle.useMutation({
+    onSuccess: () => refetchBlocked(),
+  })
+
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -472,6 +477,38 @@ function SettingsForm() {
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <div className="text-sm font-medium text-gray-900">Email</div>
           <div className="text-sm text-gray-500 mt-0.5">{user?.email}</div>
+        </div>
+
+        {/* Blocked accounts */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="text-sm font-medium text-gray-900 mb-3">Blocked accounts</div>
+          {blockedUsers.length === 0 ? (
+            <p className="text-sm text-gray-400">You haven&apos;t blocked anyone.</p>
+          ) : (
+            <div className="space-y-3">
+              {blockedUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {user.image ? (
+                      <img src={user.image} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold">
+                        {(user.name ?? user.username ?? "?")[0].toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-sm text-gray-700">@{user.username}</span>
+                  </div>
+                  <button
+                    onClick={() => unblockMutation.mutate({ username: user.username! })}
+                    disabled={unblockMutation.isPending}
+                    className="text-xs text-gray-400 hover:text-gray-600 transition disabled:opacity-30"
+                  >
+                    Unblock
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Sign out */}
