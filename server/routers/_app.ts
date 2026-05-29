@@ -12,6 +12,7 @@ import { dmRouter } from "./dm"
 import { pushRouter } from "./push"
 import { storyRouter } from "./story"
 import { dmcaRouter } from "./dmca"
+import { authRouter } from "./auth"
 
 export const appRouter = router({
   user: userRouter,
@@ -27,6 +28,7 @@ export const appRouter = router({
   push: pushRouter,
   story: storyRouter,
   dmca: dmcaRouter,
+  auth: authRouter,
 })
 
 export type AppRouter = typeof appRouter
