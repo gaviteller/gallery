@@ -15,6 +15,23 @@ export const userRouter = router({
   search: publicProcedure
     .input(z.object({ query: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
+      const blockedIds = new Set<string>()
+
+      if (ctx.session?.user?.id) {
+        const blockRelations = await ctx.prisma.block.findMany({
+          where: {
+            OR: [
+              { blockerId: ctx.session.user.id },
+              { blockedId: ctx.session.user.id },
+            ],
+          },
+          select: { blockerId: true, blockedId: true },
+        })
+        for (const b of blockRelations) {
+          blockedIds.add(b.blockerId === ctx.session.user.id ? b.blockedId : b.blockerId)
+        }
+      }
+
       return ctx.prisma.user.findMany({
         where: {
           OR: [
@@ -22,6 +39,7 @@ export const userRouter = router({
             { name: { contains: input.query, mode: "insensitive" } },
           ],
           username: { not: null },
+          ...(blockedIds.size > 0 ? { id: { notIn: [...blockedIds] } } : {}),
         },
         select: { id: true, username: true, name: true, image: true },
         take: 20,
@@ -31,9 +49,24 @@ export const userRouter = router({
   getByUsername: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.prisma.user.findFirst({
+      const user = await ctx.prisma.user.findFirst({
         where: { username: { equals: input.username, mode: "insensitive" } },
       })
+      if (!user) return null
+
+      if (ctx.session?.user?.id && ctx.session.user.id !== user.id) {
+        const block = await ctx.prisma.block.findFirst({
+          where: {
+            OR: [
+              { blockerId: ctx.session.user.id, blockedId: user.id },
+              { blockerId: user.id, blockedId: ctx.session.user.id },
+            ],
+          },
+        })
+        if (block) return null
+      }
+
+      return user
     }),
 
   checkUsername: publicProcedure
