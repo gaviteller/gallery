@@ -244,6 +244,16 @@ export const userRouter = router({
       })
     }),
 
+  updateAdTargetingOptOut: protectedProcedure
+    .input(z.object({ optOut: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: { adTargetingOptOut: input.optOut },
+        select: { id: true, adTargetingOptOut: true },
+      })
+    }),
+
   updateProfile: protectedProcedure
     .input(
       z.object({
