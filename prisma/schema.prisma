@@ -69,11 +69,13 @@ model User {
   banReason                 String?
   bannerImage               String?          @db.Text
   showRealName              Boolean          @default(false)
+  dateOfBirth               DateTime?
+  adTargetingOptOut         Boolean          @default(false)
 
-  chargebackCount  Int     @default(0)
-  accountNotes     String? @db.Text
-  normalizedEmail  String?
-  banEvasionFlag   Boolean @default(false)
+  chargebackCount Int     @default(0)
+  accountNotes    String? @db.Text
+  normalizedEmail String?
+  banEvasionFlag  Boolean @default(false)
 
   websiteUrl       String?
   twitterHandle    String?
@@ -135,15 +137,15 @@ model Follow {
 }
 
 model Notification {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   userId     String
   fromUserId String?
   type       String
   message    String?
-  read       Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  user       User      @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  fromUser   User?     @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: SetNull)
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User     @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  fromUser   User?    @relation("SentNotifications", fields: [fromUserId], references: [id], onDelete: SetNull)
 }
 
 model ShopItem {
@@ -159,26 +161,26 @@ model ShopItem {
 }
 
 model Post {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  image         String    @db.Text
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image         String     @db.Text
   title         String?
   description   String?
-  isAiGenerated Boolean   @default(false)
-  isCommission  Boolean   @default(false)
-  pinned        Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  status      PostStatus @default(PUBLISHED)
-  pendingAt   DateTime?
-  flagReason  String?
-  reportCount Int        @default(0)
+  isAiGenerated Boolean    @default(false)
+  isCommission  Boolean    @default(false)
+  pinned        Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  status        PostStatus @default(PUBLISHED)
+  pendingAt     DateTime?
+  flagReason    String?
+  reportCount   Int        @default(0)
   likes         Like[]
   comments      Comment[]
   hashtags      Hashtag[]
-  reports     Report[]
-  appeals     Appeal[]
+  reports       Report[]
+  appeals       Appeal[]
 }
 
 model Hashtag {
@@ -361,21 +363,21 @@ model Strike {
 }
 
 model Appeal {
-  id           String       @id @default(cuid())
-  userId       String
-  user         User         @relation("SubmittedAppeals", fields: [userId], references: [id], onDelete: Cascade)
-  strikeId     String?
-  strike       Strike?      @relation(fields: [strikeId], references: [id])
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation("SubmittedAppeals", fields: [userId], references: [id], onDelete: Cascade)
+  strikeId      String?
+  strike        Strike?      @relation(fields: [strikeId], references: [id])
   dmcaRequestId String?
   dmcaRequest   DmcaRequest? @relation(fields: [dmcaRequestId], references: [id])
   postId        String?
   post          Post?        @relation(fields: [postId], references: [id], onDelete: SetNull)
-  text         String       @db.Text
-  status       AppealStatus @default(PENDING)
-  reviewedById String?
-  reviewedBy   User?        @relation("ReviewedAppeals", fields: [reviewedById], references: [id])
-  reviewedAt   DateTime?
-  createdAt    DateTime     @default(now())
+  text          String       @db.Text
+  status        AppealStatus @default(PENDING)
+  reviewedById  String?
+  reviewedBy    User?        @relation("ReviewedAppeals", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  createdAt     DateTime     @default(now())
 
   @@index([userId])
   @@index([status])
