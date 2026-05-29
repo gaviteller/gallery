@@ -1,38 +1,69 @@
 # Gallery Roadmap
 
-Last updated: 2026-05-19
+Last updated: 2026-05-28
 
 ---
 
-## 🟢 Tier 1 — Almost done
+## 🟢 Tier 1 — Build now (no external credentials needed)
 
-### Stories
-- [x] Schema, router, components all built
-- [x] Confirm DB migration applied to production — build runs `prisma migrate deploy` automatically
+### Performance
+- [ ] Skeleton loading states (replace all "Loading…" with shimmer)
+- [ ] Lazy load images on feed + profile
 
-### Commission Polish
-- [x] Dispute flow — freeze commission (DISPUTED status), notify both parties, block auto-release
-- [x] Cancellation rules post-payment — artist cancel = strike recorded + monthly count, buyer cancel = cancellation count incremented
-- [x] 5+ artist cancellations in one calendar month = commissionFeatureDisabled flag set on User (appealable)
+### Discovery & Search
+- [ ] Full search — artists, posts, shop, commissions in one grouped results page
+- [ ] Commission browse filters — style, medium, price range
+- [ ] Rising Stars / Artist Spotlight rotating feature slot
 
-### Trust Score
-- [x] Aggregate buyer ratings — getTrustScore tRPC procedure computes avg, cancel rate, completed count
-- [x] Cancellation count visible to artists before accepting a request (shown in commission thread on PENDING)
-- [x] Trust Score = avg rating + cancellation rate (selling-related strikes in Tier 2)
-- [x] Displayed after 10 completions — "New Artist" badge before that
-- [x] Tap to view full score breakdown
-- [x] Rating dispute flow — artist flags rating, system message queued; Minor strike enforcement in Tier 2
-- [x] **DESIGN: Define full Trust Score grading formula** — Excellent/Good/Fair/Poor tiers with colour chips; strike deductions tracked (0 until Tier 2 Strike model ships)
+### Safety & Compliance
+- [ ] Email notification on content flagged/removed
+- [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
+- [ ] Cookie consent banner for EU users
+- [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
+- [ ] "Opt out of location-based ad targeting" toggle in Settings
 
-### DM Unread Count
-- [x] Write lastReadAt on message read (getMessages + send both write lastReadAtA/B)
-- [x] Fix unread count logic (counts messages newer than lastReadAt, not sent by me)
+### Shop (browse only, no checkout)
+- [ ] Edit / pause shop listings (only create + delete exist)
+- [ ] Global shop browse page
+
+### Collections & Wishlists
+- [ ] Save posts to named private boards
+- [ ] Wishlist items from shop
+
+### Push Notifications (expand)
+- [ ] Like on your post
+- [ ] Comment on your post
+- [ ] Someone follows you
+- [ ] Commission status changes (currently DM only has push)
+
+### Commission Extras
+- [ ] WIP progress image updates within commission thread
+- [ ] Commission queue management view for artists
+
+### Commercial Licence
+- [ ] In-platform commercial licence request — buyer formally requests commercial use from artist
+- [ ] Artist accepts/declines with agreed terms stored on record
+
+### Work Protection
+- [ ] Canvas-based screenshot blocking on artwork
+- [ ] Removing/altering watermark = Moderate strike enforcement
+
+### Platform & Polish
+- [ ] Public status page — platform health, active incidents, maintenance windows
+- [ ] Swipe down to dismiss modals
+- [ ] Escape key closes all modals
+- [ ] Artist analytics dashboard — views, profile visits, likes, commission conversion rate
+- [ ] Notification preferences — per-type on/off in Settings
+- [ ] Post editing — change title/caption after publish
+- [ ] Commission templates — artist saves preset tiers with price + turnaround
+- [ ] Verified artist badge
+- [ ] Portfolio export — download gallery as PDF
 
 ---
 
-## 🟡 Tier 2 — Must have to launch prototype
+## 🟡 Tier 2 — Needs external credentials
 
-### Payments — Real Money (currently simulated)
+### Payments (Stripe)
 - [ ] Stripe Connect onboarding for artists
 - [ ] Stripe payment intent on commission accept
 - [ ] Real escrow hold on buyer payment
@@ -42,47 +73,22 @@ Last updated: 2026-05-19
 - [ ] Payout dashboard for artists (replace simulated totals)
 - [ ] 8% standard / 5% Pro fees applied to real payments
 
-### Auth
+### Auth (OAuth providers)
 - [ ] Google OAuth
 - [ ] Apple ID sign in
-- [ ] Forgot password / password reset flow
 
-### Safety & Moderation
-- [x] Strikes system — 4 levels: Minor / Moderate / Severe / Zero Tolerance
-- [x] Strike accumulation logic and temp ban triggers (manual — mods issue bans informed by thresholds)
-- [x] Community report button on posts (3 reports from distinct accounts = hiding + flag)
-- [x] Content Pending state — 14-day challenge window before auto-removal
-- [x] Auto-watermark on artwork: format `Gallery | @username`
-- [x] Moderation review queue + appeals flow (human reviewer, 5 business day SLA)
-- [ ] Email notification on content flagged/removed
-
-### Blocking
-- [ ] Block / unblock endpoints (Block model already in schema)
-- [ ] Filter blocked users from feed, search, DMs, commissions
-
-### Legal & Compliance
+### Safety (external APIs)
 - [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
-- [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
-- [ ] Cookie consent banner for EU users
-- [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
-- [ ] "Opt out of location-based ad targeting" toggle in Settings
 
-### Discovery & Search (core selling point)
+### AI Discovery
 - [ ] Hidden Gems vs Recommended two-tier AI discovery feed
-- [ ] Commission browse filters — style, medium, price range
-- [ ] Full search — artists, posts, shop, commissions in one grouped results page
-- [ ] Rising Stars / Artist Spotlight rotating feature slot
-
-### Performance
-- [ ] Optimistic like button (avoid full feed refetch on every like)
-- [ ] Skeleton loading states (replace all "Loading…" with shimmer)
-- [ ] Lazy load images on feed + profile
 
 ---
 
 ## 🤖 AI Moderation — Automate the mod queue
 
 > **Goal:** Replace or assist human moderators with an AI pipeline so the queue runs itself.
+> **Needs:** AI vision API + vector DB for reverse image search.
 
 - [ ] AI image scan on upload — flag NSFW, gore, stolen art (reverse image search), CSAM (PhotoDNA)
 - [ ] Auto-action on high-confidence violations — skip PENDING_REVIEW, go straight to REMOVED + notify user
@@ -95,7 +101,7 @@ Last updated: 2026-05-19
 
 ---
 
-## 🔵 Tier 3 — Final form
+## 🔵 Tier 3 — Depends on Tier 2
 
 ### Gallery Pro Subscription ($10/month)
 - [ ] Stripe subscription billing
@@ -120,54 +126,14 @@ Last updated: 2026-05-19
 - [ ] Reports purchasable by businesses and brands
 - [ ] No PII included — fully anonymised
 
-### Commercial Licence Feature
-- [ ] In-platform commercial licence request — buyer formally requests commercial use from artist
-- [ ] Artist accepts/declines with agreed terms stored on record
-
 ### Shop — Full E-Commerce
-- [ ] Edit / pause shop listings (only create + delete exist)
-- [ ] Global shop browse page
 - [ ] Cart (multi-artist checkout)
 - [ ] Stripe checkout for shop purchases
 - [ ] Digital file delivery on purchase — locked until confirmed, no refund once downloaded
 - [ ] Physical shipping flow — tracking number required, 30-day confirmation window
 - [ ] Sale notifications to artist
 
-### Collections and Wishlists
-- [ ] Save posts to named private boards
-- [ ] Wishlist items from shop
-
-### Push Notifications (expand)
-- [ ] Like on your post
-- [ ] Comment on your post
-- [ ] Someone follows you
-- [ ] Commission status changes (currently DM only has push)
-
-### Commission Extras
-- [ ] WIP progress image updates within commission thread
-- [ ] Commission queue management view for artists
-
-### Work Protection
-- [ ] Canvas-based screenshot blocking on artwork
-- [ ] Removing/altering watermark = Moderate strike enforcement
-
-### Platform Status Page
-- [ ] Public status page — platform health, active incidents, maintenance windows
-
-### Mobile Polish
-- [ ] Swipe down to dismiss modals
-- [ ] Escape key closes all modals
-
----
-
-## ⚪ Tier 4 — Extra / nice to have
-
-- [ ] Artist analytics dashboard — views, profile visits, likes, commission conversion rate
-- [ ] Notification preferences — per-type on/off in Settings
-- [ ] Post editing — change title/caption after publish
-- [ ] Commission templates — artist saves preset tiers with price + turnaround
-- [ ] Verified artist badge
-- [ ] Portfolio export — download gallery as PDF
+### Complex / Future
 - [ ] Referral system
 - [ ] Tip jar — one-off payments to artists outside commissions
 - [ ] Co-commission — two artists collaborate on one commission
@@ -199,3 +165,10 @@ Last updated: 2026-05-19
 - Hashtag pages
 - Featured Artists strip on feed
 - Terms of Service page
+- Strikes system — 4 levels: Minor / Moderate / Severe / Zero Tolerance, accumulation logic, temp ban triggers
+- Community report button (3 reports from distinct accounts = hiding + flag), 14-day content pending state
+- Auto-watermark on artwork: `Gallery | @username`
+- Moderation review queue + appeals flow (human reviewer, 5 business day SLA)
+- Forgot password / password reset flow (email with 1h expiring token)
+- Block / unblock — mutual invisibility, deletes follow relationships; enforced in feed, search, DMs, commissions
+- Optimistic like button (onMutate/onError/onSettled, no full feed refetch)
