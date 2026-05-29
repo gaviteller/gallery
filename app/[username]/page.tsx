@@ -87,9 +87,23 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   )
   const followMutation = trpc.follow.follow.useMutation({ onSuccess: () => refetchFollow() })
   const unfollowMutation = trpc.follow.unfollow.useMutation({ onSuccess: () => refetchFollow() })
+  const { data: blockStatus, refetch: refetchBlock } = trpc.block.status.useQuery(
+    { username },
+    { enabled: !!profileUser && !!session && session?.user?.id !== profileUser?.id }
+  )
+  const blockToggle = trpc.block.toggle.useMutation({
+    onSuccess: (data) => {
+      refetchBlock()
+      if (data.blocked) {
+        // Just blocked this user — navigate away
+        router.push("/")
+      }
+    },
+  })
   const utils = trpc.useUtils()
   const { data: userStories = [] } = trpc.story.getByUsername.useQuery({ username })
 
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [tab, setTab] = useState("Posts")
   const [viewPost, setViewPost] = useState<PostItem | null>(null)
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
@@ -147,6 +161,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
   // Reset breakdown panel when navigating to a different profile
   useEffect(() => { setShowScoreBreakdown(false) }, [username])
+  useEffect(() => {
+    function handleClick() { setMoreMenuOpen(false) }
+    if (moreMenuOpen) document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [moreMenuOpen])
 
   const createShopItem = trpc.shop.create.useMutation({
     onSuccess: () => {
@@ -418,6 +437,38 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               >
                 {getOrCreateDM.isPending ? "…" : "Message"}
               </button>
+              <div className="relative">
+                <button
+                  onClick={() => setMoreMenuOpen((v) => !v)}
+                  style={{ padding: "8px 12px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
+                  aria-label="More options"
+                >
+                  ···
+                </button>
+                {moreMenuOpen && (
+                  <div
+                    className="absolute right-0 top-10 z-50 rounded-xl border border-white/10 py-1 shadow-xl"
+                    style={{ background: "#1a1a2e", minWidth: 180 }}
+                  >
+                    <button
+                      onClick={() => {
+                        setMoreMenuOpen(false)
+                        if (confirm(blockStatus?.blocked
+                          ? `Unblock @${username}?`
+                          : `Block @${username}? They won't be able to see your profile or posts.`
+                        )) {
+                          blockToggle.mutate({ username })
+                        }
+                      }}
+                      disabled={blockToggle.isPending}
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-white/5 transition-colors disabled:opacity-50"
+                      style={{ color: blockStatus?.blocked ? "rgba(255,255,255,0.7)" : "#ef4444" }}
+                    >
+                      {blockStatus?.blocked ? `Unblock @${username}` : `Block @${username}`}
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
