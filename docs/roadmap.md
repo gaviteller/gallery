@@ -4,66 +4,9 @@ Last updated: 2026-05-28
 
 ---
 
-## 🟢 Tier 1 — Build now (no external credentials needed)
+## 🟢 Tier 1 — Must have to launch
 
-### Performance
-- [ ] Skeleton loading states (replace all "Loading…" with shimmer)
-- [ ] Lazy load images on feed + profile
-
-### Discovery & Search
-- [ ] Full search — artists, posts, shop, commissions in one grouped results page
-- [ ] Commission browse filters — style, medium, price range
-- [ ] Rising Stars / Artist Spotlight rotating feature slot
-
-### Safety & Compliance
-- [ ] Email notification on content flagged/removed
-- [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
-- [ ] Cookie consent banner for EU users
-- [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
-- [ ] "Opt out of location-based ad targeting" toggle in Settings
-
-### Shop (browse only, no checkout)
-- [ ] Edit / pause shop listings (only create + delete exist)
-- [ ] Global shop browse page
-
-### Collections & Wishlists
-- [ ] Save posts to named private boards
-- [ ] Wishlist items from shop
-
-### Push Notifications (expand)
-- [ ] Like on your post
-- [ ] Comment on your post
-- [ ] Someone follows you
-- [ ] Commission status changes (currently DM only has push)
-
-### Commission Extras
-- [ ] WIP progress image updates within commission thread
-- [ ] Commission queue management view for artists
-
-### Commercial Licence
-- [ ] In-platform commercial licence request — buyer formally requests commercial use from artist
-- [ ] Artist accepts/declines with agreed terms stored on record
-
-### Work Protection
-- [ ] Canvas-based screenshot blocking on artwork
-- [ ] Removing/altering watermark = Moderate strike enforcement
-
-### Platform & Polish
-- [ ] Public status page — platform health, active incidents, maintenance windows
-- [ ] Swipe down to dismiss modals
-- [ ] Escape key closes all modals
-- [ ] Artist analytics dashboard — views, profile visits, likes, commission conversion rate
-- [ ] Notification preferences — per-type on/off in Settings
-- [ ] Post editing — change title/caption after publish
-- [ ] Commission templates — artist saves preset tiers with price + turnaround
-- [ ] Verified artist badge
-- [ ] Portfolio export — download gallery as PDF
-
----
-
-## 🟡 Tier 2 — Needs external credentials
-
-### Payments (Stripe)
+### Payments — Real Money (currently simulated)
 - [ ] Stripe Connect onboarding for artists
 - [ ] Stripe payment intent on commission accept
 - [ ] Real escrow hold on buyer payment
@@ -73,22 +16,35 @@ Last updated: 2026-05-28
 - [ ] Payout dashboard for artists (replace simulated totals)
 - [ ] 8% standard / 5% Pro fees applied to real payments
 
-### Auth (OAuth providers)
+### Auth
 - [ ] Google OAuth
 - [ ] Apple ID sign in
 
-### Safety (external APIs)
-- [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
+### Safety & Moderation
+- [ ] Email notification on content flagged/removed
 
-### AI Discovery
+### Legal & Compliance
+- [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
+- [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
+- [ ] Cookie consent banner for EU users
+- [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
+- [ ] "Opt out of location-based ad targeting" toggle in Settings
+
+### Discovery & Search
 - [ ] Hidden Gems vs Recommended two-tier AI discovery feed
+- [ ] Commission browse filters — style, medium, price range
+- [ ] Full search — artists, posts, shop, commissions in one grouped results page
+- [ ] Rising Stars / Artist Spotlight rotating feature slot
+
+### Performance
+- [ ] Skeleton loading states (replace all "Loading…" with shimmer)
+- [ ] Lazy load images on feed + profile
 
 ---
 
 ## 🤖 AI Moderation — Automate the mod queue
 
 > **Goal:** Replace or assist human moderators with an AI pipeline so the queue runs itself.
-> **Needs:** AI vision API + vector DB for reverse image search.
 
 - [ ] AI image scan on upload — flag NSFW, gore, stolen art (reverse image search), CSAM (PhotoDNA)
 - [ ] Auto-action on high-confidence violations — skip PENDING_REVIEW, go straight to REMOVED + notify user
@@ -101,7 +57,7 @@ Last updated: 2026-05-28
 
 ---
 
-## 🔵 Tier 3 — Depends on Tier 2
+## 🔵 Tier 2 — Final form
 
 ### Gallery Pro Subscription ($10/month)
 - [ ] Stripe subscription billing
@@ -126,14 +82,54 @@ Last updated: 2026-05-28
 - [ ] Reports purchasable by businesses and brands
 - [ ] No PII included — fully anonymised
 
+### Commercial Licence Feature
+- [ ] In-platform commercial licence request — buyer formally requests commercial use from artist
+- [ ] Artist accepts/declines with agreed terms stored on record
+
 ### Shop — Full E-Commerce
+- [ ] Edit / pause shop listings (only create + delete exist)
+- [ ] Global shop browse page
 - [ ] Cart (multi-artist checkout)
 - [ ] Stripe checkout for shop purchases
 - [ ] Digital file delivery on purchase — locked until confirmed, no refund once downloaded
 - [ ] Physical shipping flow — tracking number required, 30-day confirmation window
 - [ ] Sale notifications to artist
 
-### Complex / Future
+### Collections and Wishlists
+- [ ] Save posts to named private boards
+- [ ] Wishlist items from shop
+
+### Push Notifications (expand)
+- [ ] Like on your post
+- [ ] Comment on your post
+- [ ] Someone follows you
+- [ ] Commission status changes (currently DM only has push)
+
+### Commission Extras
+- [ ] WIP progress image updates within commission thread
+- [ ] Commission queue management view for artists
+
+### Work Protection
+- [ ] Canvas-based screenshot blocking on artwork
+- [ ] Removing/altering watermark = Moderate strike enforcement
+
+### Platform Status Page
+- [ ] Public status page — platform health, active incidents, maintenance windows
+
+### Mobile Polish
+- [ ] Swipe down to dismiss modals
+- [ ] Escape key closes all modals
+
+---
+
+## ⚪ Tier 3 — Extra / nice to have
+
+- [ ] Artist analytics dashboard — views, profile visits, likes, commission conversion rate
+- [ ] Notification preferences — per-type on/off in Settings
+- [ ] Post editing — change title/caption after publish
+- [ ] Commission templates — artist saves preset tiers with price + turnaround
+- [ ] Verified artist badge
+- [ ] Portfolio export — download gallery as PDF
 - [ ] Referral system
 - [ ] Tip jar — one-off payments to artists outside commissions
 - [ ] Co-commission — two artists collaborate on one commission
