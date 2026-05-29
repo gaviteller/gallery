@@ -7,6 +7,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { trpc } from "@/components/providers"
 import TermsContent from "@/components/TermsContent"
+import { isAtLeast13 } from "@/lib/age"
 
 function TermsModal({ onAgree, onClose }: { onAgree: () => void; onClose: () => void }) {
   const [hasReachedBottom, setHasReachedBottom] = useState(false)
@@ -83,7 +84,7 @@ function TermsModal({ onAgree, onClose }: { onAgree: () => void; onClose: () => 
 
 function SignUpForm() {
   const router = useRouter()
-  const [form, setForm] = useState({ name: "", email: "", username: "", password: "" })
+  const [form, setForm] = useState({ name: "", email: "", username: "", password: "", dateOfBirth: "" })
   const [agreed, setAgreed] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -110,6 +111,8 @@ function SignUpForm() {
     if (!agreed) { setError("You must agree to the Terms of Service"); return }
     if (!usernameAvailable) { setError("Please choose a valid, available username"); return }
     if (form.password.length < 6) { setError("Password must be at least 6 characters"); return }
+    if (!form.dateOfBirth) { setError("Date of birth is required"); return }
+    if (!isAtLeast13(form.dateOfBirth)) { setError("You must be at least 13 years old to create an account."); return }
 
     setLoading(true)
     setError("")
@@ -224,6 +227,19 @@ function SignUpForm() {
             style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
           />
 
+          <div>
+            <label className="block text-xs text-white/40 mb-1 pl-1">Date of birth</label>
+            <input
+              type="date"
+              value={form.dateOfBirth}
+              onChange={set("dateOfBirth")}
+              max={new Date().toISOString().split("T")[0]}
+              required
+              className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
+              style={{ background: "#ffffff12", border: "1px solid #ffffff18", colorScheme: "dark" }}
+            />
+          </div>
+
           {/* Terms */}
           <div className="pt-1">
             {agreed ? (
@@ -253,7 +269,7 @@ function SignUpForm() {
 
           <button
             type="submit"
-            disabled={loading || !form.name || !form.email || !form.password || !agreed}
+            disabled={loading || !form.name || !form.email || !form.password || !form.dateOfBirth || !agreed}
             className="w-full py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
           >
