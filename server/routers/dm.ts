@@ -13,6 +13,16 @@ export const dmRouter = router({
       const other = input.otherUserId
       if (me === other) throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot DM yourself" })
 
+      const block = await ctx.prisma.block.findFirst({
+        where: {
+          OR: [
+            { blockerId: me, blockedId: other },
+            { blockerId: other, blockedId: me },
+          ],
+        },
+      })
+      if (block) throw new TRPCError({ code: "FORBIDDEN", message: "Cannot message this user." })
+
       const [a, b] = me < other ? [me, other] : [other, me]
 
       const existing = await ctx.prisma.conversation.findUnique({

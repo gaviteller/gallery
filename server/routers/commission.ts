@@ -181,6 +181,15 @@ export const commissionRouter = router({
       }
       const artist = await ctx.prisma.user.findUnique({ where: { id: input.artistId } })
       if (!artist) throw new TRPCError({ code: "NOT_FOUND", message: "Artist not found" })
+      const block = await ctx.prisma.block.findFirst({
+        where: {
+          OR: [
+            { blockerId: ctx.session.user.id, blockedId: input.artistId },
+            { blockerId: input.artistId, blockedId: ctx.session.user.id },
+          ],
+        },
+      })
+      if (block) throw new TRPCError({ code: "FORBIDDEN", message: "Cannot commission this artist." })
       if (artist.commissionStatus === "CLOSED") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "This artist is not accepting commissions" })
       }
