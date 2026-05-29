@@ -1,6 +1,6 @@
 # Gallery Roadmap
 
-Last updated: 2026-05-28
+Last updated: 2026-05-29
 
 ---
 
@@ -11,10 +11,10 @@ Last updated: 2026-05-28
 - [ ] Lazy load images on feed + profile
 
 ### Safety & Compliance
-- [ ] Email notification on content flagged/removed
+- [x] Email notification on content flagged/removed
 - [ ] Cookie consent banner for EU users
-- [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
-- [ ] "Opt out of location-based ad targeting" toggle in Settings
+- [x] Age gate — 13+ at signup (EU under-16 parental consent deferred)
+- [x] "Opt out of location-based ad targeting" toggle in Settings
 
 ### Discovery & Search
 - [ ] Commission browse filters — style, medium, price range
