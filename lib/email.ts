@@ -63,3 +63,13 @@ export async function sendPasswordResetEmail(to: string, opts: {
      <p style="margin:24px 0 0;font-size:13px;color:rgba(255,255,255,0.4);">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>`
   ))
 }
+
+export async function sendPostFlaggedEmail(to: string, opts: { username: string }) {
+  await send(to, "One of your posts has been flagged for review", layout(
+    "Post Flagged for Review",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your post has been flagged</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, one of your posts has received enough community reports to be placed under review. It remains visible on your profile while our team reviews it.</p>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">If the review is not resolved within 14 days, the post will be automatically removed. If it is removed and you believe this was a mistake, you can appeal.</p>
+     <a href="${GALLERY_URL}/appeal" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Learn about appeals</a>`
+  ))
+}
