@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
 import { ReportReason } from "@prisma/client"
+import { sendPostFlaggedEmail } from "@/lib/email"
 
 export const postRouter = router({
   create: protectedProcedure
@@ -223,7 +224,13 @@ export const postRouter = router({
       // 1. Verify post exists and caller is not the owner
       const post = await ctx.prisma.post.findUnique({
         where: { id: input.postId },
-        select: { id: true, userId: true, status: true, reportCount: true },
+        select: {
+          id: true,
+          userId: true,
+          status: true,
+          reportCount: true,
+          user: { select: { email: true, username: true } },
+        },
       })
       if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." })
       if (post.userId === callerId) {
@@ -275,6 +282,13 @@ export const postRouter = router({
             },
           })
         })
+
+        // Send flagged email after transaction commits
+        if (post.user.email) {
+          void sendPostFlaggedEmail(post.user.email, {
+            username: post.user.username ?? "there",
+          })
+        }
       }
 
       return { success: true }
