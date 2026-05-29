@@ -10,6 +10,7 @@ function SignInForm() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") ?? "/"
   const authError = searchParams.get("error")
+  const resetSuccess = searchParams.get("reset") === "success"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -44,6 +45,12 @@ function SignInForm() {
           <p className="text-white/50 text-sm">Sign in to your account</p>
         </div>
 
+        {resetSuccess && (
+          <p className="text-sm text-green-400 text-center mb-4">
+            Password reset — please sign in with your new password.
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="email"
@@ -77,7 +84,7 @@ function SignInForm() {
         </form>
 
         <p className="text-center mt-4">
-          <a href="#" className="text-xs text-white/40 hover:text-white/70 transition">Forgot password?</a>
+          <Link href="/forgot-password" className="text-xs text-white/40 hover:text-white/70 transition">Forgot password?</Link>
         </p>
       </div>
 
