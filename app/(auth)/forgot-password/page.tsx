@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
             />
             <button
               type="submit"
-              disabled={mutation.isPending || !email}
+              disabled={mutation.isPending || !email || cooldown}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
             >
