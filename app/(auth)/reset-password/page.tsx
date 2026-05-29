@@ -85,7 +85,7 @@ function ResetPasswordForm() {
           </form>
         )}
 
-        {mutation.isError && ((mutation.error as any).data?.code === "NOT_FOUND" || (mutation.error as any).data?.code === "BAD_REQUEST") && (
+        {mutation.isError && (
           <p className="mt-4 text-center text-sm text-white/50">
             <Link href="/forgot-password" className="text-purple-400 hover:underline">
               Request a new reset link

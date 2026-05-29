@@ -21,9 +21,11 @@ export const authRouter = router({
       // Always return success — never reveal whether email is registered
       if (!user || !user.email) return { success: true }
 
+      const RESET_IDENTIFIER = `password-reset:${user.email}`
+
       // Delete any existing reset token for this email
       await ctx.prisma.verificationToken.deleteMany({
-        where: { identifier: user.email },
+        where: { identifier: RESET_IDENTIFIER },
       })
 
       // Generate token
@@ -33,7 +35,7 @@ export const authRouter = router({
 
       await ctx.prisma.verificationToken.create({
         data: {
-          identifier: user.email,
+          identifier: RESET_IDENTIFIER,
           token: hashedToken,
           expires,
         },
@@ -76,8 +78,10 @@ export const authRouter = router({
         })
       }
 
+      const email = record.identifier.replace("password-reset:", "")
+
       const user = await ctx.prisma.user.findFirst({
-        where: { email: record.identifier },
+        where: { email },
         select: { id: true },
       })
 

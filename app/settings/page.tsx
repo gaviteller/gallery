@@ -500,7 +500,7 @@ function SettingsForm() {
                   </div>
                   <button
                     onClick={() => unblockMutation.mutate({ username: user.username! })}
-                    disabled={unblockMutation.isPending}
+                    disabled={unblockMutation.isPending && unblockMutation.variables?.username === user.username}
                     className="text-xs text-gray-400 hover:text-gray-600 transition disabled:opacity-30"
                   >
                     Unblock
