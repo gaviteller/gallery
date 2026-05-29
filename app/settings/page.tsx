@@ -83,7 +83,9 @@ function SettingsForm() {
     onError: () => setShowRealName(prev => !prev),
   })
 
-  const updateAdTargeting = trpc.user.updateAdTargetingOptOut.useMutation()
+  const updateAdTargeting = trpc.user.updateAdTargetingOptOut.useMutation({
+    onError: () => setAdTargetingOptOut(prev => !prev),
+  })
 
   const changeUsername = trpc.user.changeUsername.useMutation({
     onSuccess: async () => {
