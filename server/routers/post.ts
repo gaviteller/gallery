@@ -66,12 +66,13 @@ export const postRouter = router({
       let likedSet = new Set<string>()
       let likedArtistSet = new Set<string>()
       let reportedSet = new Set<string>()
+      let blockedUserIds = new Set<string>()
 
       if (userId) {
         const postIds = posts.map((p) => p.id)
         const userIds = [...new Set(posts.map((p) => p.userId))]
 
-        const [follows, myLikes, myRecentLikes, myReports] = await Promise.all([
+        const [follows, myLikes, myRecentLikes, myReports, blockRelations] = await Promise.all([
           ctx.prisma.follow.findMany({
             where: { followerId: userId, followingId: { in: userIds } },
             select: { followingId: true },
@@ -91,17 +92,26 @@ export const postRouter = router({
             where: { reporterId: userId, postId: { in: postIds } },
             select: { postId: true },
           }),
+          ctx.prisma.block.findMany({
+            where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+            select: { blockerId: true, blockedId: true },
+          }),
         ])
 
         followingSet = new Set(follows.map((f) => f.followingId))
         likedSet = new Set(myLikes.map((l) => l.postId))
         likedArtistSet = new Set(myRecentLikes.map((l) => l.post.userId))
         reportedSet = new Set(myReports.map((r) => r.postId))
+        blockedUserIds = new Set(
+          blockRelations.map((b) => b.blockerId === userId ? b.blockedId : b.blockerId)
+        )
       }
+
+      const visiblePosts = posts.filter((p) => !blockedUserIds.has(p.userId))
 
       // Score every post
       const now = Date.now()
-      const scored = posts.map((post) => {
+      const scored = visiblePosts.map((post) => {
         const ageHours = (now - new Date(post.createdAt).getTime()) / 3_600_000
         // Recency: 30-point bonus decaying with a 72-hour half-life
         const recency = 30 * Math.exp(-ageHours / 72)
