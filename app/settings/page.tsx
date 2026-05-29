@@ -38,6 +38,7 @@ function SettingsForm() {
   const [instagramHandle, setInstagramHandle] = useState("")
   const [artstationHandle, setArtstationHandle] = useState("")
   const [showRealName, setShowRealName] = useState(false)
+  const [adTargetingOptOut, setAdTargetingOptOut] = useState(false)
   const [photoProcessing, setPhotoProcessing] = useState(false)
   const [bannerImage, setBannerImage] = useState<string | null>(null)
   const [bannerProcessing, setBannerProcessing] = useState(false)
@@ -53,6 +54,7 @@ function SettingsForm() {
       setInstagramHandle(user.instagramHandle ?? "")
       setArtstationHandle(user.artstationHandle ?? "")
       setShowRealName((user as { showRealName?: boolean }).showRealName ?? false)
+      setAdTargetingOptOut((user as { adTargetingOptOut?: boolean }).adTargetingOptOut ?? false)
     }
   }, [user])
 
@@ -80,6 +82,8 @@ function SettingsForm() {
     onSuccess: () => utils.user.me.invalidate(),
     onError: () => setShowRealName(prev => !prev),
   })
+
+  const updateAdTargeting = trpc.user.updateAdTargetingOptOut.useMutation()
 
   const changeUsername = trpc.user.changeUsername.useMutation({
     onSuccess: async () => {
@@ -377,6 +381,31 @@ function SettingsForm() {
             aria-checked={user?.sellingEnabled}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${user?.sellingEnabled ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {/* Ad targeting opt-out */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-gray-900">Opt out of location-based ad targeting</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              When on, your location will not be used to personalise ads shown to you.
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const next = !adTargetingOptOut
+              setAdTargetingOptOut(next)
+              updateAdTargeting.mutate({ optOut: next })
+            }}
+            disabled={updateAdTargeting.isPending}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+              adTargetingOptOut ? "bg-blue-600" : "bg-gray-200"
+            }`}
+            role="switch"
+            aria-checked={adTargetingOptOut}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${adTargetingOptOut ? "translate-x-6" : "translate-x-1"}`} />
           </button>
         </div>
 
