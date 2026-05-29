@@ -4,7 +4,26 @@ Last updated: 2026-05-28
 
 ---
 
-## 🟢 Tier 1 — Must have to launch
+## 🟢 Tier 1 — Almost done
+
+### Performance
+- [ ] Skeleton loading states (replace all "Loading…" with shimmer)
+- [ ] Lazy load images on feed + profile
+
+### Safety & Compliance
+- [ ] Email notification on content flagged/removed
+- [ ] Cookie consent banner for EU users
+- [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
+- [ ] "Opt out of location-based ad targeting" toggle in Settings
+
+### Discovery & Search
+- [ ] Commission browse filters — style, medium, price range
+- [ ] Full search — artists, posts, shop, commissions in one grouped results page
+- [ ] Rising Stars / Artist Spotlight rotating feature slot
+
+---
+
+## 🟡 Tier 2 — Must have to launch prototype
 
 ### Payments — Real Money (currently simulated)
 - [ ] Stripe Connect onboarding for artists
@@ -20,25 +39,12 @@ Last updated: 2026-05-28
 - [ ] Google OAuth
 - [ ] Apple ID sign in
 
-### Safety & Moderation
-- [ ] Email notification on content flagged/removed
-
 ### Legal & Compliance
 - [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
 - [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
-- [ ] Cookie consent banner for EU users
-- [ ] Age gate — 13+ at signup, EU under-16 requires parental consent
-- [ ] "Opt out of location-based ad targeting" toggle in Settings
 
-### Discovery & Search
+### Discovery
 - [ ] Hidden Gems vs Recommended two-tier AI discovery feed
-- [ ] Commission browse filters — style, medium, price range
-- [ ] Full search — artists, posts, shop, commissions in one grouped results page
-- [ ] Rising Stars / Artist Spotlight rotating feature slot
-
-### Performance
-- [ ] Skeleton loading states (replace all "Loading…" with shimmer)
-- [ ] Lazy load images on feed + profile
 
 ---
 
@@ -57,7 +63,7 @@ Last updated: 2026-05-28
 
 ---
 
-## 🔵 Tier 2 — Final form
+## 🔵 Tier 3 — Final form
 
 ### Gallery Pro Subscription ($10/month)
 - [ ] Stripe subscription billing
@@ -122,7 +128,7 @@ Last updated: 2026-05-28
 
 ---
 
-## ⚪ Tier 3 — Extra / nice to have
+## ⚪ Tier 4 — Extra / nice to have
 
 - [ ] Artist analytics dashboard — views, profile visits, likes, commission conversion rate
 - [ ] Notification preferences — per-type on/off in Settings
