@@ -49,3 +49,17 @@ export async function sendPostAutoRemovedEmail(to: string, opts: { username: str
      <a href="${GALLERY_URL}/appeal" style="display:inline-block;margin-top:24px;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Appeal this removal</a>`
   ))
 }
+
+export async function sendPasswordResetEmail(to: string, opts: {
+  username: string
+  token: string  // raw (unhashed) token
+}) {
+  const resetUrl = `${GALLERY_URL}/reset-password?token=${opts.token}`
+  await send(to, "Reset your Gallery password", layout(
+    "Reset your Gallery password",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Reset your password</h1>
+     <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, we received a request to reset your Gallery password. Click the button below to choose a new one.</p>
+     <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Reset password</a>
+     <p style="margin:24px 0 0;font-size:13px;color:rgba(255,255,255,0.4);">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>`
+  ))
+}
