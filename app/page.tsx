@@ -66,7 +66,50 @@ export default function FeedPage() {
   )
 
   const toggleLike = trpc.interaction.toggleLike.useMutation({
-    onSuccess: () => utils.post.getFeed.invalidate(),
+    onMutate: async ({ postId }) => {
+      // Cancel any in-flight refetch so it doesn't overwrite our optimistic update
+      await utils.post.getFeed.cancel()
+
+      // Snapshot the current cache so we can roll back on error
+      const previous = utils.post.getFeed.getInfiniteData({})
+
+      // Optimistically update the cache
+      utils.post.getFeed.setInfiniteData({}, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            posts: page.posts.map((post) => {
+              if (post.id !== postId) return post
+              const wasLiked = post.likedByMe
+              return {
+                ...post,
+                likedByMe: !wasLiked,
+                _count: {
+                  ...post._count,
+                  likes: post._count.likes + (wasLiked ? -1 : 1),
+                },
+              }
+            }),
+          })),
+        }
+      })
+
+      return { previous }
+    },
+
+    onError: (_err, _input, context) => {
+      // Roll back to the snapshot on failure
+      if (context?.previous) {
+        utils.post.getFeed.setInfiniteData({}, context.previous)
+      }
+    },
+
+    onSettled: () => {
+      // Background sync with server after mutation completes
+      utils.post.getFeed.invalidate()
+    },
   })
 
   // Infinite scroll — fire when sentinel div enters viewport
