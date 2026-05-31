@@ -38,6 +38,8 @@ type PostItem = {
   pinned: boolean
   createdAt: Date
   status: string
+  removedAt?: string | Date | null
+  removalReason?: string | null
 }
 
 function processImage(file: File, maxSize: number): Promise<string> {
@@ -526,7 +528,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <div className="grid grid-cols-3" style={{ gap: 2 }}>
               {posts.map((post) => (
                 <div key={post.id} className="relative" style={{ background: "#ffffff08", borderRadius: 4 }}>
-                  <button onClick={() => setViewPost(post as PostItem)}
+                  <button
+                    onClick={() => {
+                      if ((post as PostItem).status === "REMOVED") return
+                      setViewPost(post as PostItem)
+                    }}
                     className="relative aspect-square overflow-hidden group w-full" style={{ borderRadius: 4 }}>
                     <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
                     <div className="absolute top-1.5 left-1.5 flex gap-1">
@@ -562,6 +568,35 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         }}>
                           Under Review
                         </span>
+                      </div>
+                    )}
+                    {isOwn && (post as PostItem).status === "REMOVED" && (
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        background: "rgba(0,0,0,0.72)",
+                        borderRadius: 4,
+                        display: "flex", flexDirection: "column",
+                        alignItems: "center", justifyContent: "center",
+                        padding: "6px 4px",
+                        gap: 4,
+                      }}>
+                        <span style={{ color: "#f87171", fontSize: 10, fontWeight: 700, textAlign: "center" }}>Removed</span>
+                        {(post as PostItem).removalReason && (
+                          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 8, textAlign: "center", lineHeight: 1.3 }}>
+                            {(post as PostItem).removalReason}
+                          </span>
+                        )}
+                        <a
+                          href={`/appeal?postId=${post.id}`}
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            marginTop: 2,
+                            color: "#a78bfa", fontSize: 9, fontWeight: 600,
+                            textDecoration: "underline",
+                          }}
+                        >
+                          Appeal →
+                        </a>
                       </div>
                     )}
                   </button>
