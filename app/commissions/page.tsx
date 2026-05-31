@@ -1,7 +1,14 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useRef, useCallback, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import {
+  ART_STYLE_CHIPS,
+  type ArtStyleChip,
+  PRICE_BUCKETS,
+  matchesStyleChip,
+  getStartingPrice,
+} from "@/lib/art-styles"
 import { useSession } from "next-auth/react"
 import { trpc } from "@/components/providers"
 import CommissionRequestModal from "@/components/CommissionRequestModal"
@@ -538,32 +545,96 @@ function ForYouFeed({
 }
 
 // ── Explore tab ───────────────────────────────────────────────────────────────
-function ExploreTab({
+function ExploreTabInner({
   onRequest,
   onLightbox,
 }: {
   onRequest: (a: DiscoveryUser) => void
   onLightbox: (a: DiscoveryUser, i: number) => void
 }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Parse URL state
+  const initialStyles = searchParams.get("style")
+    ? (searchParams.get("style")!.split(",").filter(s => (ART_STYLE_CHIPS as readonly string[]).includes(s)) as ArtStyleChip[])
+    : []
+  const initialPrice = searchParams.get("price") ?? null
+  const initialSort = (searchParams.get("sort") as SortBy) ?? "default"
+
   const [search, setSearch] = useState("")
-  const [sortBy, setSortBy] = useState<SortBy>("default")
+  const [sortBy, setSortBy] = useState<SortBy>(initialSort)
+  const [selectedStyles, setSelectedStyles] = useState<ArtStyleChip[]>(initialStyles)
+  const [selectedPrice, setSelectedPrice] = useState<string | null>(initialPrice)
 
   const { data: artists, isLoading } = trpc.commission.getDiscovery.useQuery({
     search: search.trim() || undefined,
     sortBy: sortBy === "default" ? undefined : sortBy,
   })
 
-  const CHIPS: { label: string; value: SortBy }[] = [
+  // Write filters to URL (no page reload)
+  function updateUrl(styles: ArtStyleChip[], price: string | null, sort: SortBy) {
+    const params = new URLSearchParams()
+    if (styles.length > 0) params.set("style", styles.join(","))
+    if (price) params.set("price", price)
+    if (sort !== "default") params.set("sort", sort)
+    const qs = params.toString()
+    router.replace(`/commissions?${qs}`, { scroll: false })
+  }
+
+  function toggleStyle(chip: ArtStyleChip) {
+    const next = selectedStyles.includes(chip)
+      ? selectedStyles.filter(s => s !== chip)
+      : [...selectedStyles, chip]
+    setSelectedStyles(next)
+    updateUrl(next, selectedPrice, sortBy)
+  }
+
+  function togglePrice(label: string) {
+    const next = selectedPrice === label ? null : label
+    setSelectedPrice(next)
+    updateUrl(selectedStyles, next, sortBy)
+  }
+
+  function toggleSort(val: SortBy) {
+    const next = sortBy === val ? "default" : val
+    setSortBy(next)
+    updateUrl(selectedStyles, selectedPrice, next)
+  }
+
+  // Client-side filter on top of server results
+  const filtered = (artists ?? []).filter(artist => {
+    // Style filter
+    if (selectedStyles.length > 0) {
+      const matches = selectedStyles.some(chip => matchesStyleChip(artist.artStyles, chip))
+      if (!matches) return false
+    }
+    // Price filter
+    if (selectedPrice) {
+      const bucket = PRICE_BUCKETS.find(b => b.label === selectedPrice)
+      if (bucket) {
+        const startPrice = getStartingPrice(artist.priceRanges)
+        if (startPrice === null) return false
+        if (startPrice < bucket.min || startPrice > bucket.max) return false
+      }
+    }
+    return true
+  })
+
+  const SORT_CHIPS: { label: string; value: SortBy }[] = [
     { label: "🌟 Rising Stars", value: "new" },
     { label: "🔥 Top Rated", value: "top" },
     { label: "💰 Affordable", value: "affordable" },
   ]
 
+  const activeFilterCount = selectedStyles.length + (selectedPrice ? 1 : 0)
+
   return (
     <div className="h-full overflow-y-auto pb-24">
-      {/* Search */}
+      {/* Sticky filter bar */}
       <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "#0D0D0F" }}>
-        <div className="relative">
+        {/* Search */}
+        <div className="relative mb-3">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -577,16 +648,14 @@ function ExploreTab({
           />
         </div>
 
-        {/* Filter chips */}
-        <div className="flex gap-2 mt-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {CHIPS.map(chip => (
+        {/* Sort chips */}
+        <div className="flex gap-2 mb-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {SORT_CHIPS.map(chip => (
             <button
               key={chip.value}
-              onClick={() => setSortBy(prev => prev === chip.value ? "default" : chip.value)}
+              onClick={() => toggleSort(chip.value)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                sortBy === chip.value
-                  ? "text-white"
-                  : "text-white/50 hover:text-white/80"
+                sortBy === chip.value ? "text-white" : "text-white/50 hover:text-white/80"
               }`}
               style={sortBy === chip.value
                 ? { background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }
@@ -597,22 +666,83 @@ function ExploreTab({
             </button>
           ))}
         </div>
+
+        {/* Style chips */}
+        <div className="flex gap-2 mb-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {ART_STYLE_CHIPS.map(chip => {
+            const active = selectedStyles.includes(chip)
+            return (
+              <button
+                key={chip}
+                onClick={() => toggleStyle(chip)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  active ? "text-white" : "text-white/50 hover:text-white/80"
+                }`}
+                style={active
+                  ? { background: "rgba(176,68,248,0.6)", border: "1px solid rgba(176,68,248,0.8)" }
+                  : { background: "#ffffff10", border: "1px solid #ffffff18" }
+                }
+              >
+                {chip}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Price chips */}
+        <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {PRICE_BUCKETS.map(bucket => {
+            const active = selectedPrice === bucket.label
+            return (
+              <button
+                key={bucket.label}
+                onClick={() => togglePrice(bucket.label)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  active ? "text-white" : "text-white/50 hover:text-white/80"
+                }`}
+                style={active
+                  ? { background: "rgba(0,180,238,0.5)", border: "1px solid rgba(0,180,238,0.8)" }
+                  : { background: "#ffffff10", border: "1px solid #ffffff18" }
+                }
+              >
+                {bucket.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
         </div>
-      ) : !artists || artists.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-2">
           <p className="text-white/50 font-medium">No artists found</p>
           <p className="text-xs text-white/30">
-            {search ? "Try a different search term" : "No artists are currently open for commissions"}
+            {activeFilterCount > 0
+              ? "Try removing some filters"
+              : search
+              ? "Try a different search term"
+              : "No artists are currently open for commissions"}
           </p>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => {
+                setSelectedStyles([])
+                setSelectedPrice(null)
+                updateUrl([], null, sortBy)
+              }}
+              className="mt-2 px-4 py-1.5 rounded-full text-xs font-semibold text-white/70 hover:text-white transition"
+              style={{ background: "#ffffff10", border: "1px solid #ffffff18" }}
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-px" style={{ background: "#ffffff08" }}>
-          {artists.map(artist => (
+          {filtered.map(artist => (
             <ExploreCard
               key={artist.id}
               artist={artist as DiscoveryUser}
@@ -623,6 +753,20 @@ function ExploreTab({
         </div>
       )}
     </div>
+  )
+}
+
+function ExploreTab({
+  onRequest,
+  onLightbox,
+}: {
+  onRequest: (a: DiscoveryUser) => void
+  onLightbox: (a: DiscoveryUser, i: number) => void
+}) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin" /></div>}>
+      <ExploreTabInner onRequest={onRequest} onLightbox={onLightbox} />
+    </Suspense>
   )
 }
 
