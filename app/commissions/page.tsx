@@ -545,6 +545,12 @@ function ForYouFeed({
 }
 
 // ── Explore tab ───────────────────────────────────────────────────────────────
+const SORT_CHIPS: { label: string; value: SortBy }[] = [
+  { label: "🌟 Rising Stars", value: "new" },
+  { label: "🔥 Top Rated", value: "top" },
+  { label: "💰 Affordable", value: "affordable" },
+]
+
 function ExploreTabInner({
   onRequest,
   onLightbox,
@@ -555,9 +561,10 @@ function ExploreTabInner({
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Parse URL state
-  const initialStyles = searchParams.get("style")
-    ? (searchParams.get("style")!.split(",").filter(s => (ART_STYLE_CHIPS as readonly string[]).includes(s)) as ArtStyleChip[])
+  // Parse URL state once (only used as useState initialisers — ignored after mount)
+  const styleParam = searchParams.get("style")
+  const initialStyles = styleParam
+    ? (styleParam.split(",").filter(s => (ART_STYLE_CHIPS as readonly string[]).includes(s)) as ArtStyleChip[])
     : []
   const initialPrice = searchParams.get("price") ?? null
   const initialSort = (searchParams.get("sort") as SortBy) ?? "default"
@@ -620,12 +627,6 @@ function ExploreTabInner({
     }
     return true
   })
-
-  const SORT_CHIPS: { label: string; value: SortBy }[] = [
-    { label: "🌟 Rising Stars", value: "new" },
-    { label: "🔥 Top Rated", value: "top" },
-    { label: "💰 Affordable", value: "affordable" },
-  ]
 
   const activeFilterCount = selectedStyles.length + (selectedPrice ? 1 : 0)
 
