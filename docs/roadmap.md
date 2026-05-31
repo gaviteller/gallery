@@ -174,3 +174,4 @@ Last updated: 2026-05-29
 - Forgot password / password reset flow (email with 1h expiring token)
 - Block / unblock — mutual invisibility, deletes follow relationships; enforced in feed, search, DMs, commissions
 - Optimistic like button (onMutate/onError/onSettled, no full feed refetch)
+- Removal transparency — 15-day grace window, removalReason shown on profile + appeal page, appeal link in nav/notifications; admin required to enter reason on manual removal
