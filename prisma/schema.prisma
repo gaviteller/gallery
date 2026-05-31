@@ -175,6 +175,8 @@ model Post {
   status        PostStatus @default(PUBLISHED)
   pendingAt     DateTime?
   flagReason    String?
+  removedAt     DateTime?
+  removalReason String?
   reportCount   Int        @default(0)
   likes         Like[]
   comments      Comment[]
