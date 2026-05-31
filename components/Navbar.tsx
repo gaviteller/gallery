@@ -99,7 +99,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                   <span className="font-semibold">{isSystem ? "Gallery" : `@${n.fromUser!.username}`}</span>{" "}
                   {getNotificationText()}
                   {isRemoval && (
-                    <> · <a href="/appeal" style={{ color: "#a78bfa", textDecoration: "underline" }} onClick={e => e.stopPropagation()}>Appeal →</a></>
+                    <> · <Link href="/appeal" className="text-violet-400 underline" onClick={e => e.stopPropagation()}>Appeal →</Link></>
                   )}
                 </p>
               </button>

@@ -176,7 +176,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                   </span>{" "}
                   {getText()}
                   {isRemoval && (
-                    <> · <a href="/appeal" style={{ color: "#a78bfa", textDecoration: "underline" }} onClick={e => e.stopPropagation()}>Appeal →</a></>
+                    <> · <Link href="/appeal" style={{ color: "#a78bfa", textDecoration: "underline" }} onClick={e => e.stopPropagation()}>Appeal →</Link></>
                   )}
                 </p>
               </button>
@@ -439,6 +439,7 @@ export default function BottomNav() {
                 onClick={() => setMoreOpen(false)}
               >
                 <button onClick={() => router.push("/settings?tab=account")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Account settings</button>
+                <button onClick={() => router.push("/appeal")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Appeals</button>
                 <button onClick={() => router.push("/professional-dms")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Commission Chats</button>
                 <button onClick={() => router.push("/terms")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Terms of Service</button>
                 <div className="mx-3 my-1" style={{ borderTop: "1px solid #ffffff15" }} />
