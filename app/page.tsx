@@ -142,6 +142,15 @@ export default function FeedPage() {
   return (
     <div className="feed-container mx-auto pb-24">
       <FeaturedArtistsStrip />
+      <div className="px-4 py-3 flex justify-end">
+        <Link
+          href="/commissions"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white transition-opacity hover:opacity-80"
+          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+        >
+          Browse Commissions →
+        </Link>
+      </div>
       {isLoading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
       ) : error ? (
