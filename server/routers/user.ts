@@ -168,10 +168,15 @@ export const userRouter = router({
   }),
 
   getMyRemovedPosts: protectedProcedure.query(async ({ ctx }) => {
+    const graceCutoff = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
     return ctx.prisma.post.findMany({
-      where: { userId: ctx.session.user.id, status: "REMOVED" },
-      orderBy: { updatedAt: "desc" },
-      select: { id: true, image: true, updatedAt: true, flagReason: true },
+      where: {
+        userId: ctx.session.user.id,
+        status: "REMOVED",
+        removedAt: { gte: graceCutoff },
+      },
+      orderBy: { removedAt: "desc" },
+      select: { id: true, image: true, removedAt: true, removalReason: true },
     })
   }),
 

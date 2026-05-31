@@ -151,11 +151,18 @@ export const postRouter = router({
       if (!user) throw new TRPCError({ code: "NOT_FOUND" })
 
       const isOwner = input.viewerUserId === user.id
+      const graceCutoff = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+
       return ctx.prisma.post.findMany({
-        where: {
-          userId: user.id,
-          status: isOwner ? { in: ["PUBLISHED", "PENDING_REVIEW"] } : "PUBLISHED",
-        },
+        where: isOwner
+          ? {
+              userId: user.id,
+              OR: [
+                { status: { in: ["PUBLISHED", "PENDING_REVIEW"] } },
+                { status: "REMOVED", removedAt: { gte: graceCutoff } },
+              ],
+            }
+          : { userId: user.id, status: "PUBLISHED" },
         orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       })
     }),
