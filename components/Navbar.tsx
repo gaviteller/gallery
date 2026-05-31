@@ -72,6 +72,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
             }
 
             const link = getNotificationLink()
+            const isRemoval = ["post_removed_tos", "post_removed_moderator", "post_auto_removed"].includes(n.type)
 
             return (
               <button
@@ -97,6 +98,9 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                 <p className="text-sm text-gray-800">
                   <span className="font-semibold">{isSystem ? "Gallery" : `@${n.fromUser!.username}`}</span>{" "}
                   {getNotificationText()}
+                  {isRemoval && (
+                    <> · <a href="/appeal" style={{ color: "#a78bfa", textDecoration: "underline" }} onClick={e => e.stopPropagation()}>Appeal →</a></>
+                  )}
                 </p>
               </button>
             )
@@ -174,6 +178,12 @@ export default function Navbar() {
               className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Account settings
+            </button>
+            <button
+              onClick={() => { setMenuOpen(false); router.push("/appeal") }}
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Appeals
             </button>
             <button
               onClick={() => { setMenuOpen(false); router.push("/professional-profile") }}

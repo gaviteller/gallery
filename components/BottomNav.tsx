@@ -140,6 +140,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
             }
 
             const link = getLink()
+            const isRemoval = ["post_removed_tos", "post_removed_moderator", "post_auto_removed"].includes(n.type)
 
             return (
               <button
@@ -174,6 +175,9 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                     {isSystem ? "Gallery" : `@${n.fromUser!.username}`}
                   </span>{" "}
                   {getText()}
+                  {isRemoval && (
+                    <> · <a href="/appeal" style={{ color: "#a78bfa", textDecoration: "underline" }} onClick={e => e.stopPropagation()}>Appeal →</a></>
+                  )}
                 </p>
               </button>
             )
