@@ -17,7 +17,7 @@ Last updated: 2026-05-29
 - [x] "Opt out of location-based ad targeting" toggle in Settings
 
 ### Discovery & Search
-- [ ] Commission browse filters — style, medium, price range
+- [x] Commission browse filters — style, medium, price range
 - [ ] Full search — artists, posts, shop, commissions in one grouped results page
 - [ ] Rising Stars / Artist Spotlight rotating feature slot
 
@@ -175,3 +175,4 @@ Last updated: 2026-05-29
 - Block / unblock — mutual invisibility, deletes follow relationships; enforced in feed, search, DMs, commissions
 - Optimistic like button (onMutate/onError/onSettled, no full feed refetch)
 - Removal transparency — 15-day grace window, removalReason shown on profile + appeal page, appeal link in nav/notifications; admin required to enter reason on manual removal
+- Commission browse filters — style and price chips on Explore tab, keyword-mapped to free-form artStyles, URL-shareable filter state
