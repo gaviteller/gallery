@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import { trpc } from "@/components/providers"
 
-export default function AppealPage() {
+function AppealPageInner() {
   const { data: session } = useSession()
   const [text, setText] = useState("")
   const [selectedStrikeId, setSelectedStrikeId] = useState<string | undefined>()
@@ -21,6 +22,16 @@ export default function AppealPage() {
       setSelectedPostId(undefined)
     },
   })
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const preselect = searchParams.get("postId")
+    if (preselect && removedPosts?.some(p => p.id === preselect)) {
+      setSelectedPostId(preselect)
+      setSelectedStrikeId(undefined)
+    }
+  }, [searchParams, removedPosts])
 
   if (!session) {
     return (
@@ -75,39 +86,46 @@ export default function AppealPage() {
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
             Your removed posts
           </p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
             {removedPosts.map(p => {
               const alreadyAppealed = appeals?.some(a => a.postId === p.id && a.status === "PENDING")
               const isSelected = selectedPostId === p.id
               return (
-                <div
-                  key={p.id}
-                  onClick={() => {
-                    if (alreadyAppealed) return
-                    setSelectedPostId(prev => prev === p.id ? undefined : p.id)
-                    setSelectedStrikeId(undefined)
-                  }}
-                  style={{
-                    position: "relative",
-                    width: 72, height: 72,
-                    borderRadius: 8,
-                    overflow: "hidden",
-                    cursor: alreadyAppealed ? "default" : "pointer",
-                    border: `2px solid ${isSelected ? "rgba(176,68,248,0.8)" : "rgba(255,255,255,0.1)"}`,
-                    opacity: alreadyAppealed ? 0.5 : 1,
-                  }}
-                >
-                  <img src={p.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  {alreadyAppealed && (
-                    <div style={{
-                      position: "absolute", inset: 0,
-                      background: "rgba(0,0,0,0.6)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 9, textAlign: "center", padding: "0 4px" }}>
-                        Appealed
-                      </span>
-                    </div>
+                <div key={p.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, maxWidth: 72 }}>
+                  <div
+                    onClick={() => {
+                      if (alreadyAppealed) return
+                      setSelectedPostId(prev => prev === p.id ? undefined : p.id)
+                      setSelectedStrikeId(undefined)
+                    }}
+                    style={{
+                      position: "relative",
+                      width: 72, height: 72,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      cursor: alreadyAppealed ? "default" : "pointer",
+                      border: `2px solid ${isSelected ? "rgba(176,68,248,0.8)" : "rgba(255,255,255,0.1)"}`,
+                      opacity: alreadyAppealed ? 0.5 : 1,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img src={p.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    {alreadyAppealed && (
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        background: "rgba(0,0,0,0.6)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 9, textAlign: "center", padding: "0 4px" }}>
+                          Appealed
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {p.removalReason && (
+                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, textAlign: "center", lineHeight: 1.3, maxWidth: 72, wordBreak: "break-word" }}>
+                      {p.removalReason}
+                    </span>
                   )}
                 </div>
               )
@@ -187,5 +205,13 @@ export default function AppealPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function AppealPage() {
+  return (
+    <Suspense>
+      <AppealPageInner />
+    </Suspense>
   )
 }
