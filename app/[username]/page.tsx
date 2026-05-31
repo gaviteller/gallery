@@ -582,7 +582,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                       }}>
                         <span style={{ color: "#f87171", fontSize: 10, fontWeight: 700, textAlign: "center" }}>Removed</span>
                         {(post as PostItem).removalReason && (
-                          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 8, textAlign: "center", lineHeight: 1.3 }}>
+                          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 8, textAlign: "center", lineHeight: 1.3, wordBreak: "break-word", maxWidth: "90%" }}>
                             {(post as PostItem).removalReason}
                           </span>
                         )}
