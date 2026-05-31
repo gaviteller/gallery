@@ -20,7 +20,7 @@ export const ART_STYLE_KEYWORDS: Record<ArtStyleChip, string[]> = {
   "Anime/Manga": ["anime", "manga", "chibi"],
   Sketch:        ["sketch", "lineart", "line art", "pencil"],
   Watercolor:    ["watercolor", "watercolour"],
-  Comics:        ["comic", "comics", "cartoon", "illustration"],
+  Comics:        ["comic", "comics", "cartoon"],
 }
 
 /** Returns true if any of the artist's artStyles matches the chip's keywords */
