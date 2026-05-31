@@ -37,12 +37,50 @@ describe("getStartingPrice", () => {
   })
 })
 
+describe("matchesStyleChip — regression", () => {
+  it("'illustration' does NOT match Comics (removed to avoid false categorisation)", () => {
+    expect(matchesStyleChip(["digital illustration"], "Comics")).toBe(false)
+  })
+  it("'illustration' still matches Digital (digital substring)", () => {
+    expect(matchesStyleChip(["digital illustration"], "Digital")).toBe(true)
+  })
+})
+
 describe("PRICE_BUCKETS", () => {
   it("has 4 buckets", () => {
     expect(PRICE_BUCKETS).toHaveLength(4)
   })
   it("last bucket has max Infinity", () => {
     expect(PRICE_BUCKETS[3].max).toBe(Infinity)
+  })
+  it("bucket boundaries are non-overlapping", () => {
+    // 24.99 belongs only to Under $25
+    expect(PRICE_BUCKETS[0].max).toBeLessThan(PRICE_BUCKETS[1].min)
+    // 74.99 belongs only to $25–$75
+    expect(PRICE_BUCKETS[1].max).toBeLessThan(PRICE_BUCKETS[2].min)
+    // 149.99 belongs only to $75–$150
+    expect(PRICE_BUCKETS[2].max).toBeLessThan(PRICE_BUCKETS[3].min)
+  })
+  it("boundary value 25 falls in $25–$75 bucket", () => {
+    const bucket = PRICE_BUCKETS.find(b => 25 >= b.min && 25 <= b.max)
+    expect(bucket?.label).toBe("$25–$75")
+  })
+  it("boundary value 75 falls in $75–$150 bucket", () => {
+    const bucket = PRICE_BUCKETS.find(b => 75 >= b.min && 75 <= b.max)
+    expect(bucket?.label).toBe("$75–$150")
+  })
+  it("boundary value 150 falls in $150+ bucket", () => {
+    const bucket = PRICE_BUCKETS.find(b => 150 >= b.min && 150 <= b.max)
+    expect(bucket?.label).toBe("$150+")
+  })
+})
+
+describe("getStartingPrice — edge cases", () => {
+  it("filters out non-finite prices (NaN, Infinity)", () => {
+    expect(getStartingPrice([{ label: "A", price: NaN }, { label: "B", price: 50 }])).toBe(50)
+  })
+  it("returns 0 for a free commission", () => {
+    expect(getStartingPrice([{ label: "Free", price: 0 }])).toBe(0)
   })
 })
 

@@ -32,10 +32,10 @@ export function matchesStyleChip(artStyles: string[], chip: ArtStyleChip): boole
 }
 
 export const PRICE_BUCKETS = [
-  { label: "Under $25",  min: 0,   max: 24.99 },
-  { label: "$25–$75",    min: 25,  max: 75 },
-  { label: "$75–$150",   min: 75,  max: 150 },
-  { label: "$150+",      min: 150, max: Infinity },
+  { label: "Under $25",  min: 0,    max: 24.99 },
+  { label: "$25–$75",    min: 25,   max: 74.99 },
+  { label: "$75–$150",   min: 75,   max: 149.99 },
+  { label: "$150+",      min: 150,  max: Infinity }, // Infinity = no upper bound
 ] as const
 
 export type PriceBucket = (typeof PRICE_BUCKETS)[number]

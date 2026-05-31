@@ -567,7 +567,10 @@ function ExploreTabInner({
     ? (styleParam.split(",").filter(s => (ART_STYLE_CHIPS as readonly string[]).includes(s)) as ArtStyleChip[])
     : []
   const initialPrice = searchParams.get("price") ?? null
-  const initialSort = (searchParams.get("sort") as SortBy) ?? "default"
+  const sortRaw = searchParams.get("sort")
+  const initialSort: SortBy = (["top", "new", "affordable"] as const).includes(sortRaw as SortBy)
+    ? (sortRaw as SortBy)
+    : "default"
 
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState<SortBy>(initialSort)
@@ -586,7 +589,7 @@ function ExploreTabInner({
     if (price) params.set("price", price)
     if (sort !== "default") params.set("sort", sort)
     const qs = params.toString()
-    router.replace(`/commissions?${qs}`, { scroll: false })
+    router.replace(qs ? `/commissions?${qs}` : "/commissions", { scroll: false })
   }
 
   function toggleStyle(chip: ArtStyleChip) {
@@ -654,6 +657,7 @@ function ExploreTabInner({
           {SORT_CHIPS.map(chip => (
             <button
               key={chip.value}
+              aria-pressed={sortBy === chip.value}
               onClick={() => toggleSort(chip.value)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                 sortBy === chip.value ? "text-white" : "text-white/50 hover:text-white/80"
@@ -675,6 +679,7 @@ function ExploreTabInner({
             return (
               <button
                 key={chip}
+                aria-pressed={active}
                 onClick={() => toggleStyle(chip)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   active ? "text-white" : "text-white/50 hover:text-white/80"
@@ -697,6 +702,7 @@ function ExploreTabInner({
             return (
               <button
                 key={bucket.label}
+                aria-pressed={active}
                 onClick={() => togglePrice(bucket.label)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   active ? "text-white" : "text-white/50 hover:text-white/80"
