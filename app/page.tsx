@@ -145,6 +145,7 @@ export default function FeedPage() {
       <div className="px-4 py-3 flex justify-end">
         <Link
           href="/commissions"
+          aria-label="Browse all artists open for commissions"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white transition-opacity hover:opacity-80"
           style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
         >
