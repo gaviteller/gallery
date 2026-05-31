@@ -19,7 +19,11 @@ export async function GET(req: Request) {
     await prisma.$transaction(async (tx) => {
       await tx.post.update({
         where: { id: post.id },
-        data: { status: "REMOVED" },
+        data: {
+          status: "REMOVED",
+          removedAt: new Date(),
+          removalReason: "This post was not resolved within the 14-day review period.",
+        },
       })
       await tx.notification.create({
         data: { userId: post.userId, fromUserId: null, type: "post_auto_removed" },
