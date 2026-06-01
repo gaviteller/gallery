@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, Suspense } from "react"
+import { useState, useRef, Suspense, useEffect } from "react"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
@@ -94,7 +94,7 @@ function PostsSection({ items, total, onSeeAll }: { items: PostItem[]; total: nu
         {items.map((post) => (
           <button
             key={post.id}
-            onClick={() => router.push(`/@${post.user.username}`)}
+            onClick={() => { if (post.user.username) router.push(`/@${post.user.username}`) }}
             className="aspect-square rounded-md overflow-hidden relative"
             style={{ background: "rgba(255,255,255,0.06)" }}
           >
@@ -126,7 +126,7 @@ function ShopSection({ items, total, onSeeAll }: { items: ShopItem[]; total: num
         {items.map((item) => (
           <button
             key={item.id}
-            onClick={() => router.push(`/@${item.user.username}`)}
+            onClick={() => { if (item.user.username) router.push(`/@${item.user.username}`) }}
             className="flex items-center gap-2.5 p-2 rounded-lg text-left hover:bg-white/[0.06] transition-colors"
             style={{ background: "rgba(255,255,255,0.04)" }}
           >
@@ -136,7 +136,7 @@ function ShopSection({ items, total, onSeeAll }: { items: ShopItem[]; total: num
               <p className="text-[10px] text-white/40">@{item.user.username}</p>
             </div>
             <span className="text-[11px] font-bold flex-shrink-0" style={{ color: "rgba(255,200,0,0.9)" }}>
-              ${item.price}
+              ${item.price.toFixed(2)}
             </span>
           </button>
         ))}
@@ -156,6 +156,19 @@ function SearchInner() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const query = searchParams.get("q") ?? ""
   const enabled = query.trim().length >= 1
+
+  // Sync input with URL on external navigation (back/forward)
+  useEffect(() => {
+    const urlQ = searchParams.get("q") ?? ""
+    setInputValue(urlQ)
+  }, [searchParams])
+
+  // Debounce cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   // Debounce URL writes
   function handleInput(value: string) {

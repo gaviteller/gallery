@@ -62,6 +62,7 @@ export const searchRouter = router({
     .query(async ({ ctx, input }) => {
       const where = {
         status: "PUBLISHED" as const,
+        user: { username: { not: null } },
         OR: [
           { description: { contains: input.query, mode: "insensitive" as const } },
           { hashtags: { some: { tag: { contains: input.query, mode: "insensitive" as const } } } },
@@ -93,6 +94,7 @@ export const searchRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const where = {
+        user: { username: { not: null } },
         OR: [
           { title: { contains: input.query, mode: "insensitive" as const } },
           { description: { contains: input.query, mode: "insensitive" as const } },
