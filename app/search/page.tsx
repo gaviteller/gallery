@@ -152,7 +152,9 @@ function SearchInner() {
   const router = useRouter()
   const pathname = usePathname()
   const initialQ = searchParams.get("q") ?? ""
+  const tab = searchParams.get("tab") as "artists" | "posts" | "shop" | null
   const [inputValue, setInputValue] = useState(initialQ)
+  const [limit, setLimit] = useState(20)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const query = searchParams.get("q") ?? ""
   const enabled = query.trim().length >= 1
@@ -163,22 +165,30 @@ function SearchInner() {
     setInputValue(urlQ)
   }, [searchParams])
 
-  // Debounce cleanup on unmount
+  // Reset limit when query or tab changes
   useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [])
+    setLimit(20)
+  }, [query, tab])
 
   // Debounce URL writes
   function handleInput(value: string) {
     setInputValue(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      const qs = value.trim() ? `?q=${encodeURIComponent(value.trim())}` : ""
-      router.replace(`${pathname}${qs}`, { scroll: false })
+      const params = new URLSearchParams()
+      if (value.trim()) params.set("q", value.trim())
+      if (tab) params.set("tab", tab)
+      const qs = params.toString()
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false })
     }, 300)
   }
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   function handleClear() {
     setInputValue("")
@@ -186,33 +196,54 @@ function SearchInner() {
     router.replace(pathname, { scroll: false })
   }
 
-  function goTab(tab: string) {
-    router.push(`/search?q=${encodeURIComponent(query)}&tab=${tab}`)
+  function goTab(t: string) {
+    router.push(`/search?q=${encodeURIComponent(query)}&tab=${t}`)
   }
 
-  const { data: artistsData } = trpc.search.artists.useQuery(
-    { query, limit: 5 },
-    { enabled }
-  )
-  const { data: postsData } = trpc.search.posts.useQuery(
-    { query, limit: 6 },
-    { enabled }
-  )
-  const { data: shopData } = trpc.search.shop.useQuery(
-    { query, limit: 4 },
-    { enabled }
-  )
+  function goBack() {
+    router.push(`/search?q=${encodeURIComponent(query)}`)
+  }
+
+  // Overview queries (small limits)
+  const overviewEnabled = enabled && !tab
+  const { data: artistsData } = trpc.search.artists.useQuery({ query, limit: 5 }, { enabled: overviewEnabled })
+  const { data: postsData } = trpc.search.posts.useQuery({ query, limit: 6 }, { enabled: overviewEnabled })
+  const { data: shopData } = trpc.search.shop.useQuery({ query, limit: 4 }, { enabled: overviewEnabled })
+
+  // Tab queries (full paginated)
+  const { data: tabArtists } = trpc.search.artists.useQuery({ query, limit }, { enabled: enabled && tab === "artists" })
+  const { data: tabPosts } = trpc.search.posts.useQuery({ query, limit }, { enabled: enabled && tab === "posts" })
+  const { data: tabShop } = trpc.search.shop.useQuery({ query, limit }, { enabled: enabled && tab === "shop" })
 
   const hasArtists = (artistsData?.items.length ?? 0) > 0
   const hasPosts = (postsData?.items.length ?? 0) > 0
   const hasShop = (shopData?.items.length ?? 0) > 0
   const hasAnyResults = hasArtists || hasPosts || hasShop
-  const searchedAndEmpty = enabled && artistsData && postsData && shopData && !hasAnyResults
+  const searchedAndEmpty = overviewEnabled && artistsData && postsData && shopData && !hasAnyResults
+
+  const tabColors: Record<string, string> = {
+    artists: "rgba(176,68,248,0.9)",
+    posts: "rgba(0,180,238,0.9)",
+    shop: "rgba(255,200,0,0.9)",
+  }
+  const tabLabels: Record<string, string> = {
+    artists: "Artists",
+    posts: "Posts",
+    shop: "Shop",
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "#0d0d0f" }}>
       {/* Sticky search bar */}
       <div className="sticky top-0 z-10 px-4 py-3" style={{ background: "#0d0d0f", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        {tab && (
+          <button onClick={goBack} className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors mb-2">
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to results
+          </button>
+        )}
         <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl"
           style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5">
@@ -230,36 +261,93 @@ function SearchInner() {
             <button onClick={handleClear} className="text-white/40 hover:text-white/70 transition-colors text-xs">✕</button>
           )}
         </div>
+        {tab && (
+          <p className="text-[11px] font-bold uppercase tracking-widest mt-2 px-1"
+            style={{ color: tabColors[tab] }}>
+            {tabLabels[tab]}
+          </p>
+        )}
       </div>
 
       {/* Results */}
       <div className="px-4 py-4 flex flex-col gap-5 pb-24">
-        {searchedAndEmpty && (
-          <p className="text-sm text-white/40 text-center mt-12">No results for &ldquo;{query}&rdquo;</p>
+
+        {/* Overview mode */}
+        {!tab && (
+          <>
+            {searchedAndEmpty && (
+              <p className="text-sm text-white/40 text-center mt-12">No results for &ldquo;{query}&rdquo;</p>
+            )}
+            {hasArtists && (
+              <ArtistsSection items={artistsData!.items} total={artistsData!.total} onSeeAll={() => goTab("artists")} />
+            )}
+            {hasPosts && (
+              <PostsSection items={postsData!.items} total={postsData!.total} onSeeAll={() => goTab("posts")} />
+            )}
+            {hasShop && (
+              <ShopSection items={shopData!.items} total={shopData!.total} onSeeAll={() => goTab("shop")} />
+            )}
+          </>
         )}
 
-        {hasArtists && (
-          <ArtistsSection
-            items={artistsData!.items}
-            total={artistsData!.total}
-            onSeeAll={() => goTab("artists")}
-          />
+        {/* Tab: Artists */}
+        {tab === "artists" && tabArtists && (
+          <>
+            {tabArtists.items.length === 0 ? (
+              <p className="text-sm text-white/40 text-center mt-12">No artists found for &ldquo;{query}&rdquo;</p>
+            ) : (
+              <ArtistsSection items={tabArtists.items} total={tabArtists.total} onSeeAll={() => {}} />
+            )}
+            {tabArtists.items.length < tabArtists.total && (
+              <button
+                onClick={() => setLimit(l => l + 20)}
+                className="w-full py-2.5 text-xs font-semibold text-white/50 hover:text-white transition-colors rounded-xl"
+                style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+              >
+                Load more
+              </button>
+            )}
+          </>
         )}
 
-        {hasPosts && (
-          <PostsSection
-            items={postsData!.items}
-            total={postsData!.total}
-            onSeeAll={() => goTab("posts")}
-          />
+        {/* Tab: Posts */}
+        {tab === "posts" && tabPosts && (
+          <>
+            {tabPosts.items.length === 0 ? (
+              <p className="text-sm text-white/40 text-center mt-12">No posts found for &ldquo;{query}&rdquo;</p>
+            ) : (
+              <PostsSection items={tabPosts.items} total={tabPosts.total} onSeeAll={() => {}} />
+            )}
+            {tabPosts.items.length < tabPosts.total && (
+              <button
+                onClick={() => setLimit(l => l + 20)}
+                className="w-full py-2.5 text-xs font-semibold text-white/50 hover:text-white transition-colors rounded-xl"
+                style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+              >
+                Load more
+              </button>
+            )}
+          </>
         )}
 
-        {hasShop && (
-          <ShopSection
-            items={shopData!.items}
-            total={shopData!.total}
-            onSeeAll={() => goTab("shop")}
-          />
+        {/* Tab: Shop */}
+        {tab === "shop" && tabShop && (
+          <>
+            {tabShop.items.length === 0 ? (
+              <p className="text-sm text-white/40 text-center mt-12">No shop items found for &ldquo;{query}&rdquo;</p>
+            ) : (
+              <ShopSection items={tabShop.items} total={tabShop.total} onSeeAll={() => {}} />
+            )}
+            {tabShop.items.length < tabShop.total && (
+              <button
+                onClick={() => setLimit(l => l + 20)}
+                className="w-full py-2.5 text-xs font-semibold text-white/50 hover:text-white transition-colors rounded-xl"
+                style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+              >
+                Load more
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
