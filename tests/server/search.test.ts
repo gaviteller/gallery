@@ -32,7 +32,7 @@ const mockShopItem = {
 
 const mockPrisma = {
   block: { findMany: vi.fn() },
-  user: { findMany: vi.fn() },
+  user: { findMany: vi.fn(), count: vi.fn() },
   post: { findMany: vi.fn(), count: vi.fn() },
   shopItem: { findMany: vi.fn(), count: vi.fn() },
 }
@@ -42,7 +42,7 @@ function getCaller() {
 }
 
 beforeEach(() => {
-  vi.resetAllMocks()
+  vi.clearAllMocks()
   mockPrisma.block.findMany.mockResolvedValue([])
 })
 
@@ -51,7 +51,6 @@ beforeEach(() => {
 describe("search.artists", () => {
   it("returns matching users with commissionStatus", async () => {
     mockPrisma.user.findMany.mockResolvedValueOnce([mockUser])  // items
-    mockPrisma.user.findMany.mockResolvedValueOnce([mockUser])  // count via length
     const caller = getCaller()
     const result = await caller.search.artists({ query: "luna" })
     expect(result.items).toHaveLength(1)
