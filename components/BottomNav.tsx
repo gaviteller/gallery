@@ -8,73 +8,6 @@ import Link from "next/link"
 import Image from "next/image"
 import Avatar from "@/components/Avatar"
 
-function SearchModal({ onClose }: { onClose: () => void }) {
-  const [query, setQuery] = useState("")
-  const enabled = query.trim().length > 0
-  const { data: users } = trpc.user.search.useQuery({ query }, { enabled })
-  const { data: tags } = trpc.hashtag.search.useQuery({ query }, { enabled })
-  const router = useRouter()
-
-  const hasResults = (users && users.length > 0) || (tags && tags.length > 0)
-
-  return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-end md:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-t-2xl md:rounded-2xl p-5 pb-8" style={{ background: "#1a1a2e", border: "1px solid #ffffff15" }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3 mb-4">
-          <input
-            autoFocus
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search people or #tags…"
-            className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500"
-            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
-          />
-          <button onClick={onClose} className="text-sm text-white/40 hover:text-white transition-colors">Cancel</button>
-        </div>
-
-        {hasResults ? (
-          <div className="flex flex-col gap-1 max-h-72 overflow-y-auto">
-            {tags && tags.length > 0 && tags.map((tag) => (
-              <button
-                key={tag.id}
-                onClick={() => { onClose(); router.push(`/hashtag/${tag.tag}`) }}
-                className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
-              >
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white/60 text-sm font-bold flex-shrink-0" style={{ background: "#ffffff10" }}>#</div>
-                <div>
-                  <p className="text-sm font-semibold text-white">#{tag.tag}</p>
-                  <p className="text-xs text-white/40">{tag._count.posts} {tag._count.posts === 1 ? "post" : "posts"}</p>
-                </div>
-              </button>
-            ))}
-            {users && users.length > 0 && users.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => { onClose(); router.push(`/@${user.username}`) }}
-                className="flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
-              >
-                {user.image ? (
-                  <img src={user.image} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-                    {(user.name ?? user.username ?? "?")[0].toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-semibold text-white">@{user.username}</p>
-                  {user.name && <p className="text-xs text-white/40">{user.name}</p>}
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : enabled ? (
-          <p className="text-sm text-white/40 text-center py-4">No results for &ldquo;{query}&rdquo;</p>
-        ) : null}
-      </div>
-    </div>
-  )
-}
 
 function NotificationPanel({ onClose }: { onClose: () => void }) {
   const { data: notifications } = trpc.notification.getAll.useQuery()
@@ -193,7 +126,6 @@ export default function BottomNav() {
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const router = useRouter()
-  const [searchOpen, setSearchOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
 
@@ -228,9 +160,8 @@ export default function BottomNav() {
     },
     {
       label: "Search",
-      href: null,
-      active: false,
-      onClick: () => setSearchOpen(true),
+      href: "/search",
+      active: pathname === "/search" || pathname.startsWith("/search/"),
       icon: (
         <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"/>
@@ -286,8 +217,7 @@ export default function BottomNav() {
 
   return (
     <>
-      {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}
-      {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
+{notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
 
       {/* ── MOBILE bottom nav ─────────────────────────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 h-16" style={{ background: "#0D0D0F", borderTop: "1px solid #ffffff10" }}>
