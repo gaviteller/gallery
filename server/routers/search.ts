@@ -25,6 +25,8 @@ export const searchRouter = router({
         }
       }
 
+      // Note: bannedUntil is intentionally not filtered here — search is public discovery.
+      // Banned users can still be found but cannot accept commissions.
       const where = {
         OR: [
           { username: { contains: input.query, mode: "insensitive" as const } },
@@ -60,9 +62,26 @@ export const searchRouter = router({
       limit: z.number().int().min(1).max(50).default(20),
     }))
     .query(async ({ ctx, input }) => {
+      const blockedIds = new Set<string>()
+      if (ctx.session?.user?.id) {
+        const blockRelations = await ctx.prisma.block.findMany({
+          where: {
+            OR: [
+              { blockerId: ctx.session.user.id },
+              { blockedId: ctx.session.user.id },
+            ],
+          },
+          select: { blockerId: true, blockedId: true },
+        })
+        for (const b of blockRelations) {
+          blockedIds.add(b.blockerId === ctx.session.user.id ? b.blockedId : b.blockerId)
+        }
+      }
+
       const where = {
         status: "PUBLISHED" as const,
         user: { username: { not: null } },
+        ...(blockedIds.size > 0 ? { userId: { notIn: [...blockedIds] } } : {}),
         OR: [
           { description: { contains: input.query, mode: "insensitive" as const } },
           { hashtags: { some: { tag: { contains: input.query, mode: "insensitive" as const } } } },
@@ -93,8 +112,25 @@ export const searchRouter = router({
       limit: z.number().int().min(1).max(50).default(20),
     }))
     .query(async ({ ctx, input }) => {
+      const blockedIds = new Set<string>()
+      if (ctx.session?.user?.id) {
+        const blockRelations = await ctx.prisma.block.findMany({
+          where: {
+            OR: [
+              { blockerId: ctx.session.user.id },
+              { blockedId: ctx.session.user.id },
+            ],
+          },
+          select: { blockerId: true, blockedId: true },
+        })
+        for (const b of blockRelations) {
+          blockedIds.add(b.blockerId === ctx.session.user.id ? b.blockedId : b.blockerId)
+        }
+      }
+
       const where = {
         user: { username: { not: null } },
+        ...(blockedIds.size > 0 ? { userId: { notIn: [...blockedIds] } } : {}),
         OR: [
           { title: { contains: input.query, mode: "insensitive" as const } },
           { description: { contains: input.query, mode: "insensitive" as const } },

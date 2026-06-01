@@ -2,6 +2,7 @@
 
 import { useState, useRef, Suspense, useEffect } from "react"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
+import Link from "next/link"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
 
@@ -52,16 +53,15 @@ function SectionHeader({ label, color, total, onSeeAll }: {
 type ArtistItem = { id: string; username: string | null; name: string | null; image: string | null; commissionStatus: "OPEN" | "LIMITED" | "CLOSED" }
 
 function ArtistsSection({ items, total, onSeeAll }: { items: ArtistItem[]; total: number; onSeeAll: () => void }) {
-  const router = useRouter()
   if (items.length === 0) return null
   return (
     <div>
       <SectionHeader label="Artists" color="rgba(176,68,248,0.9)" total={total} onSeeAll={onSeeAll} />
       <div className="flex flex-col">
         {items.map((user) => (
-          <button
+          <Link
             key={user.id}
-            onClick={() => router.push(`/@${user.username}`)}
+            href={`/@${user.username}`}
             className="flex items-center gap-2.5 py-2 border-b last:border-b-0 text-left hover:bg-white/[0.03] rounded-lg px-1 transition-colors"
             style={{ borderColor: "rgba(255,255,255,0.05)" }}
           >
@@ -73,7 +73,7 @@ function ArtistsSection({ items, total, onSeeAll }: { items: ArtistItem[]; total
               </div>
               <span className="text-[10px] text-white/40">@{user.username}</span>
             </div>
-          </button>
+          </Link>
         ))}
       </div>
     </div>
@@ -85,16 +85,15 @@ function ArtistsSection({ items, total, onSeeAll }: { items: ArtistItem[]; total
 type PostItem = { id: string; image: string; description: string | null; user: { username: string | null } }
 
 function PostsSection({ items, total, onSeeAll }: { items: PostItem[]; total: number; onSeeAll: () => void }) {
-  const router = useRouter()
   if (items.length === 0) return null
   return (
     <div>
       <SectionHeader label="Posts" color="rgba(0,180,238,0.9)" total={total} onSeeAll={onSeeAll} />
       <div className="grid grid-cols-3 gap-1">
         {items.map((post) => (
-          <button
+          <Link
             key={post.id}
-            onClick={() => { if (post.user.username) router.push(`/@${post.user.username}`) }}
+            href={post.user.username ? `/@${post.user.username}` : "#"}
             className="aspect-square rounded-md overflow-hidden relative"
             style={{ background: "rgba(255,255,255,0.06)" }}
           >
@@ -105,7 +104,7 @@ function PostsSection({ items, total, onSeeAll }: { items: PostItem[]; total: nu
                 <p className="text-[7px] text-white truncate">{post.description}</p>
               </div>
             )}
-          </button>
+          </Link>
         ))}
       </div>
     </div>
@@ -117,16 +116,15 @@ function PostsSection({ items, total, onSeeAll }: { items: PostItem[]; total: nu
 type ShopItem = { id: string; image: string; title: string; price: number; user: { username: string | null } }
 
 function ShopSection({ items, total, onSeeAll }: { items: ShopItem[]; total: number; onSeeAll: () => void }) {
-  const router = useRouter()
   if (items.length === 0) return null
   return (
     <div>
       <SectionHeader label="Shop" color="rgba(255,200,0,0.9)" total={total} onSeeAll={onSeeAll} />
       <div className="flex flex-col gap-1.5">
         {items.map((item) => (
-          <button
+          <Link
             key={item.id}
-            onClick={() => { if (item.user.username) router.push(`/@${item.user.username}`) }}
+            href={item.user.username ? `/@${item.user.username}` : "#"}
             className="flex items-center gap-2.5 p-2 rounded-lg text-left hover:bg-white/[0.06] transition-colors"
             style={{ background: "rgba(255,255,255,0.04)" }}
           >
@@ -138,7 +136,7 @@ function ShopSection({ items, total, onSeeAll }: { items: ShopItem[]; total: num
             <span className="text-[11px] font-bold flex-shrink-0" style={{ color: "rgba(255,200,0,0.9)" }}>
               ${item.price.toFixed(2)}
             </span>
-          </button>
+          </Link>
         ))}
       </div>
     </div>
