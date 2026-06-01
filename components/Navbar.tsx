@@ -139,6 +139,17 @@ export default function Navbar() {
 
   return (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+      {/* Search */}
+      <button
+        onClick={() => router.push("/search")}
+        className="flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors"
+        aria-label="Search"
+      >
+        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </button>
+
       {/* Notification bell */}
       <div className="relative" ref={notifRef}>
         <button
