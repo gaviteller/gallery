@@ -14,6 +14,7 @@ import { storyRouter } from "./story"
 import { dmcaRouter } from "./dmca"
 import { authRouter } from "./auth"
 import { blockRouter } from "./block"
+import { searchRouter } from "./search"
 
 export const appRouter = router({
   user: userRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   dmca: dmcaRouter,
   auth: authRouter,
   block: blockRouter,
+  search: searchRouter,
 })
 
 export type AppRouter = typeof appRouter
