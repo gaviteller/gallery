@@ -149,8 +149,11 @@ function ShopSection({ items, total, onSeeAll }: { items: ShopItem[]; total: num
 // ── Discovery screen (shown when no query) ────────────────────────────────────
 
 function DiscoveryScreen() {
-  const { data: risingData } = trpc.discovery.risingStars.useQuery({ limit: 15 })
-  const { data: spotlightData } = trpc.discovery.spotlight.useQuery({ limit: 15 })
+  const { data: risingData, isLoading: risingLoading, error: risingError } = trpc.discovery.risingStars.useQuery({ limit: 15 })
+  const { data: spotlightData, isLoading: spotlightLoading } = trpc.discovery.spotlight.useQuery({ limit: 15 })
+
+  // Temporary diagnostic — remove once confirmed working
+  console.log("[Discovery]", { risingLoading, risingItems: risingData?.items.length, risingError: risingError?.message })
 
   return (
     <div className="flex flex-col gap-5 pb-24 pt-3">
