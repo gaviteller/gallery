@@ -103,3 +103,39 @@ describe("discovery.spotlight", () => {
     expect(result.items).toHaveLength(0)
   })
 })
+
+describe("discovery.forYou", () => {
+  it("returns posts for anonymous user", async () => {
+    mockPrisma.post.findMany.mockResolvedValue([
+      { id: "post-1", image: "img1", description: "cool art", user: { username: "luna" }, _count: { likes: 50 } },
+    ])
+    const caller = getCaller()
+    const result = await caller.discovery.forYou({ limit: 9 })
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0].id).toBe("post-1")
+  })
+
+  it("respects limit", async () => {
+    const posts = Array.from({ length: 9 }, (_, i) => ({
+      id: `post-${i}`,
+      image: `img${i}`,
+      description: null,
+      user: { username: `user${i}` },
+      _count: { likes: i },
+    }))
+    mockPrisma.post.findMany.mockResolvedValue(posts)
+    const caller = getCaller()
+    const result = await caller.discovery.forYou({ limit: 9 })
+    expect(result.items).toHaveLength(9)
+  })
+
+  it("excludes followed users when session present", async () => {
+    mockPrisma.follow.findMany.mockResolvedValue([{ followingId: "followed-user" }])
+    mockPrisma.post.findMany.mockResolvedValue([])
+    const caller = createCaller({ session: { user: { id: "me" } } as any, prisma: mockPrisma as any })
+    await caller.discovery.forYou({ limit: 9 })
+    const callArgs = mockPrisma.post.findMany.mock.calls[0][0]
+    expect(callArgs.where.userId.notIn).toContain("followed-user")
+    expect(callArgs.where.userId.notIn).toContain("me")
+  })
+})

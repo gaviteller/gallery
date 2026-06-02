@@ -157,4 +157,47 @@ export const discoveryRouter = router({
 
       return { items, total: candidates.length }
     }),
+
+  forYou: publicProcedure
+    .input(z.object({
+      limit: z.number().int().min(1).max(50).default(9),
+    }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id
+      const blockedIds = await getBlockedIds(ctx.prisma, userId)
+
+      const followedIds = userId
+        ? (await ctx.prisma.follow.findMany({
+            where: { followerId: userId },
+            select: { followingId: true },
+          })).map((f: { followingId: string }) => f.followingId)
+        : []
+
+      const excludeIds = [
+        ...followedIds,
+        ...(userId ? [userId] : []),
+        ...blockedIds,
+      ]
+
+      const where = {
+        status: "PUBLISHED" as const,
+        user: { username: { not: null } },
+        ...(excludeIds.length > 0 ? { userId: { notIn: excludeIds } } : {}),
+      }
+
+      const items = await ctx.prisma.post.findMany({
+        where,
+        select: {
+          id: true,
+          image: true,
+          description: true,
+          user: { select: { username: true } },
+          _count: { select: { likes: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: input.limit,
+      })
+
+      return { items }
+    }),
 })
