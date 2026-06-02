@@ -5,6 +5,9 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
+import ArtistScrollRow from "@/components/discovery/ArtistScrollRow"
+import ForYouGrid from "@/components/discovery/ForYouGrid"
+import FilteredArtistList from "@/components/discovery/FilteredArtistList"
 
 // ── Commission status badge ──────────────────────────────────────────────────
 
@@ -143,6 +146,43 @@ function ShopSection({ items, total, onSeeAll }: { items: ShopItem[]; total: num
   )
 }
 
+// ── Discovery screen (shown when no query) ────────────────────────────────────
+
+function DiscoveryScreen() {
+  const { data: risingData } = trpc.discovery.risingStars.useQuery({ limit: 15 })
+  const { data: spotlightData } = trpc.discovery.spotlight.useQuery({ limit: 15 })
+
+  return (
+    <div className="flex flex-col gap-5 pb-24 pt-3">
+      <ArtistScrollRow
+        label="⬆ Rising Stars"
+        labelColor="rgba(255,200,0,0.9)"
+        filterParam="rising-stars"
+        items={risingData?.items ?? []}
+        total={risingData?.total ?? 0}
+      />
+
+      {(risingData?.items.length ?? 0) > 0 && (
+        <div className="mx-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }} />
+      )}
+
+      <ArtistScrollRow
+        label="✦ Spotlight"
+        labelColor="rgba(176,68,248,0.9)"
+        filterParam="spotlight"
+        items={spotlightData?.items ?? []}
+        total={spotlightData?.total ?? 0}
+      />
+
+      {(spotlightData?.items.length ?? 0) > 0 && (
+        <div className="mx-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }} />
+      )}
+
+      <ForYouGrid />
+    </div>
+  )
+}
+
 // ── Main search inner component ───────────────────────────────────────────────
 
 function SearchInner() {
@@ -151,6 +191,15 @@ function SearchInner() {
   const pathname = usePathname()
   const initialQ = searchParams.get("q") ?? ""
   const tab = searchParams.get("tab") as "artists" | "posts" | "shop" | null
+  const filter = searchParams.get("filter") as "rising-stars" | "spotlight" | null
+  const filterLabels: Record<string, string> = {
+    "rising-stars": "⬆ Rising Stars",
+    "spotlight": "✦ Spotlight",
+  }
+  const filterColors: Record<string, string> = {
+    "rising-stars": "rgba(255,200,0,0.9)",
+    "spotlight": "rgba(176,68,248,0.9)",
+  }
   const [inputValue, setInputValue] = useState(initialQ)
   const [limit, setLimit] = useState(20)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -234,12 +283,15 @@ function SearchInner() {
     <div className="min-h-screen" style={{ background: "#0d0d0f" }}>
       {/* Sticky search bar */}
       <div className="sticky top-0 z-10 px-4 py-3" style={{ background: "#0d0d0f", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        {tab && (
-          <button onClick={goBack} className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors mb-2">
+        {(tab || filter) && (
+          <button
+            onClick={tab ? goBack : () => router.push("/search")}
+            className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors mb-2"
+          >
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            Back to results
+            {filter ? "Back to discover" : "Back to results"}
           </button>
         )}
         <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl"
@@ -265,9 +317,30 @@ function SearchInner() {
             {tabLabels[tab]}
           </p>
         )}
+        {filter && (
+          <p
+            className="text-[11px] font-bold uppercase tracking-widest mt-2 px-1"
+            style={{ color: filterColors[filter] }}
+          >
+            {filterLabels[filter]}
+          </p>
+        )}
       </div>
 
+      {/* Filter view: full Rising Stars or Spotlight list */}
+      {filter && !enabled && (
+        <div className="py-4">
+          <FilteredArtistList filter={filter} />
+        </div>
+      )}
+
+      {/* Discovery screen: no query, no filter */}
+      {!filter && !enabled && (
+        <DiscoveryScreen />
+      )}
+
       {/* Results */}
+      {enabled && (
       <div className="px-4 py-4 flex flex-col gap-5 pb-24">
 
         {/* Overview mode */}
@@ -348,6 +421,7 @@ function SearchInner() {
           </>
         )}
       </div>
+      )}
     </div>
   )
 }
