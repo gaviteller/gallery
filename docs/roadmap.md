@@ -19,7 +19,7 @@ Last updated: 2026-05-29
 ### Discovery & Search
 - [x] Commission browse filters — style, medium, price range
 - [x] Full search — artists, posts, shop, commissions in one grouped results page
-- [ ] Rising Stars / Artist Spotlight rotating feature slot
+- [x] Rising Stars / Artist Spotlight rotating feature slot
 
 ---
 
@@ -182,3 +182,4 @@ Last updated: 2026-05-29
 - Removal transparency — 15-day grace window, removalReason shown on profile + appeal page, appeal link in nav/notifications; admin required to enter reason on manual removal
 - Commission browse filters — style and price chips on Explore tab, keyword-mapped to free-form artStyles, URL-shareable filter state
 - Full search — `/search` page with grouped Artists / Posts / Shop sections, "See all →" tab views, debounced URL state, search icon in Navbar and BottomNav
+- Discovery screen — `/search` idle state shows Rising Stars (new artists gaining traction), Spotlight (established artists), and You Might Like post grid; feed injects discovery posts at positions 4 and 9 on first page
