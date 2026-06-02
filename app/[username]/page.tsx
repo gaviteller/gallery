@@ -338,6 +338,29 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           </div>
         )}
 
+        {/* Discovery badge — Rising Star or Spotlight */}
+        {(() => {
+          const ageDays = (Date.now() - new Date(profileUser.createdAt).getTime()) / 86_400_000
+          const postCount = posts?.length ?? 0
+          if (ageDays <= 90 && postCount >= 1) {
+            return (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,200,0,0.1)", border: "1px solid rgba(255,200,0,0.3)", borderRadius: 20, padding: "3px 10px", marginTop: 6 }}>
+                <span style={{ fontSize: 11 }}>⬆</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,200,0,0.9)" }}>Rising Star</span>
+              </div>
+            )
+          }
+          if (ageDays > 90 && postCount >= 5) {
+            return (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(176,68,248,0.1)", border: "1px solid rgba(176,68,248,0.25)", borderRadius: 20, padding: "3px 10px", marginTop: 6 }}>
+                <span style={{ fontSize: 11 }}>✦</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(176,68,248,0.9)" }}>Spotlight</span>
+              </div>
+            )
+          }
+          return null
+        })()}
+
         {/* Stats */}
         <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}><strong style={{ color: "white" }}>{posts?.length ?? 0}</strong> posts</span>
