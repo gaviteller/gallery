@@ -170,7 +170,7 @@ export const discoveryRouter = router({
         ? (await ctx.prisma.follow.findMany({
             where: { followerId: userId },
             select: { followingId: true },
-          })).map((f: { followingId: string }) => f.followingId)
+          })).map(f => f.followingId)
         : []
 
       const excludeIds = [
@@ -181,7 +181,7 @@ export const discoveryRouter = router({
 
       const where = {
         status: "PUBLISHED" as const,
-        user: { username: { not: null } },
+        user: { username: { not: null }, bannedUntil: null },
         ...(excludeIds.length > 0 ? { userId: { notIn: excludeIds } } : {}),
       }
 
