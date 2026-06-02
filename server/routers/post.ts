@@ -139,49 +139,6 @@ export const postRouter = router({
         ? input.cursor + PAGE_SIZE
         : null
 
-      // ── Discovery injection (first page only) ─────────────────────────────────
-      if (input.cursor === 0 && userId) {
-        try {
-          const discoveryPosts = await ctx.prisma.post.findMany({
-            where: {
-              status: "PUBLISHED",
-              user: { username: { not: null }, bannedUntil: null },
-              userId: {
-                notIn: [userId, ...[...followingSet], ...[...blockedUserIds]],
-              },
-            },
-            include: {
-              user: { select: { id: true, username: true, name: true, image: true, commissionStatus: true } },
-              _count: { select: { likes: true, comments: true } },
-            },
-            orderBy: { createdAt: "desc" },
-            take: 2,
-          })
-
-          // Insert at positions 4 and 9 (if page is long enough)
-          const injectAt = [4, 9]
-          let offset = 0
-          for (const pos of injectAt) {
-            const adjusted = pos + offset
-            if (discoveryPosts.length === 0) break
-            if (adjusted <= slice.length) {
-              const inject = discoveryPosts.shift()!
-              slice.splice(adjusted, 0, {
-                ...inject,
-                isFollowing: false,
-                isOwnPost: false,
-                likedByMe: false,
-                viewerHasReported: false,
-                _score: 0,
-              })
-              offset++
-            }
-          }
-        } catch {
-          // Discovery injection is non-critical — don't fail the feed
-        }
-      }
-
       return { posts: slice, nextCursor }
     }),
 
