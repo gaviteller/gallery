@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import { useState } from "react"
+import type React from "react"
 import { trpc } from "@/components/providers"
 import Link from "next/link"
 import Image from "next/image"
@@ -144,7 +145,7 @@ export default function BottomNav() {
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/")
 
   // ── Shared nav items ──────────────────────────────────────────────────────
-  const navItems = [
+  const navItems: { label: string; href?: string; active: boolean; icon: React.ReactElement; badge?: number | null; onClick?: () => void }[] = [
     {
       label: "Feed",
       href: "/",

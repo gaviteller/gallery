@@ -568,7 +568,7 @@ function ExploreTabInner({
     : []
   const initialPrice = searchParams.get("price") ?? null
   const sortRaw = searchParams.get("sort")
-  const initialSort: SortBy = (["top", "new", "affordable"] as const).includes(sortRaw as SortBy)
+  const initialSort: SortBy = (["top", "new", "affordable"] as string[]).includes(sortRaw ?? "")
     ? (sortRaw as SortBy)
     : "default"
 
