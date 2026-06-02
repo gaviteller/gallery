@@ -21,8 +21,9 @@ export default function FilteredArtistList({ filter }: { filter: Filter }) {
   const data = filter === "rising-stars" ? risingData.data : spotlightData.data
   const items = data?.items ?? []
   const total = data?.total ?? 0
+  const isLoading = filter === "rising-stars" ? risingData.isLoading : spotlightData.isLoading
 
-  if (items.length === 0) {
+  if (!isLoading && items.length === 0) {
     return (
       <p className="text-sm text-white/40 text-center mt-12">
         No artists found yet.
@@ -38,7 +39,7 @@ export default function FilteredArtistList({ filter }: { filter: Filter }) {
         ))}
       </div>
 
-      {items.length < total && (
+      {items.length < total && limit < 50 && (
         <button
           onClick={() => setLimit(l => Math.min(l + 20, 50))}
           className="w-full py-2.5 mt-4 text-xs font-semibold text-white/40 hover:text-white/70 transition-colors rounded-xl"
