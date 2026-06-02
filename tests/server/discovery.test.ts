@@ -70,6 +70,20 @@ describe("discovery.risingStars", () => {
     const result = await caller.discovery.risingStars({ limit: 3 })
     expect(result.items).toHaveLength(3)
   })
+
+  it("excludes blocked users", async () => {
+    mockPrisma.block.findMany.mockResolvedValue([
+      { blockerId: "me", blockedId: "user-1" },
+    ])
+    mockPrisma.user.findMany.mockResolvedValue([mockArtist]) // mockArtist has id: "user-1"
+    const caller = createCaller({ session: { user: { id: "me" } } as any, prisma: mockPrisma as any })
+    const result = await caller.discovery.risingStars({ limit: 15 })
+    // user-1 is blocked — should NOT appear
+    // BUT: The Prisma mock always returns what we tell it to, so we verify
+    // that the notIn filter was passed to user.findMany
+    const callArgs = mockPrisma.user.findMany.mock.calls[0][0]
+    expect(callArgs.where.id?.notIn).toContain("user-1")
+  })
 })
 
 describe("discovery.spotlight", () => {

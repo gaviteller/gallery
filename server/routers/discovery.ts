@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { router, publicProcedure } from "@/lib/trpc"
-import type { PrismaClient } from "@prisma/client"
+import type { PrismaClient, CommissionStatus } from "@prisma/client"
 
 // ── Block helper ─────────────────────────────────────────────────────────────
 
@@ -20,6 +20,11 @@ async function getBlockedIds(
   return blocked
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const DISCOVERY_WINDOW_DAYS = 90
+const DISCOVERY_WINDOW_MS = DISCOVERY_WINDOW_DAYS * 24 * 60 * 60 * 1000
+
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 type ScoredCandidate = {
@@ -27,7 +32,7 @@ type ScoredCandidate = {
   username: string | null
   name: string | null
   image: string | null
-  commissionStatus: "OPEN" | "LIMITED" | "CLOSED"
+  commissionStatus: CommissionStatus
   createdAt: Date
   _count: { followers: number }
   posts: { _count: { likes: number } }[]
@@ -101,7 +106,7 @@ export const discoveryRouter = router({
     .input(z.object({ limit: z.number().int().min(1).max(50).default(15) }))
     .query(async ({ ctx, input }) => {
       const blockedIds = await getBlockedIds(ctx.prisma, ctx.session?.user?.id)
-      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+      const ninetyDaysAgo = new Date(Date.now() - DISCOVERY_WINDOW_MS)
 
       const candidates = await ctx.prisma.user.findMany({
         where: {
@@ -129,7 +134,7 @@ export const discoveryRouter = router({
     .input(z.object({ limit: z.number().int().min(1).max(50).default(15) }))
     .query(async ({ ctx, input }) => {
       const blockedIds = await getBlockedIds(ctx.prisma, ctx.session?.user?.id)
-      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+      const ninetyDaysAgo = new Date(Date.now() - DISCOVERY_WINDOW_MS)
 
       const candidates = await ctx.prisma.user.findMany({
         where: {
@@ -141,7 +146,7 @@ export const discoveryRouter = router({
         },
         select: CANDIDATE_SELECT,
         take: 200,
-        orderBy: { createdAt: "asc" },
+        orderBy: { followers: { _count: "desc" } },
       })
 
       const items = (candidates as ScoredCandidate[])
