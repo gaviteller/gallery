@@ -16,7 +16,7 @@ Last updated: 2026-05-29
 - [x] "Opt out of location-based ad targeting" toggle in Settings
 - [x] Cookie consent banner for EU users
 - [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
-- [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
+- [x] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
 
 ### Auth
 - [ ] Google OAuth
