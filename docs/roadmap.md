@@ -38,6 +38,20 @@ Last updated: 2026-05-29
 - [x] Rising Stars / Spotlight / You Might Like discovery screen on /search
 - [x] Personalized You Might Like feed (recency + engagement + interest graph)
 
+### Email Notifications
+- [ ] Welcome email on signup
+- [ ] Commission request received (artist)
+- [ ] Commission accepted (buyer)
+- [ ] Commission declined (buyer)
+- [ ] Commission payment confirmed (artist)
+- [ ] Commission delivered (buyer)
+- [ ] Commission approved / complete (artist)
+- [ ] Commission cancelled — notify other party
+- [ ] Commission dispute raised — notify both parties
+- [ ] DMCA counter-notice filed → email to claimant
+- [ ] Post restored after successful counter-notice (14-day window expired)
+- [ ] Shop inquiry received (artist)
+
 ### AI Features
 - [ ] AI moderation — image scan on upload (NSFW, gore, stolen art, CSAM), auto-action on high-confidence violations, low-confidence routed to human queue
 - [ ] AI discovery — smarter Rising Stars / Spotlight ranking using ML signals beyond follower/like counts
