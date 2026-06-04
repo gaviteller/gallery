@@ -4,26 +4,23 @@ Last updated: 2026-05-29
 
 ---
 
-## 🟢 Tier 1 — Almost done
+## 🚀 Pre-Launch — by category
 
 ### Performance
-- [ ] Skeleton loading states (replace all "Loading…" with shimmer)
-- [ ] Lazy load images on feed + profile
+- [x] Skeleton loading states (replace all "Loading…" with shimmer)
+- [x] Lazy load images on feed + profile
 
 ### Safety & Compliance
 - [x] Email notification on content flagged/removed
-- [ ] Cookie consent banner for EU users
 - [x] Age gate — 13+ at signup (EU under-16 parental consent deferred)
 - [x] "Opt out of location-based ad targeting" toggle in Settings
+- [x] Cookie consent banner for EU users
+- [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
+- [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
 
-### Discovery & Search
-- [x] Commission browse filters — style, medium, price range
-- [x] Full search — artists, posts, shop, commissions in one grouped results page
-- [x] Rising Stars / Artist Spotlight rotating feature slot
-
----
-
-## 🟡 Tier 2 — Must have to launch prototype
+### Auth
+- [ ] Google OAuth
+- [ ] Apple ID sign in
 
 ### Payments — Real Money (currently simulated)
 - [ ] Stripe Connect onboarding for artists
@@ -35,16 +32,18 @@ Last updated: 2026-05-29
 - [ ] Payout dashboard for artists (replace simulated totals)
 - [ ] 8% standard / 5% Pro fees applied to real payments
 
-### Auth
-- [ ] Google OAuth
-- [ ] Apple ID sign in
+### Discovery & Search
+- [x] Commission browse filters — style, medium, price range
+- [x] Full search — artists, posts, shop in one grouped results page
+- [x] Rising Stars / Spotlight / You Might Like discovery screen on /search
+- [x] Personalized You Might Like feed (recency + engagement + interest graph)
 
-### Legal & Compliance
-- [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
-- [ ] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
-
-### Discovery
-- [ ] Hidden Gems vs Recommended two-tier AI discovery feed
+### AI Features
+- [ ] AI moderation — image scan on upload (NSFW, gore, stolen art, CSAM), auto-action on high-confidence violations, low-confidence routed to human queue
+- [ ] AI discovery — smarter Rising Stars / Spotlight ranking using ML signals beyond follower/like counts
+- [ ] AI text moderation — scan descriptions and comments for harassment, hate speech, spam
+- [ ] Report triage — AI pre-scores incoming reports so most severe float to top of queue
+- [ ] Strike suggestion — AI recommends strike level for moderator to confirm
 
 ### Infrastructure & Data Safety
 - [ ] Move post/avatar/banner image storage out of the database — store files on disk or a cloud bucket (S3/Cloudinary/R2) and save only the URL in the DB, so images survive a DB reset

@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar"
 import BottomNav from "@/components/BottomNav"
 import PushInit from "@/components/PushInit"
 import BanBanner from "@/components/BanBanner"
+import CookieConsent from "@/components/CookieConsent"
 import Link from "next/link"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <BanBanner />
+          <CookieConsent />
           <PushInit />
           {/* Navbar: visible on mobile only — desktop uses the sidebar in BottomNav */}
           <div className="md:hidden">
