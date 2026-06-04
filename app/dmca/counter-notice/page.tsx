@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { trpc } from "@/components/providers"
 
 function CounterNoticeInner() {
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const searchParams = useSearchParams()
   const dmcaRequestId = searchParams.get("id") ?? ""
 
@@ -17,6 +17,7 @@ function CounterNoticeInner() {
     onSuccess: () => setSubmitted(true),
   })
 
+  if (sessionStatus === "loading") return null
   if (!session) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
