@@ -4,7 +4,6 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState, Suspense } from "react"
 import { trpc } from "@/components/providers"
-import { PageSkeleton } from "@/components/Skeleton"
 import { uploadImage } from "@/lib/upload"
 
 function SettingsForm() {
@@ -196,7 +195,7 @@ function SettingsForm() {
     .slice(0, 2)
 
   if (status === "loading" || isLoading) {
-    return <PageSkeleton />
+    return <div className="min-h-screen flex items-center justify-center"><p className="text-white/40">Loading…</p></div>
   }
 
   return (
