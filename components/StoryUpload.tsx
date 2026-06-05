@@ -1,6 +1,7 @@
 "use client"
 import { useRef, useState } from "react"
 import { trpc } from "@/components/providers"
+import { uploadImage } from "@/lib/upload"
 
 function processImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -101,7 +102,15 @@ export default function StoryUpload({ onClose, onSuccess }: { onClose: () => voi
                 Choose different
               </button>
               <button
-                onClick={() => createStory.mutate({ image: preview })}
+                onClick={async () => {
+                  if (!preview) return
+                  try {
+                    const url = await uploadImage(preview, "stories")
+                    createStory.mutate({ image: url })
+                  } catch (err) {
+                    setError("Failed to upload story image. Please try again.")
+                  }
+                }}
                 disabled={createStory.isPending}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
