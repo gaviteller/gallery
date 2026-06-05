@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
+import { PageSkeleton } from "@/components/Skeleton"
+import { uploadImage } from "@/lib/upload"
 
 type PriceRange = { label: string; price: number }
 
@@ -46,11 +48,7 @@ export default function ProfessionalProfilePage() {
   }, [status, router])
 
   if (status === "unauthenticated" || status === "loading" || !session?.user?.username) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
-        <p className="text-white/50">Loading…</p>
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return <ProfessionalProfileInner username={session.user.username!} />
@@ -126,11 +124,20 @@ function ProfessionalProfileInner({ username }: { username: string }) {
     },
   })
 
-  function doSaveCardImages(images: string[]) {
-    saveCardImages.mutate({
-      commissionStatus: status,
-      commissionCardImages: images,
-    })
+  async function doSaveCardImages(images: string[]) {
+    try {
+      const urls = await Promise.all(
+        images.map(img =>
+          img.startsWith("data:") ? uploadImage(img, "commissions") : Promise.resolve(img)
+        )
+      )
+      saveCardImages.mutate({
+        commissionStatus: status,
+        commissionCardImages: urls,
+      })
+    } catch (err) {
+      setCardUploadError("Failed to upload images. Please try again.")
+    }
   }
 
   const createCategory = trpc.commission.createCategory.useMutation({
@@ -239,11 +246,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
-        <p className="text-white/50">Loading…</p>
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (
