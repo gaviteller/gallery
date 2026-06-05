@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
+import { uploadImage } from "@/lib/upload"
 
 type Category = { name: string; options: string[] }
 
@@ -72,9 +73,10 @@ export default function CommissionRequestModal({ artistId, artistUsername, categ
     setUploading(true)
     try {
       const processed = await Promise.all(files.map(f => processImage(f)))
-      setRefPhotos(prev => [...prev, ...processed])
+      const urls = await Promise.all(processed.map(b64 => uploadImage(b64, "commissions")))
+      setRefPhotos(prev => [...prev, ...urls])
     } catch (err) {
-      setError("Failed to process image. Please try a different file.")
+      setError("Failed to upload image. Please try a different file.")
     } finally {
       setUploading(false)
     }
