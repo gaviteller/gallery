@@ -13,6 +13,8 @@ import StoryUpload from "@/components/StoryUpload"
 import ImageCropEditor from "@/components/ImageCropEditor"
 import { TIER_LABELS, TIER_COLORS } from "@/server/lib/trustScore"
 import { applyWatermark } from "@/lib/watermark"
+import { uploadImage as uploadToCloudinary } from "@/lib/upload"
+import { ProfileSkeleton, PostGridSkeleton, InlineSkeleton } from "@/components/Skeleton"
 
 const statusColors = {
   OPEN: "bg-green-500/20 text-green-400",
@@ -194,7 +196,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   }
 
   if (userLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="text-white/40">Loading…</div></div>
+    return <ProfileSkeleton />
   }
 
   if (!profileUser) {
@@ -524,7 +526,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <>
 
           {postsLoading ? (
-            <div className="text-center py-16 text-white/40">Loading…</div>
+            <PostGridSkeleton count={9} />
           ) : posts && posts.length > 0 ? (
             <div className="grid grid-cols-3" style={{ gap: 2 }}>
               {posts.map((post) => (
@@ -535,7 +537,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                       setViewPost(post as PostItem)
                     }}
                     className="relative aspect-square overflow-hidden group w-full" style={{ borderRadius: 4 }}>
-                    <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
+                    <img src={post.image} alt={post.description ?? ""} loading="lazy" className="w-full h-full object-cover" />
                     <div className="absolute top-1.5 left-1.5 flex gap-1">
                       {post.isAiGenerated && (
                         <span className="text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
@@ -645,7 +647,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           )}
 
           {shopLoading ? (
-            <div className="text-center py-16 text-white/40">Loading…</div>
+            <InlineSkeleton rows={4} />
           ) : shopItems && shopItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               {shopItems.map((item) => (
@@ -696,9 +698,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {tab === "Commissions" && (
         <>
           {!commissionProfile ? (
-            <div className="text-center py-12">
-              <p className="text-white/30 text-sm">Loading…</p>
-            </div>
+            <InlineSkeleton rows={5} />
           ) : (
             <>
               {/* Info card */}
@@ -906,20 +906,29 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 setIsWatermarking(true)
                 try {
                   const watermarked = await applyWatermark(imageToPost, session?.user?.username ?? "gallery")
+                  const url = await uploadToCloudinary(watermarked, "posts")
                   createPost.mutate({
-                    image: watermarked,
+                    image: url,
                     description: uploadDesc.trim() || undefined,
                     isAiGenerated: uploadIsAi,
                     isCommission: uploadIsCommission,
                   })
-                } catch {
-                  console.warn("[watermark] applyWatermark failed, posting without watermark")
-                  createPost.mutate({
-                    image: imageToPost,
-                    description: uploadDesc.trim() || undefined,
-                    isAiGenerated: uploadIsAi,
-                    isCommission: uploadIsCommission,
-                  })
+                } catch (err) {
+                  console.warn("[watermark/upload] failed, posting without watermark/cloudinary", err)
+                  try {
+                    const url = await uploadToCloudinary(imageToPost, "posts")
+                    createPost.mutate({
+                      image: url,
+                      description: uploadDesc.trim() || undefined,
+                      isAiGenerated: uploadIsAi,
+                      isCommission: uploadIsCommission,
+                    })
+                  } catch (uploadErr) {
+                    console.error("[post] cloudinary upload failed:", uploadErr)
+                  } finally {
+                    setIsWatermarking(false)
+                  }
+                  return
                 } finally {
                   setIsWatermarking(false)
                 }
@@ -975,10 +984,14 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             {createShopItem.error && <p className="text-sm text-red-400">{createShopItem.error.message}</p>}
 
             <button
-              onClick={() => {
+              onClick={async () => {
                 const price = parseFloat(shopPrice)
-                if (shopImage && shopTitle.trim() && !isNaN(price) && price > 0) {
-                  createShopItem.mutate({ image: shopImage, title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
+                if (!shopImage || !shopTitle.trim() || isNaN(price) || price <= 0) return
+                try {
+                  const url = await uploadToCloudinary(shopImage, "posts")
+                  createShopItem.mutate({ image: url, title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
+                } catch (err) {
+                  console.error("[shop] cloudinary upload failed:", err)
                 }
               }}
               disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing}
