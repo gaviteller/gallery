@@ -43,6 +43,7 @@ function SettingsForm() {
   const [photoProcessing, setPhotoProcessing] = useState(false)
   const [bannerImage, setBannerImage] = useState<string | null>(null)
   const [bannerProcessing, setBannerProcessing] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -160,6 +161,7 @@ function SettingsForm() {
   }
 
   async function handleSave() {
+    setSaveError(null)
     try {
       let imageUrl = image
       let bannerUrl = bannerImage
@@ -184,6 +186,7 @@ function SettingsForm() {
       })
     } catch (err) {
       console.error("[settings] image upload failed:", err)
+      setSaveError("Failed to upload image. Please try again.")
     }
   }
 
@@ -361,6 +364,9 @@ function SettingsForm() {
 
         {updateProfile.error && (
           <p className="text-sm text-red-500">{updateProfile.error.message}</p>
+        )}
+        {saveError && (
+          <p className="text-sm text-red-500">{saveError}</p>
         )}
 
         <button

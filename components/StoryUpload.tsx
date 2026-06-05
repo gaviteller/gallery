@@ -33,6 +33,7 @@ function processImage(file: File): Promise<string> {
 export default function StoryUpload({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [preview, setPreview] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const utils = trpc.useUtils()
@@ -104,18 +105,21 @@ export default function StoryUpload({ onClose, onSuccess }: { onClose: () => voi
               <button
                 onClick={async () => {
                   if (!preview) return
+                  setUploading(true)
                   try {
                     const url = await uploadImage(preview, "stories")
                     createStory.mutate({ image: url })
                   } catch (err) {
                     setError("Failed to upload story image. Please try again.")
+                  } finally {
+                    setUploading(false)
                   }
                 }}
-                disabled={createStory.isPending}
+                disabled={createStory.isPending || uploading}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
               >
-                {createStory.isPending ? "Sharing…" : "Share story"}
+                {createStory.isPending || uploading ? "Sharing…" : "Share story"}
               </button>
             </div>
           </div>

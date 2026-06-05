@@ -125,6 +125,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [uploadIsAi, setUploadIsAi] = useState(false)
   const [uploadIsCommission, setUploadIsCommission] = useState(false)
   const [imgProcessing, setImgProcessing] = useState(false)
+  const [postUploadError, setPostUploadError] = useState<string | null>(null)
   const [isWatermarking, setIsWatermarking] = useState(false)
 
   const getOrCreateDM = trpc.dm.getOrCreate.useMutation({
@@ -141,6 +142,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       setUploadDesc("")
       setUploadIsAi(false)
       setUploadIsCommission(false)
+      setPostUploadError(null)
     },
   })
 
@@ -160,6 +162,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [shopDesc, setShopDesc] = useState("")
   const [shopPrice, setShopPrice] = useState("")
   const [shopImgProcessing, setShopImgProcessing] = useState(false)
+  const [shopUploadError, setShopUploadError] = useState<string | null>(null)
   const [viewShopItem, setViewShopItem] = useState<{ id: string; image: string; title: string; description: string | null; price: number; createdAt: Date } | null>(null)
 
   // Reset breakdown panel when navigating to a different profile
@@ -848,7 +851,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">New post</h2>
-              <button onClick={() => { setShowUpload(false); setRawImage(null); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false) }}
+              <button onClick={() => { setShowUpload(false); setRawImage(null); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false); setPostUploadError(null) }}
                 className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
             </div>
 
@@ -899,10 +902,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             ))}
 
             {!rawImage && createPost.error && <p className="text-sm text-red-400">{createPost.error.message}</p>}
+            {!rawImage && postUploadError && <p className="text-sm text-red-400">{postUploadError}</p>}
 
             {!rawImage && <button
               onClick={async () => {
                 if (!uploadImage) return
+                setPostUploadError(null)
                 const imageToPost = uploadImage
                 setIsWatermarking(true)
                 try {
@@ -926,6 +931,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     })
                   } catch (uploadErr) {
                     console.error("[post] cloudinary upload failed:", uploadErr)
+                    setPostUploadError("Failed to upload image. Please try again.")
                   } finally {
                     setIsWatermarking(false)
                   }
@@ -949,7 +955,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">Add shop item</h2>
-              <button onClick={() => { setShowShopUpload(false); setShopImage(null); setShopTitle(""); setShopDesc(""); setShopPrice("") }}
+              <button onClick={() => { setShowShopUpload(false); setShopImage(null); setShopTitle(""); setShopDesc(""); setShopPrice(""); setShopUploadError(null) }}
                 className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
             </div>
 
@@ -983,16 +989,19 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             </div>
 
             {createShopItem.error && <p className="text-sm text-red-400">{createShopItem.error.message}</p>}
+            {shopUploadError && <p className="text-sm text-red-400">{shopUploadError}</p>}
 
             <button
               onClick={async () => {
                 const price = parseFloat(shopPrice)
                 if (!shopImage || !shopTitle.trim() || isNaN(price) || price <= 0) return
+                setShopUploadError(null)
                 try {
                   const url = await uploadToCloudinary(shopImage, "posts")
                   createShopItem.mutate({ image: url, title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
                 } catch (err) {
                   console.error("[shop] cloudinary upload failed:", err)
+                  setShopUploadError("Failed to upload image. Please try again.")
                 }
               }}
               disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing}

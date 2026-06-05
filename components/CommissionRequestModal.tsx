@@ -192,7 +192,7 @@ export default function CommissionRequestModal({ artistId, artistUsername, categ
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span className="text-sm text-gray-500">{uploading ? "Processing…" : "Add reference photo"}</span>
+                <span className="text-sm text-gray-500">{uploading ? "Uploading…" : "Add reference photo"}</span>
                 <input
                   type="file"
                   accept="image/*"
