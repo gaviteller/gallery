@@ -60,7 +60,7 @@ Last updated: 2026-05-29
 - [ ] Strike suggestion — AI recommends strike level for moderator to confirm
 
 ### Infrastructure & Data Safety
-- [ ] Move post/avatar/banner image storage out of the database — store files on disk or a cloud bucket (S3/Cloudinary/R2) and save only the URL in the DB, so images survive a DB reset
+- [x] Move post/avatar/banner image storage out of the database — store files on disk or a cloud bucket (S3/Cloudinary/R2) and save only the URL in the DB, so images survive a DB reset
 - [ ] Automated daily DB backup (pg_dump to a local or cloud location) with a restore runbook in docs/
 - [ ] Prisma seed script (`prisma/seed.ts`) so `prisma migrate reset` auto-repopulates with test data instead of leaving an empty DB
 
