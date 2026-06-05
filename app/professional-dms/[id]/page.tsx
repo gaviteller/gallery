@@ -4,7 +4,9 @@ import { useState, use, useRef, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
+import { uploadImage } from "@/lib/upload"
 import Avatar from "@/components/Avatar"
+import { PageSkeleton } from "@/components/Skeleton"
 
 function processImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -78,7 +80,7 @@ export default function CommissionThreadPage({ params }: { params: Promise<{ id:
   }, [authStatus, router])
 
   if (authStatus === "unauthenticated" || authStatus === "loading") {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}><p className="text-white/50">Loading…</p></div>
+    return <PageSkeleton />
   }
 
   return <CommissionThread id={id} userId={session!.user.id} />
@@ -223,9 +225,10 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     setUploadingDelivery(true)
     try {
       const processed = await processImage(file)
-      setDeliveryFile(processed)
+      const url = await uploadImage(processed, "commissions")
+      setDeliveryFile(url)
     } catch {
-      setDeliveryUploadError("Failed to process image. Please try a different file.")
+      setDeliveryUploadError("Failed to upload image. Please try a different file.")
     } finally {
       setUploadingDelivery(false)
     }
@@ -237,7 +240,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
   }
 
   if (isLoading || !commission) {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}><p className="text-white/50">Loading…</p></div>
+    return <PageSkeleton />
   }
 
   const isArtist = commission.artistId === userId
