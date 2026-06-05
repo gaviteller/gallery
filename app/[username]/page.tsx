@@ -14,7 +14,6 @@ import ImageCropEditor from "@/components/ImageCropEditor"
 import { TIER_LABELS, TIER_COLORS } from "@/server/lib/trustScore"
 import { applyWatermark } from "@/lib/watermark"
 import { uploadImage as uploadToCloudinary } from "@/lib/upload"
-import { ProfileSkeleton, PostGridSkeleton, InlineSkeleton } from "@/components/Skeleton"
 
 const statusColors = {
   OPEN: "bg-green-500/20 text-green-400",
@@ -196,7 +195,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   }
 
   if (userLoading) {
-    return <ProfileSkeleton />
+    return <div className="min-h-screen flex items-center justify-center"><div className="text-white/40">Loading…</div></div>
   }
 
   if (!profileUser) {
@@ -526,7 +525,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <>
 
           {postsLoading ? (
-            <PostGridSkeleton count={9} />
+            <div className="text-center py-16 text-white/40">Loading…</div>
           ) : posts && posts.length > 0 ? (
             <div className="grid grid-cols-3" style={{ gap: 2 }}>
               {posts.map((post) => (
@@ -537,7 +536,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                       setViewPost(post as PostItem)
                     }}
                     className="relative aspect-square overflow-hidden group w-full" style={{ borderRadius: 4 }}>
-                    <img src={post.image} alt={post.description ?? ""} loading="lazy" className="w-full h-full object-cover" />
+                    <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
                     <div className="absolute top-1.5 left-1.5 flex gap-1">
                       {post.isAiGenerated && (
                         <span className="text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
@@ -647,7 +646,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           )}
 
           {shopLoading ? (
-            <InlineSkeleton rows={4} />
+            <div className="text-center py-16 text-white/40">Loading…</div>
           ) : shopItems && shopItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               {shopItems.map((item) => (
@@ -698,7 +697,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {tab === "Commissions" && (
         <>
           {!commissionProfile ? (
-            <InlineSkeleton rows={5} />
+            <div className="text-center py-12">
+              <p className="text-white/30 text-sm">Loading…</p>
+            </div>
           ) : (
             <>
               {/* Info card */}
