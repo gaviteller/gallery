@@ -193,7 +193,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
       const processed = await Promise.all(files.map(processImage))
       const next = [...cardImages, ...processed].slice(0, 5)
       setCardImages(next)
-      doSaveCardImages(next) // auto-save immediately after upload
+      await doSaveCardImages(next) // auto-save immediately after upload
     } catch {
       setCardUploadError("Failed to process image. Please try a different file.")
     } finally {

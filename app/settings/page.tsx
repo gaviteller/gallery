@@ -44,6 +44,7 @@ function SettingsForm() {
   const [bannerImage, setBannerImage] = useState<string | null>(null)
   const [bannerProcessing, setBannerProcessing] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -162,6 +163,7 @@ function SettingsForm() {
 
   async function handleSave() {
     setSaveError(null)
+    setIsUploading(true)
     try {
       let imageUrl = image
       let bannerUrl = bannerImage
@@ -187,6 +189,8 @@ function SettingsForm() {
     } catch (err) {
       console.error("[settings] image upload failed:", err)
       setSaveError("Failed to upload image. Please try again.")
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -371,10 +375,10 @@ function SettingsForm() {
 
         <button
           onClick={handleSave}
-          disabled={updateProfile.isPending || photoProcessing || bannerProcessing}
+          disabled={updateProfile.isPending || photoProcessing || bannerProcessing || isUploading}
           className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {updateProfile.isPending ? "Saving…" : "Save changes"}
+          {isUploading ? "Uploading…" : updateProfile.isPending ? "Saving…" : "Save changes"}
         </button>
       </div>
       )}
