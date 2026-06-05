@@ -127,6 +127,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [imgProcessing, setImgProcessing] = useState(false)
   const [postUploadError, setPostUploadError] = useState<string | null>(null)
   const [isWatermarking, setIsWatermarking] = useState(false)
+  const [isUploadingPost, setIsUploadingPost] = useState(false)
 
   const getOrCreateDM = trpc.dm.getOrCreate.useMutation({
     onSuccess: (convo) => router.push(`/messages/${convo.id}`),
@@ -163,6 +164,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [shopPrice, setShopPrice] = useState("")
   const [shopImgProcessing, setShopImgProcessing] = useState(false)
   const [shopUploadError, setShopUploadError] = useState<string | null>(null)
+  const [isUploadingShop, setIsUploadingShop] = useState(false)
   const [viewShopItem, setViewShopItem] = useState<{ id: string; image: string; title: string; description: string | null; price: number; createdAt: Date } | null>(null)
 
   // Reset breakdown panel when navigating to a different profile
@@ -908,42 +910,47 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               onClick={async () => {
                 if (!uploadImage) return
                 setPostUploadError(null)
-                const imageToPost = uploadImage
-                setIsWatermarking(true)
+                setIsUploadingPost(true)
                 try {
-                  const watermarked = await applyWatermark(imageToPost, session?.user?.username ?? "gallery")
-                  const url = await uploadToCloudinary(watermarked, "posts")
-                  createPost.mutate({
-                    image: url,
-                    description: uploadDesc.trim() || undefined,
-                    isAiGenerated: uploadIsAi,
-                    isCommission: uploadIsCommission,
-                  })
-                } catch (err) {
-                  console.warn("[watermark/upload] failed, posting without watermark/cloudinary", err)
+                  const imageToPost = uploadImage
+                  setIsWatermarking(true)
                   try {
-                    const url = await uploadToCloudinary(imageToPost, "posts")
+                    const watermarked = await applyWatermark(imageToPost, session?.user?.username ?? "gallery")
+                    const url = await uploadToCloudinary(watermarked, "posts")
                     createPost.mutate({
                       image: url,
                       description: uploadDesc.trim() || undefined,
                       isAiGenerated: uploadIsAi,
                       isCommission: uploadIsCommission,
                     })
-                  } catch (uploadErr) {
-                    console.error("[post] cloudinary upload failed:", uploadErr)
-                    setPostUploadError("Failed to upload image. Please try again.")
+                  } catch (err) {
+                    console.warn("[watermark/upload] failed, posting without watermark/cloudinary", err)
+                    try {
+                      const url = await uploadToCloudinary(imageToPost, "posts")
+                      createPost.mutate({
+                        image: url,
+                        description: uploadDesc.trim() || undefined,
+                        isAiGenerated: uploadIsAi,
+                        isCommission: uploadIsCommission,
+                      })
+                    } catch (uploadErr) {
+                      console.error("[post] cloudinary upload failed:", uploadErr)
+                      setPostUploadError("Failed to upload image. Please try again.")
+                    } finally {
+                      setIsWatermarking(false)
+                    }
+                    return
                   } finally {
                     setIsWatermarking(false)
                   }
-                  return
                 } finally {
-                  setIsWatermarking(false)
+                  setIsUploadingPost(false)
                 }
               }}
-              disabled={createPost.isPending || !uploadImage || imgProcessing || isWatermarking}
+              disabled={createPost.isPending || !uploadImage || imgProcessing || isWatermarking || isUploadingPost}
               className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-              {createPost.isPending || isWatermarking ? "Posting…" : "Share"}
+              {createPost.isPending || isWatermarking || isUploadingPost ? (isUploadingPost ? "Uploading…" : "Posting…") : "Share"}
             </button>}
           </div>
         </div>
@@ -996,18 +1003,21 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 const price = parseFloat(shopPrice)
                 if (!shopImage || !shopTitle.trim() || isNaN(price) || price <= 0) return
                 setShopUploadError(null)
+                setIsUploadingShop(true)
                 try {
                   const url = await uploadToCloudinary(shopImage, "posts")
                   createShopItem.mutate({ image: url, title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
                 } catch (err) {
                   console.error("[shop] cloudinary upload failed:", err)
                   setShopUploadError("Failed to upload image. Please try again.")
+                } finally {
+                  setIsUploadingShop(false)
                 }
               }}
-              disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing}
+              disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing || isUploadingShop}
               className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-              {createShopItem.isPending ? "Adding…" : "Add to shop"}
+              {isUploadingShop ? "Uploading…" : createShopItem.isPending ? "Adding…" : "Add to shop"}
             </button>
           </div>
         </div>
