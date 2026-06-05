@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { v2 as cloudinary } from "cloudinary"
+import { prisma } from "@/lib/prisma"
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -22,6 +23,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { bannedUntil: true },
+  })
+  if (user?.bannedUntil && user.bannedUntil > new Date()) {
+    return NextResponse.json({ error: "Your account is currently suspended." }, { status: 403 })
+  }
+
   let body: { image?: unknown; folder?: unknown }
   try {
     body = await req.json()
@@ -33,6 +42,12 @@ export async function POST(req: NextRequest) {
 
   if (typeof image !== "string" || !image.startsWith("data:image/")) {
     return NextResponse.json({ error: "image must be a base64 data URL" }, { status: 400 })
+  }
+
+  const base64Data = image.split(",")[1] ?? ""
+  const MAX_BASE64_CHARS = 14_000_000 // ~10 MB decoded
+  if (base64Data.length > MAX_BASE64_CHARS) {
+    return NextResponse.json({ error: "Image exceeds maximum size (10 MB)" }, { status: 413 })
   }
 
   if (!isAllowedFolder(folder)) {
