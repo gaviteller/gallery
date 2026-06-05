@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
-import { PageSkeleton } from "@/components/Skeleton"
 import { uploadImage } from "@/lib/upload"
 
 type PriceRange = { label: string; price: number }
@@ -48,7 +47,11 @@ export default function ProfessionalProfilePage() {
   }, [status, router])
 
   if (status === "unauthenticated" || status === "loading" || !session?.user?.username) {
-    return <PageSkeleton />
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+        <p className="text-white/50">Loading…</p>
+      </div>
+    )
   }
 
   return <ProfessionalProfileInner username={session.user.username!} />
@@ -246,7 +249,11 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   }
 
   if (isLoading) {
-    return <PageSkeleton />
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+        <p className="text-white/50">Loading…</p>
+      </div>
+    )
   }
 
   return (
