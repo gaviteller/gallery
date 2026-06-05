@@ -4,6 +4,8 @@ import { useSession, signOut } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState, Suspense } from "react"
 import { trpc } from "@/components/providers"
+import { PageSkeleton } from "@/components/Skeleton"
+import { uploadImage } from "@/lib/upload"
 
 function SettingsForm() {
   const { data: session, status, update } = useSession()
@@ -158,17 +160,32 @@ function SettingsForm() {
     reader.readAsDataURL(file)
   }
 
-  function handleSave() {
-    updateProfile.mutate({
-      name: name.trim() || (user?.name ?? "Artist"),
-      bio: bio.trim() || null,
-      image: image || null,
-      bannerImage: bannerImage || null,
-      websiteUrl: websiteUrl.trim() || null,
-      twitterHandle: twitterHandle.trim() || null,
-      instagramHandle: instagramHandle.trim() || null,
-      artstationHandle: artstationHandle.trim() || null,
-    })
+  async function handleSave() {
+    try {
+      let imageUrl = image
+      let bannerUrl = bannerImage
+
+      // Only upload if the value is a new base64 data URL (user picked a new image)
+      if (image && image.startsWith("data:")) {
+        imageUrl = await uploadImage(image, "avatars")
+      }
+      if (bannerImage && bannerImage.startsWith("data:")) {
+        bannerUrl = await uploadImage(bannerImage, "banners")
+      }
+
+      updateProfile.mutate({
+        name: name.trim() || (user?.name ?? "Artist"),
+        bio: bio.trim() || null,
+        image: imageUrl || null,
+        bannerImage: bannerUrl || null,
+        websiteUrl: websiteUrl.trim() || null,
+        twitterHandle: twitterHandle.trim() || null,
+        instagramHandle: instagramHandle.trim() || null,
+        artstationHandle: artstationHandle.trim() || null,
+      })
+    } catch (err) {
+      console.error("[settings] image upload failed:", err)
+    }
   }
 
   const initials = (name || user?.username || "?")
@@ -179,11 +196,7 @@ function SettingsForm() {
     .slice(0, 2)
 
   if (status === "loading" || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-400">Loading…</div>
-      </div>
-    )
+    return <PageSkeleton />
   }
 
   return (
