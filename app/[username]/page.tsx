@@ -156,21 +156,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     setImgProcessing(false)
   }
 
-  // ── New shop item modal state ─────────────────────────────────
-  const [showShopUpload, setShowShopUpload] = useState(false)
-  const [shopImage, setShopImage] = useState<string | null>(null)
-  const [shopTitle, setShopTitle] = useState("")
-  const [shopDesc, setShopDesc] = useState("")
-  const [shopPrice, setShopPrice] = useState("")
-  const [shopImgProcessing, setShopImgProcessing] = useState(false)
-
-  // ── Shop inquiry modal state ───────────────────────────────────
-  const [inquiryItem, setInquiryItem] = useState<{ id: string; title: string } | null>(null)
-  const [inquiryMessage, setInquiryMessage] = useState("")
-  const [inquirySent, setInquirySent] = useState(false)
-  const [shopUploadError, setShopUploadError] = useState<string | null>(null)
-  const [isUploadingShop, setIsUploadingShop] = useState(false)
-  const [viewShopItem, setViewShopItem] = useState<{ id: string; image: string; title: string; description: string | null; price: number; createdAt: Date } | null>(null)
 
   // Reset breakdown panel when navigating to a different profile
   useEffect(() => { setShowScoreBreakdown(false) }, [username])
@@ -180,31 +165,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     return () => document.removeEventListener("mousedown", handleClick)
   }, [moreMenuOpen])
 
-  const createShopItem = trpc.shop.create.useMutation({
-    onSuccess: () => {
-      utils.shop.getByUsername.invalidate({ username })
-      setShowShopUpload(false)
-      setShopImage(null)
-      setShopTitle("")
-      setShopDesc("")
-      setShopPrice("")
-    },
-  })
-
   const deleteShopItem = trpc.shop.delete.useMutation({
     onSuccess: () => utils.shop.getByUsername.invalidate({ username }),
   })
-
-  // sendInquiry removed — shop inquiry flow replaced by DMs
-
-  async function handleShopImageFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setShopImgProcessing(true)
-    const result = await processImage(file, 1200)
-    setShopImage(result)
-    setShopImgProcessing(false)
-  }
 
   if (userLoading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="text-white/40">Loading…</div></div>
@@ -647,15 +610,24 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── Shop tab ──────────────────────────────────────────── */}
       {tab === "Shop" && (
         <>
-          {isOwn && (
-            <div className="mb-4 flex justify-end">
-              <button onClick={() => setShowShopUpload(true)}
-                className="flex items-center gap-1.5 px-4 py-2 text-white text-sm font-medium rounded-xl hover:opacity-80 transition-opacity"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-                + Add item
-              </button>
-            </div>
-          )}
+          <div className="mb-4 flex items-center justify-between">
+            <Link
+              href={`/@${profileUser.username}/shop`}
+              className="text-sm transition-colors"
+              style={{ color: "rgba(255,255,255,0.4)" }}
+            >
+              Browse all →
+            </Link>
+            {isOwn && (
+              <Link
+                href={`/@${profileUser.username}/shop/new`}
+                className="text-sm font-medium px-3 py-2 rounded-xl transition-colors"
+                style={{ background: "#B044F820", color: "#B044F8", border: "1px solid #B044F830" }}
+              >
+                + Add listing
+              </Link>
+            )}
+          </div>
 
           {shopLoading ? (
             <div className="text-center py-16 text-white/40">Loading…</div>
@@ -682,17 +654,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                           Remove
                         </button>
                       ) : (
-                        <button
-                          onClick={() => {
-                            setInquiryItem({ id: item.id, title: item.title })
-                            setInquiryMessage("")
-                            setInquirySent(false)
-                          }}
-                          className="text-xs text-white px-3 py-1 rounded-lg hover:opacity-80 transition-opacity"
-                          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                        <Link
+                          href={`/@${profileUser.username}/shop/${item.id}`}
+                          className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                          style={{ background: "#B044F820", color: "#B044F8", border: "1px solid #B044F830" }}
                         >
-                          Inquire
-                        </button>
+                          View
+                        </Link>
                       )}
                     </div>
                   </div>
@@ -963,124 +931,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
               {createPost.isPending || isWatermarking || isUploadingPost ? (isUploadingPost ? "Uploading…" : "Posting…") : "Share"}
             </button>}
-          </div>
-        </div>
-      )}
-
-      {/* ── New shop item modal ───────────────────────────────── */}
-      {showShopUpload && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Add shop item</h2>
-              <button onClick={() => { setShowShopUpload(false); setShopImage(null); setShopTitle(""); setShopDesc(""); setShopPrice(""); setShopUploadError(null) }}
-                className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
-            </div>
-
-            {shopImage ? (
-              <div className="relative">
-                <img src={shopImage} alt="Preview" className="w-full rounded-xl object-cover max-h-72" />
-                <button onClick={() => setShopImage(null)}
-                  className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70">
-                  Change
-                </button>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center rounded-xl h-48 cursor-pointer hover:bg-white/5 transition-colors" style={{ border: "2px dashed #ffffff20" }}>
-                <span className="text-3xl mb-2">🛍️</span>
-                <span className="text-sm text-white/40">{shopImgProcessing ? "Processing…" : "Click to choose image"}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleShopImageFile} disabled={shopImgProcessing} />
-              </label>
-            )}
-
-            <input type="text" value={shopTitle} onChange={(e) => setShopTitle(e.target.value)}
-              placeholder="Item title" maxLength={100} className={inputClass} style={inputStyle} />
-
-            <textarea value={shopDesc} onChange={(e) => setShopDesc(e.target.value)}
-              placeholder="Description (optional)" maxLength={500} rows={2}
-              className={`${inputClass} resize-none`} style={inputStyle} />
-
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white/60">$</span>
-              <input type="number" value={shopPrice} onChange={(e) => setShopPrice(e.target.value)}
-                placeholder="0.00" min="0" step="0.01" className={inputClass} style={inputStyle} />
-            </div>
-
-            {createShopItem.error && <p className="text-sm text-red-400">{createShopItem.error.message}</p>}
-            {shopUploadError && <p className="text-sm text-red-400">{shopUploadError}</p>}
-
-            <button
-              onClick={async () => {
-                const price = parseFloat(shopPrice)
-                if (!shopImage || !shopTitle.trim() || isNaN(price) || price <= 0) return
-                setShopUploadError(null)
-                setIsUploadingShop(true)
-                try {
-                  const url = await uploadToCloudinary(shopImage, "posts")
-                  createShopItem.mutate({ image: url, fileUrl: "", title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
-                } catch (err) {
-                  console.error("[shop] cloudinary upload failed:", err)
-                  setShopUploadError("Failed to upload image. Please try again.")
-                } finally {
-                  setIsUploadingShop(false)
-                }
-              }}
-              disabled={createShopItem.isPending || !shopImage || !shopTitle.trim() || !shopPrice || shopImgProcessing || isUploadingShop}
-              className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
-              {isUploadingShop ? "Uploading…" : createShopItem.isPending ? "Adding…" : "Add to shop"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Shop inquiry modal ────────────────────────────────── */}
-      {inquiryItem && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: "#13101f", border: "1px solid rgba(176,68,248,0.25)" }}>
-            <h2 className="text-base font-semibold text-white mb-1">Send inquiry</h2>
-            <p className="text-sm text-white/50 mb-4 line-clamp-1">"{inquiryItem.title}"</p>
-            {inquirySent ? (
-              <>
-                <p className="text-sm text-white/70 mb-4">Your message was sent! The artist will be notified by email.</p>
-                <button
-                  onClick={() => setInquiryItem(null)}
-                  className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity"
-                  style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
-                >
-                  Done
-                </button>
-              </>
-            ) : (
-              <>
-                <textarea
-                  value={inquiryMessage}
-                  onChange={(e) => setInquiryMessage(e.target.value)}
-                  placeholder="Write your message to the artist…"
-                  maxLength={1000}
-                  rows={4}
-                  className="w-full rounded-xl text-sm text-white placeholder-white/30 resize-none mb-4 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "10px 12px" }}
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setInquiryItem(null)}
-                    className="flex-1 text-white/60 py-2.5 rounded-xl text-sm font-medium hover:text-white/80 transition-colors"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => setInquirySent(true)}
-                    disabled={!inquiryMessage.trim()}
-                    className="flex-1 text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
-                  >
-                    Send
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       )}
