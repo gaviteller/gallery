@@ -153,6 +153,9 @@ model ShopItem {
   updatedAt     DateTime    @updatedAt
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders        ShopOrder[]
+
+  @@index([userId])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 model ShopOrder {
