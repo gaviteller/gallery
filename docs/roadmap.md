@@ -6,6 +6,9 @@ Last updated: 2026-05-29
 
 ## 🚀 Pre-Launch — by category
 
+### Appearance & Design
+- [ ] Full visual redesign — make the platform feel distinctive, handcrafted, and artist-native (not generic/AI-generated)
+
 ### Performance
 - [x] Skeleton loading states (replace all "Loading…" with shimmer)
 - [x] Lazy load images on feed + profile
