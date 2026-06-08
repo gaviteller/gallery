@@ -56,7 +56,17 @@ Last updated: 2026-05-29
 - [x] Shop inquiry received (artist) — replaced mailto with Gallery-mediated form + email
 
 ### Shop
-- [x] Shop inquiry — Gallery-mediated inquiry form + email to artist (replaces mailto)
+- [x] Shop inquiry — replaced by real shop purchasing
+- [x] Global /shop feed page (infinite scroll, add-to-cart)
+- [x] /@username/shop artist storefront (replaces profile shop tab)
+- [x] /@username/shop/[itemId] item detail page
+- [x] New listing form — preview image, private digital file, title, price, tags
+- [x] Pause/unpause + delete listings
+- [x] localStorage cart — drawer UI, count badge in both navs
+- [ ] Stripe Connect onboarding for artists — *Plan 2*
+- [ ] Stripe payment intent (single item + cart checkout) — *Plan 2*
+- [ ] Download delivery by email (signed Cloudinary URL, 24h) — *Plan 2*
+- [ ] Artist orders + earnings in professional dashboard — *Plan 3*
 
 ### AI Features
 - [ ] AI moderation — image scan on upload (NSFW, gore, stolen art, CSAM), auto-action on high-confidence violations, low-confidence routed to human queue
