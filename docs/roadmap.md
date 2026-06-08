@@ -52,6 +52,9 @@ Last updated: 2026-05-29
 - [x] Post restored after successful counter-notice (14-day window expired)
 - [x] Shop inquiry received (artist) — replaced mailto with Gallery-mediated form + email
 
+### Shop
+- [x] Shop inquiry — Gallery-mediated inquiry form + email to artist (replaces mailto)
+
 ### AI Features
 - [ ] AI moderation — image scan on upload (NSFW, gore, stolen art, CSAM), auto-action on high-confidence violations, low-confidence routed to human queue
 - [ ] AI discovery — smarter Rising Stars / Spotlight ranking using ML signals beyond follower/like counts
