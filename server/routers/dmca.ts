@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { router, publicProcedure, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
+import { sendDmcaCounterNoticeEmail } from "@/lib/email"
 
 export const dmcaRouter = router({
   submit: publicProcedure
@@ -35,7 +36,7 @@ export const dmcaRouter = router({
     .mutation(async ({ ctx, input }) => {
       const dmca = await ctx.prisma.dmcaRequest.findUnique({
         where: { id: input.dmcaRequestId },
-        select: { id: true, status: true, postId: true },
+        select: { id: true, status: true, postId: true, claimantEmail: true, claimantName: true, postUrl: true },
       })
       if (!dmca) throw new TRPCError({ code: "NOT_FOUND" })
       if (dmca.status !== "REMOVED") {
@@ -66,7 +67,7 @@ export const dmcaRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" })
       }
 
-      return ctx.prisma.dmcaRequest.update({
+      const updated = await ctx.prisma.dmcaRequest.update({
         where: { id: input.dmcaRequestId },
         data: {
           status: "COUNTER_FILED",
@@ -74,5 +75,13 @@ export const dmcaRouter = router({
           counterNoticeText: input.statement,
         },
       })
+      if (dmca.claimantEmail) {
+        await sendDmcaCounterNoticeEmail(dmca.claimantEmail, {
+          claimantName: dmca.claimantName,
+          counterNoticeText: input.statement,
+          postUrl: dmca.postUrl ?? "(URL not recorded)",
+        })
+      }
+      return updated
     }),
 })

@@ -163,6 +163,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [shopDesc, setShopDesc] = useState("")
   const [shopPrice, setShopPrice] = useState("")
   const [shopImgProcessing, setShopImgProcessing] = useState(false)
+
+  // ── Shop inquiry modal state ───────────────────────────────────
+  const [inquiryItem, setInquiryItem] = useState<{ id: string; title: string } | null>(null)
+  const [inquiryMessage, setInquiryMessage] = useState("")
+  const [inquirySent, setInquirySent] = useState(false)
   const [shopUploadError, setShopUploadError] = useState<string | null>(null)
   const [isUploadingShop, setIsUploadingShop] = useState(false)
   const [viewShopItem, setViewShopItem] = useState<{ id: string; image: string; title: string; description: string | null; price: number; createdAt: Date } | null>(null)
@@ -188,6 +193,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
   const deleteShopItem = trpc.shop.delete.useMutation({
     onSuccess: () => utils.shop.getByUsername.invalidate({ username }),
+  })
+
+  const sendInquiry = trpc.shop.sendInquiry.useMutation({
+    onSuccess: () => setInquirySent(true),
   })
 
   async function handleShopImageFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -675,13 +684,17 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                           Remove
                         </button>
                       ) : (
-                        <a
-                          href={`mailto:${profileUser.email ?? ""}?subject=Shop inquiry: ${encodeURIComponent(item.title)}`}
+                        <button
+                          onClick={() => {
+                            setInquiryItem({ id: item.id, title: item.title })
+                            setInquiryMessage("")
+                            setInquirySent(false)
+                          }}
                           className="text-xs text-white px-3 py-1 rounded-lg hover:opacity-80 transition-opacity"
                           style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
                         >
                           Inquire
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1019,6 +1032,57 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
               {isUploadingShop ? "Uploading…" : createShopItem.isPending ? "Adding…" : "Add to shop"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Shop inquiry modal ────────────────────────────────── */}
+      {inquiryItem && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: "#13101f", border: "1px solid rgba(176,68,248,0.25)" }}>
+            <h2 className="text-base font-semibold text-white mb-1">Send inquiry</h2>
+            <p className="text-sm text-white/50 mb-4 line-clamp-1">"{inquiryItem.title}"</p>
+            {inquirySent ? (
+              <>
+                <p className="text-sm text-white/70 mb-4">Your message was sent! The artist will be notified by email.</p>
+                <button
+                  onClick={() => setInquiryItem(null)}
+                  className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity"
+                  style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                >
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
+                <textarea
+                  value={inquiryMessage}
+                  onChange={(e) => setInquiryMessage(e.target.value)}
+                  placeholder="Write your message to the artist…"
+                  maxLength={1000}
+                  rows={4}
+                  className="w-full rounded-xl text-sm text-white placeholder-white/30 resize-none mb-4 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "10px 12px" }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setInquiryItem(null)}
+                    className="flex-1 text-white/60 py-2.5 rounded-xl text-sm font-medium hover:text-white/80 transition-colors"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => sendInquiry.mutate({ itemId: inquiryItem.id, message: inquiryMessage.trim() })}
+                    disabled={sendInquiry.isPending || !inquiryMessage.trim()}
+                    className="flex-1 text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                  >
+                    {sendInquiry.isPending ? "Sending…" : "Send"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

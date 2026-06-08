@@ -4,6 +4,16 @@ import { TRPCError } from "@trpc/server"
 import { Prisma } from "@prisma/client"
 import { computeTier } from "@/server/lib/trustScore"
 import { checkNotBanned } from "@/server/lib/ban"
+import {
+  sendCommissionRequestEmail,
+  sendCommissionAcceptedEmail,
+  sendCommissionDeclinedEmail,
+  sendCommissionPaymentConfirmedEmail,
+  sendCommissionDeliveredEmail,
+  sendCommissionCompleteEmail,
+  sendCommissionCancelledEmail,
+  sendCommissionDisputeEmail,
+} from "@/lib/email"
 
 const priceRangeSchema = z.array(z.object({
   label: z.string().min(1).max(100),
@@ -211,6 +221,13 @@ export const commissionRouter = router({
       await ctx.prisma.notification.create({
         data: { userId: commission.artistId, fromUserId: ctx.session.user.id, type: `commission_request:${commission.id}` },
       })
+      if (artist.email) {
+        const buyer = await ctx.prisma.user.findUnique({ where: { id: ctx.session.user.id }, select: { username: true } })
+        await sendCommissionRequestEmail(artist.email, {
+          artistUsername: artist.username ?? artist.name ?? "Artist",
+          buyerUsername: buyer?.username ?? "Someone",
+        })
+      }
       return commission
     }),
 
@@ -326,6 +343,18 @@ export const commissionRouter = router({
           isSystem: true,
         },
       })
+      const [buyer, artist] = await Promise.all([
+        ctx.prisma.user.findUnique({ where: { id: commission.buyerId }, select: { email: true, username: true } }),
+        ctx.prisma.user.findUnique({ where: { id: commission.artistId }, select: { username: true } }),
+      ])
+      if (buyer?.email) {
+        await sendCommissionAcceptedEmail(buyer.email, {
+          buyerUsername: buyer.username ?? "there",
+          artistUsername: artist?.username ?? "the artist",
+          price: input.price,
+          deadline: formatted,
+        })
+      }
       return updated
     }),
 
@@ -346,6 +375,16 @@ export const commissionRouter = router({
       await ctx.prisma.professionalMessage.create({
         data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Commission request declined.", isSystem: true },
       })
+      const [buyer, artist] = await Promise.all([
+        ctx.prisma.user.findUnique({ where: { id: commission.buyerId }, select: { email: true, username: true } }),
+        ctx.prisma.user.findUnique({ where: { id: commission.artistId }, select: { username: true } }),
+      ])
+      if (buyer?.email) {
+        await sendCommissionDeclinedEmail(buyer.email, {
+          buyerUsername: buyer.username ?? "there",
+          artistUsername: artist?.username ?? "the artist",
+        })
+      }
       return updated
     }),
 
@@ -423,6 +462,16 @@ export const commissionRouter = router({
       await ctx.prisma.professionalMessage.create({
         data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Payment confirmed. Commission is now in progress.", isSystem: true },
       })
+      const [artist, buyer] = await Promise.all([
+        ctx.prisma.user.findUnique({ where: { id: commission.artistId }, select: { email: true, username: true } }),
+        ctx.prisma.user.findUnique({ where: { id: commission.buyerId }, select: { username: true } }),
+      ])
+      if (artist?.email) {
+        await sendCommissionPaymentConfirmedEmail(artist.email, {
+          artistUsername: artist.username ?? "there",
+          buyerUsername: buyer?.username ?? "the buyer",
+        })
+      }
       return updated
     }),
 
@@ -453,6 +502,16 @@ export const commissionRouter = router({
       await ctx.prisma.professionalMessage.create({
         data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Delivery submitted. Please review and approve.", isSystem: true },
       })
+      const [buyer, artist] = await Promise.all([
+        ctx.prisma.user.findUnique({ where: { id: commission.buyerId }, select: { email: true, username: true } }),
+        ctx.prisma.user.findUnique({ where: { id: commission.artistId }, select: { username: true } }),
+      ])
+      if (buyer?.email) {
+        await sendCommissionDeliveredEmail(buyer.email, {
+          buyerUsername: buyer.username ?? "there",
+          artistUsername: artist?.username ?? "the artist",
+        })
+      }
       return updatedCommission
     }),
 
@@ -473,6 +532,16 @@ export const commissionRouter = router({
       await ctx.prisma.professionalMessage.create({
         data: { commissionId: input.id, senderId: ctx.session.user.id, text: "Commission complete. Payment released to the artist.", isSystem: true },
       })
+      const [artist, buyer] = await Promise.all([
+        ctx.prisma.user.findUnique({ where: { id: commission.artistId }, select: { email: true, username: true } }),
+        ctx.prisma.user.findUnique({ where: { id: commission.buyerId }, select: { username: true } }),
+      ])
+      if (artist?.email) {
+        await sendCommissionCompleteEmail(artist.email, {
+          artistUsername: artist.username ?? "there",
+          buyerUsername: buyer?.username ?? "the buyer",
+        })
+      }
       return updated
     }),
 
@@ -558,6 +627,14 @@ export const commissionRouter = router({
         })
       })
 
+      const notifyId = isArtist ? commission.buyerId : commission.artistId
+      const notified = await ctx.prisma.user.findUnique({ where: { id: notifyId }, select: { email: true, username: true } })
+      if (notified?.email) {
+        await sendCommissionCancelledEmail(notified.email, {
+          username: notified.username ?? "there",
+          cancelledByRole: cancellerRole,
+        })
+      }
       return ctx.prisma.commission.findUnique({ where: { id: input.id } })
     }),
 
@@ -598,6 +675,14 @@ export const commissionRouter = router({
         }),
       ])
 
+      const [artist, buyer] = await Promise.all([
+        ctx.prisma.user.findUnique({ where: { id: commission.artistId }, select: { email: true, username: true } }),
+        ctx.prisma.user.findUnique({ where: { id: commission.buyerId }, select: { email: true, username: true } }),
+      ])
+      await Promise.all([
+        artist?.email ? sendCommissionDisputeEmail(artist.email, { username: artist.username ?? "there" }) : Promise.resolve(),
+        buyer?.email ? sendCommissionDisputeEmail(buyer.email, { username: buyer.username ?? "there" }) : Promise.resolve(),
+      ])
       return ctx.prisma.commission.findUnique({ where: { id: input.id } })
     }),
 

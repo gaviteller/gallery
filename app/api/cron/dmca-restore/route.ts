@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { sendPostRestoredEmail } from "@/lib/email"
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000
 
@@ -38,6 +39,15 @@ export async function GET(request: Request) {
         data: { status: "RESOLVED" },
       })
     })
+    if (dmca.postId) {
+      const post = await prisma.post.findUnique({
+        where: { id: dmca.postId },
+        select: { user: { select: { email: true, username: true } } },
+      })
+      if (post?.user.email) {
+        await sendPostRestoredEmail(post.user.email, { username: post.user.username ?? "there" })
+      }
+    }
     restored++
   }
 

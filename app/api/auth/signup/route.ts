@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import { runBanEvasionCheck } from "@/lib/auth"
 import { isAtLeast13 } from "@/lib/age"
+import { sendWelcomeEmail } from "@/lib/email"
 
 export async function POST(req: Request) {
   try {
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
 
     if (newUser.email) {
       await runBanEvasionCheck(newUser.id, newUser.email)
+      await sendWelcomeEmail(newUser.email, { username: newUser.username! })
     }
 
     return NextResponse.json({ success: true })

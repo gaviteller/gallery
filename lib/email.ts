@@ -73,3 +73,125 @@ export async function sendPostFlaggedEmail(to: string, opts: { username: string 
      <a href="${GALLERY_URL}/appeal" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Learn about appeals</a>`
   ))
 }
+
+export async function sendWelcomeEmail(to: string, opts: { username: string }) {
+  await send(to, "Welcome to Gallery!", layout(
+    "Welcome to Gallery",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Welcome to Gallery, @${opts.username}!</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Your account is ready. Start by uploading your first artwork, following artists you love, or opening commissions.</p>
+     <a href="${GALLERY_URL}" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Go to Gallery</a>`
+  ))
+}
+
+export async function sendCommissionRequestEmail(to: string, opts: { artistUsername: string; buyerUsername: string }) {
+  await send(to, `@${opts.buyerUsername} sent you a commission request`, layout(
+    "New Commission Request",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">New commission request</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> has sent you a commission request. Head to your Professional DMs to review the brief and accept or decline.</p>
+     <a href="${GALLERY_URL}/professional-dms" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View request</a>`
+  ))
+}
+
+export async function sendCommissionAcceptedEmail(to: string, opts: { buyerUsername: string; artistUsername: string; price: number; deadline: string }) {
+  await send(to, `@${opts.artistUsername} accepted your commission`, layout(
+    "Commission Accepted",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your commission was accepted!</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.buyerUsername}, <strong style="color:#fff;">@${opts.artistUsername}</strong> has accepted your commission.</p>
+     <table style="width:100%;border-collapse:collapse;margin:0 0 20px;">
+       <tr><td style="padding:8px 0;font-size:14px;color:rgba(255,255,255,0.5);width:120px;">Agreed price</td><td style="padding:8px 0;font-size:14px;font-weight:600;color:#fff;">$${opts.price.toFixed(2)}</td></tr>
+       <tr><td style="padding:8px 0;font-size:14px;color:rgba(255,255,255,0.5);">Deadline</td><td style="padding:8px 0;font-size:14px;font-weight:600;color:#fff;">${opts.deadline}</td></tr>
+     </table>
+     <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Please confirm your payment in Professional DMs to get the commission started.</p>
+     <a href="${GALLERY_URL}/professional-dms" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Confirm payment</a>`
+  ))
+}
+
+export async function sendCommissionDeclinedEmail(to: string, opts: { buyerUsername: string; artistUsername: string }) {
+  await send(to, `@${opts.artistUsername} declined your commission request`, layout(
+    "Commission Declined",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission request declined</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.buyerUsername}, <strong style="color:#fff;">@${opts.artistUsername}</strong> has declined your commission request. You can browse other artists and send a new request.</p>
+     <a href="${GALLERY_URL}/search" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Browse artists</a>`
+  ))
+}
+
+export async function sendCommissionPaymentConfirmedEmail(to: string, opts: { artistUsername: string; buyerUsername: string }) {
+  await send(to, `Payment received — commission is now in progress`, layout(
+    "Payment Confirmed",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Payment confirmed</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> has confirmed payment. Your commission is now in progress — get to work!</p>
+     <a href="${GALLERY_URL}/professional-dms" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View commission</a>`
+  ))
+}
+
+export async function sendCommissionDeliveredEmail(to: string, opts: { buyerUsername: string; artistUsername: string }) {
+  await send(to, `@${opts.artistUsername} delivered your commission`, layout(
+    "Commission Delivered",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your commission has been delivered!</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.buyerUsername}, <strong style="color:#fff;">@${opts.artistUsername}</strong> has delivered your commission. Please review the work and approve it to release payment.</p>
+     <a href="${GALLERY_URL}/professional-dms" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Review delivery</a>`
+  ))
+}
+
+export async function sendCommissionCompleteEmail(to: string, opts: { artistUsername: string; buyerUsername: string }) {
+  await send(to, `Commission complete — payment released`, layout(
+    "Commission Complete",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission complete!</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> approved your delivery. Payment has been released. Congratulations on the completed commission!</p>
+     <a href="${GALLERY_URL}/professional-dms" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View commission</a>`
+  ))
+}
+
+export async function sendCommissionCancelledEmail(to: string, opts: { username: string; cancelledByRole: "artist" | "buyer" }) {
+  const cancellerLabel = opts.cancelledByRole === "artist" ? "the artist" : "the buyer"
+  await send(to, `A commission was cancelled`, layout(
+    "Commission Cancelled",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission cancelled</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, a commission has been cancelled by ${cancellerLabel}. You can view the details in your Professional DMs.</p>
+     <a href="${GALLERY_URL}/professional-dms" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View commission</a>`
+  ))
+}
+
+export async function sendCommissionDisputeEmail(to: string, opts: { username: string }) {
+  await send(to, `A commission dispute has been raised`, layout(
+    "Commission Dispute Raised",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission dispute raised</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, a dispute has been raised on one of your commissions. The commission is now frozen pending moderation review. Our team will reach out with next steps.</p>
+     <a href="${GALLERY_URL}/professional-dms" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View commission</a>`
+  ))
+}
+
+export async function sendDmcaCounterNoticeEmail(to: string, opts: { claimantName: string; counterNoticeText: string; postUrl: string }) {
+  const excerpt = opts.counterNoticeText.length > 300 ? opts.counterNoticeText.slice(0, 300) + "…" : opts.counterNoticeText
+  await send(to, `A counter-notice has been filed on your DMCA claim`, layout(
+    "DMCA Counter-Notice Filed",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Counter-notice filed</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi ${opts.claimantName}, the user whose content was removed in response to your DMCA claim has filed a counter-notice. The post URL was: <span style="color:#b044f8;">${opts.postUrl}</span></p>
+     <div style="margin:0 0 20px;padding:16px;background:rgba(255,255,255,0.05);border-left:3px solid rgba(176,68,248,0.5);border-radius:4px;">
+       <p style="margin:0;font-size:14px;line-height:1.65;color:rgba(255,255,255,0.6);">${excerpt}</p>
+     </div>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Under DMCA safe harbor provisions, the content will be restored after 14 days unless you notify Gallery that you have filed an action seeking a court order to restrain the alleged infringement.</p>`
+  ))
+}
+
+export async function sendPostRestoredEmail(to: string, opts: { username: string }) {
+  await send(to, "Your post has been restored", layout(
+    "Post Restored",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your post has been restored</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, the 14-day counter-notice waiting period has elapsed with no court action from the claimant. Your post has been restored and is now visible on your profile.</p>
+     <a href="${GALLERY_URL}/${opts.username}" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View your profile</a>`
+  ))
+}
+
+export async function sendShopInquiryEmail(to: string, opts: { artistUsername: string; buyerUsername: string; itemTitle: string; message: string }) {
+  await send(to, `@${opts.buyerUsername} inquired about "${opts.itemTitle}"`, layout(
+    "New Shop Inquiry",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">New shop inquiry</h1>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> is interested in <strong style="color:#fff;">${opts.itemTitle}</strong> and left you a message:</p>
+     <div style="margin:0 0 20px;padding:16px;background:rgba(255,255,255,0.05);border-left:3px solid rgba(176,68,248,0.5);border-radius:4px;">
+       <p style="margin:0;font-size:14px;line-height:1.65;color:rgba(255,255,255,0.6);">${opts.message}</p>
+     </div>
+     <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">To reply, send them a DM on Gallery.</p>
+     <a href="${GALLERY_URL}/${opts.buyerUsername}" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View @${opts.buyerUsername}'s profile</a>`
+  ))
+}

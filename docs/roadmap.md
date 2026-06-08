@@ -39,18 +39,18 @@ Last updated: 2026-05-29
 - [x] Personalized You Might Like feed (recency + engagement + interest graph)
 
 ### Email Notifications
-- [ ] Welcome email on signup
-- [ ] Commission request received (artist)
-- [ ] Commission accepted (buyer)
-- [ ] Commission declined (buyer)
-- [ ] Commission payment confirmed (artist)
-- [ ] Commission delivered (buyer)
-- [ ] Commission approved / complete (artist)
-- [ ] Commission cancelled — notify other party
-- [ ] Commission dispute raised — notify both parties
-- [ ] DMCA counter-notice filed → email to claimant
-- [ ] Post restored after successful counter-notice (14-day window expired)
-- [ ] Shop inquiry received (artist)
+- [x] Welcome email on signup
+- [x] Commission request received (artist)
+- [x] Commission accepted (buyer)
+- [x] Commission declined (buyer)
+- [x] Commission payment confirmed (artist)
+- [x] Commission delivered (buyer)
+- [x] Commission approved / complete (artist)
+- [x] Commission cancelled — notify other party
+- [x] Commission dispute raised — notify both parties
+- [x] DMCA counter-notice filed → email to claimant
+- [x] Post restored after successful counter-notice (14-day window expired)
+- [x] Shop inquiry received (artist) — replaced mailto with Gallery-mediated form + email
 
 ### AI Features
 - [ ] AI moderation — image scan on upload (NSFW, gore, stolen art, CSAM), auto-action on high-confidence violations, low-confidence routed to human queue
