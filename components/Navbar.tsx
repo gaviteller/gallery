@@ -142,6 +142,8 @@ export default function Navbar() {
   const username = session?.user?.username
 
   return (
+    <>
+    {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
       {/* Search */}
       <button
@@ -172,13 +174,12 @@ export default function Navbar() {
             </span>
           )}
         </button>
-        {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
       </div>
 
       {/* Notification bell */}
       <div className="relative" ref={notifRef}>
         <button
-          onClick={() => { setNotifOpen(v => !v); setMenuOpen(false) }}
+          onClick={() => { setNotifOpen(v => !v); setMenuOpen(false); setCartOpen(false) }}
           className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors"
           aria-label="Notifications"
         >
@@ -260,5 +261,6 @@ export default function Navbar() {
         )}
       </div>
     </div>
+    </>
   )
 }
