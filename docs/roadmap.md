@@ -15,7 +15,7 @@ Last updated: 2026-05-29
 - [x] Age gate — 13+ at signup (EU under-16 parental consent deferred)
 - [x] "Opt out of location-based ad targeting" toggle in Settings
 - [x] Cookie consent banner for EU users
-- [ ] NCMEC / PhotoDNA hash matching on upload (mandatory)
+- [ ] NCMEC / PhotoDNA hash matching on upload (mandatory) — *back burner: waiting on NCMEC hash-sharing program approval*
 - [x] DMCA takedown form + 14-day response + counter-notice flow (3 confirmed violations = permanent ban)
 
 ### Auth
