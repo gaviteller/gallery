@@ -10,12 +10,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
-const ALLOWED_FOLDERS = ["posts", "avatars", "banners", "stories", "commissions", "shop-previews"] as const
-type AllowedFolder = typeof ALLOWED_FOLDERS[number]
-
-function isAllowedFolder(f: unknown): f is AllowedFolder {
-  return ALLOWED_FOLDERS.includes(f as AllowedFolder)
-}
+const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50 MB
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -31,34 +26,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Your account is currently suspended." }, { status: 403 })
   }
 
-  let body: { image?: unknown; folder?: unknown }
+  let body: { file?: unknown; filename?: unknown }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  const { image, folder } = body
-
-  if (typeof image !== "string" || !image.startsWith("data:image/")) {
-    return NextResponse.json({ error: "image must be a base64 data URL" }, { status: 400 })
+  const { file, filename } = body
+  if (typeof file !== "string" || !file.startsWith("data:")) {
+    return NextResponse.json({ error: "file must be a base64 data URL" }, { status: 400 })
   }
 
-  const base64Data = image.split(",")[1] ?? ""
-  const MAX_BASE64_CHARS = 14_000_000 // ~10 MB decoded
-  if (base64Data.length > MAX_BASE64_CHARS) {
-    return NextResponse.json({ error: "Image exceeds maximum size (10 MB)" }, { status: 413 })
-  }
-
-  if (!isAllowedFolder(folder)) {
-    return NextResponse.json({ error: `folder must be one of: ${ALLOWED_FOLDERS.join(", ")}` }, { status: 400 })
+  const base64Data = file.split(",")[1] ?? ""
+  const approxBytes = Math.ceil((base64Data.length * 3) / 4)
+  if (approxBytes > MAX_FILE_BYTES) {
+    return NextResponse.json({ error: "File exceeds maximum size (50 MB)" }, { status: 413 })
   }
 
   try {
-    const result = await cloudinary.uploader.upload(image, { folder })
-    return NextResponse.json({ url: result.secure_url })
+    const safeFilename =
+      typeof filename === "string"
+        ? `${session.user.id}_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+        : `${session.user.id}_${Date.now()}`
+
+    const result = await cloudinary.uploader.upload(file, {
+      folder: "shop-files",
+      type: "private",
+      resource_type: "raw",
+      public_id: safeFilename,
+    })
+    // Return only public_id — never the direct URL (requires signed access)
+    return NextResponse.json({ publicId: result.public_id })
   } catch (err) {
-    console.error("[upload] cloudinary error:", err)
+    console.error("[upload-file] cloudinary error:", err)
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })
   }
 }

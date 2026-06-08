@@ -2,7 +2,7 @@
  * Uploads a base64 data URL to Cloudinary via the /api/upload route.
  * Returns the Cloudinary HTTPS URL.
  */
-export async function uploadImage(base64: string, folder: "posts" | "avatars" | "banners" | "stories" | "commissions"): Promise<string> {
+export async function uploadImage(base64: string, folder: "posts" | "avatars" | "banners" | "stories" | "commissions" | "shop-previews"): Promise<string> {
   const res = await fetch("/api/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
