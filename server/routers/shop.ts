@@ -37,10 +37,7 @@ export const shopRouter = router({
         include: {
           user: { select: { username: true, image: true, name: true } },
         },
-        orderBy: [
-          { purchaseCount: "desc" },
-          { createdAt: "desc" },
-        ],
+        orderBy: { createdAt: "desc" },
         take: PAGE_SIZE + 1,
         cursor: input.cursor ? { id: input.cursor } : undefined,
         skip: input.cursor ? 1 : 0,
@@ -65,6 +62,19 @@ export const shopRouter = router({
           userId: user.id,
           ...(isOwner ? {} : { status: "ACTIVE" }),
         },
+        select: {
+          id: true,
+          userId: true,
+          image: true,
+          title: true,
+          description: true,
+          price: true,
+          tags: true,
+          status: true,
+          purchaseCount: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: { createdAt: "desc" },
       })
     }),
@@ -74,7 +84,18 @@ export const shopRouter = router({
     .query(async ({ ctx, input }) => {
       const item = await ctx.prisma.shopItem.findUnique({
         where: { id: input.id },
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          image: true,
+          title: true,
+          description: true,
+          price: true,
+          tags: true,
+          status: true,
+          purchaseCount: true,
+          createdAt: true,
+          updatedAt: true,
           user: { select: { username: true, image: true, name: true } },
         },
       })
@@ -92,7 +113,7 @@ export const shopRouter = router({
     .input(
       z.object({
         image: z.string().min(1),       // Cloudinary URL (from /api/upload)
-        fileUrl: z.string().min(1),     // Cloudinary public_id (from /api/upload-file)
+        fileUrl: z.string().default(""),     // becomes required in Task 8's listing form
         title: z.string().min(1).max(100),
         description: z.string().max(1000).optional(),
         price: z.number().min(0.99),
