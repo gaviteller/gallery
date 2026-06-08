@@ -24,6 +24,8 @@ export function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
       return state.filter(i => i.id !== action.id)
     case "clear":
       return []
+    default:
+      return state
   }
 }
 
