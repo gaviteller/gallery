@@ -90,7 +90,7 @@ export default function ShopItemPage({
           </div>
 
           {/* Artist */}
-          <Link href={`/@${item.user.username}`} className="flex items-center gap-2">
+          <Link href={`/@${item.user.username ?? displayUsername}`} className="flex items-center gap-2">
             {item.user.image && (
               <Image
                 src={item.user.image}
@@ -104,7 +104,7 @@ export default function ShopItemPage({
               className="text-sm transition-colors"
               style={{ color: "rgba(255,255,255,0.5)" }}
             >
-              @{item.user.username}
+              @{item.user.username ?? displayUsername}
             </span>
           </Link>
 
