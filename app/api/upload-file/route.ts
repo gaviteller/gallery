@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "file must be a base64 data URL" }, { status: 400 })
   }
 
+  if (!file.includes(",")) {
+    return NextResponse.json({ error: "file must be a base64 data URL" }, { status: 400 })
+  }
+
   const base64Data = file.split(",")[1] ?? ""
   const approxBytes = Math.ceil((base64Data.length * 3) / 4)
   if (approxBytes > MAX_FILE_BYTES) {
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
   try {
     const safeFilename =
       typeof filename === "string"
-        ? `${session.user.id}_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`
+        ? `${session.user.id}_${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100)}`
         : `${session.user.id}_${Date.now()}`
 
     const result = await cloudinary.uploader.upload(file, {
