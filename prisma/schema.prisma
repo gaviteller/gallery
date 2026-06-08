@@ -104,6 +104,9 @@ model User {
   submittedReports          Report[]                     @relation("SubmittedReports")
   sessions                  Session[]
   shopItems                 ShopItem[]
+  shopOrdersAsBuyer         ShopOrder[]                  @relation("ShopOrderBuyer")
+  shopOrdersAsSeller        ShopOrder[]                  @relation("ShopOrderSeller")
+  cartOrders                CartOrder[]
   stories                   Story[]
   storyViews                StoryView[]
   issuedStrikes             Strike[]                     @relation("IssuedStrikes")
@@ -136,15 +139,53 @@ model Notification {
 }
 
 model ShopItem {
-  id          String   @id @default(cuid())
-  userId      String
-  image       String
-  title       String
-  description String?
-  price       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  userId        String
+  image         String
+  title         String
+  description   String?
+  price         Float
+  fileUrl       String      @default("")
+  tags          String[]    @default([])
+  status        String      @default("ACTIVE")
+  purchaseCount Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders        ShopOrder[]
+}
+
+model ShopOrder {
+  id                     String     @id @default(cuid())
+  buyerId                String
+  sellerId               String
+  itemId                 String
+  cartOrderId            String?
+  amountTotal            Float
+  galleryFee             Float
+  sellerPayout           Float
+  stripePaymentIntentId  String
+  downloadToken          String     @unique @default(cuid())
+  downloadTokenExpiresAt DateTime
+  downloadedAt           DateTime?
+  status                 String     @default("PURCHASED")
+  createdAt              DateTime   @default(now())
+  buyer                  User       @relation("ShopOrderBuyer", fields: [buyerId], references: [id])
+  seller                 User       @relation("ShopOrderSeller", fields: [sellerId], references: [id])
+  item                   ShopItem   @relation(fields: [itemId], references: [id])
+  cartOrder              CartOrder? @relation(fields: [cartOrderId], references: [id])
+}
+
+model CartOrder {
+  id                    String      @id @default(cuid())
+  buyerId               String
+  amountTotal           Float
+  galleryFee            Float
+  stripePaymentIntentId String
+  status                String      @default("PENDING")
+  createdAt             DateTime    @default(now())
+  buyer                 User        @relation(fields: [buyerId], references: [id])
+  orders                ShopOrder[]
 }
 
 model Post {
