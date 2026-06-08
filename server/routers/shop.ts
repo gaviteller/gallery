@@ -2,9 +2,55 @@ import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
-import { sendShopInquiryEmail } from "@/lib/email"
+
+const PAGE_SIZE = 24
 
 export const shopRouter = router({
+  // ─── Public browsing ─────────────────────────────────────────────────────────
+
+  getFeed: publicProcedure
+    .input(z.object({ cursor: z.string().optional() }))
+    .query(async ({ ctx, input }) => {
+      // Collect all IDs the current user has blocked or is blocked by
+      const blockedIds: string[] =
+        ctx.session?.user?.id
+          ? (
+              await ctx.prisma.block.findMany({
+                where: {
+                  OR: [
+                    { blockerId: ctx.session.user.id },
+                    { blockedId: ctx.session.user.id },
+                  ],
+                },
+                select: { blockerId: true, blockedId: true },
+              })
+            )
+              .flatMap(b => [b.blockerId, b.blockedId])
+              .filter(id => id !== ctx.session!.user.id)
+          : []
+
+      const items = await ctx.prisma.shopItem.findMany({
+        where: {
+          status: "ACTIVE",
+          userId: { notIn: blockedIds },
+        },
+        include: {
+          user: { select: { username: true, image: true, name: true } },
+        },
+        orderBy: [
+          { purchaseCount: "desc" },
+          { createdAt: "desc" },
+        ],
+        take: PAGE_SIZE + 1,
+        cursor: input.cursor ? { id: input.cursor } : undefined,
+        skip: input.cursor ? 1 : 0,
+      })
+
+      const hasMore = items.length > PAGE_SIZE
+      const page = hasMore ? items.slice(0, PAGE_SIZE) : items
+      return { items: page, nextCursor: hasMore ? page[page.length - 1].id : null }
+    }),
+
   getByUsername: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -12,29 +58,105 @@ export const shopRouter = router({
         where: { username: { equals: input.username, mode: "insensitive" } },
       })
       if (!user) throw new TRPCError({ code: "NOT_FOUND" })
+
+      const isOwner = ctx.session?.user?.id === user.id
       return ctx.prisma.shopItem.findMany({
-        where: { userId: user.id },
+        where: {
+          userId: user.id,
+          ...(isOwner ? {} : { status: "ACTIVE" }),
+        },
         orderBy: { createdAt: "desc" },
       })
     }),
 
+  getById: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const item = await ctx.prisma.shopItem.findUnique({
+        where: { id: input.id },
+        include: {
+          user: { select: { username: true, image: true, name: true } },
+        },
+      })
+      if (!item) throw new TRPCError({ code: "NOT_FOUND" })
+      // Non-owners cannot see PAUSED items
+      if (item.status === "PAUSED" && ctx.session?.user?.id !== item.userId) {
+        throw new TRPCError({ code: "NOT_FOUND" })
+      }
+      return item
+    }),
+
+  // ─── Artist management ───────────────────────────────────────────────────────
+
   create: protectedProcedure
-    .input(z.object({
-      image: z.string().min(1),
-      title: z.string().min(1).max(100),
-      description: z.string().max(500).optional(),
-      price: z.number().positive(),
-    }))
+    .input(
+      z.object({
+        image: z.string().min(1),       // Cloudinary URL (from /api/upload)
+        fileUrl: z.string().min(1),     // Cloudinary public_id (from /api/upload-file)
+        title: z.string().min(1).max(100),
+        description: z.string().max(1000).optional(),
+        price: z.number().min(0.99),
+        tags: z.array(z.string().max(50)).max(10).default([]),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       await checkNotBanned(ctx.prisma, ctx.session.user.id)
       return ctx.prisma.shopItem.create({
         data: {
           userId: ctx.session.user.id,
           image: input.image,
+          fileUrl: input.fileUrl,
           title: input.title,
           description: input.description ?? null,
           price: input.price,
+          tags: input.tags,
+          status: "ACTIVE",
         },
+      })
+    }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        image: z.string().min(1).optional(),
+        fileUrl: z.string().min(1).optional(),
+        title: z.string().min(1).max(100).optional(),
+        description: z.string().max(1000).optional(),
+        price: z.number().min(0.99).optional(),
+        tags: z.array(z.string().max(50)).max(10).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
+      const item = await ctx.prisma.shopItem.findUnique({ where: { id: input.id } })
+      if (!item) throw new TRPCError({ code: "NOT_FOUND" })
+      if (item.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+
+      const { id, ...fields } = input
+      return ctx.prisma.shopItem.update({
+        where: { id },
+        data: {
+          ...(fields.image !== undefined && { image: fields.image }),
+          ...(fields.fileUrl !== undefined && { fileUrl: fields.fileUrl }),
+          ...(fields.title !== undefined && { title: fields.title }),
+          ...(fields.description !== undefined && { description: fields.description }),
+          ...(fields.price !== undefined && { price: fields.price }),
+          ...(fields.tags !== undefined && { tags: fields.tags }),
+        },
+      })
+    }),
+
+  togglePause: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
+      const item = await ctx.prisma.shopItem.findUnique({ where: { id: input.id } })
+      if (!item) throw new TRPCError({ code: "NOT_FOUND" })
+      if (item.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      return ctx.prisma.shopItem.update({
+        where: { id: input.id },
+        data: { status: item.status === "ACTIVE" ? "PAUSED" : "ACTIVE" },
       })
     }),
 
@@ -46,35 +168,5 @@ export const shopRouter = router({
       if (!item) throw new TRPCError({ code: "NOT_FOUND" })
       if (item.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       return ctx.prisma.shopItem.delete({ where: { id: input.id } })
-    }),
-
-  sendInquiry: protectedProcedure
-    .input(z.object({
-      itemId: z.string(),
-      message: z.string().min(1).max(1000),
-    }))
-    .mutation(async ({ ctx, input }) => {
-      await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      const item = await ctx.prisma.shopItem.findUnique({
-        where: { id: input.itemId },
-        include: { user: { select: { id: true, email: true, username: true } } },
-      })
-      if (!item) throw new TRPCError({ code: "NOT_FOUND" })
-      if (item.userId === ctx.session.user.id) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot inquire about your own item" })
-      }
-      const buyer = await ctx.prisma.user.findUnique({
-        where: { id: ctx.session.user.id },
-        select: { username: true },
-      })
-      if (item.user.email) {
-        await sendShopInquiryEmail(item.user.email, {
-          artistUsername: item.user.username ?? "there",
-          buyerUsername: buyer?.username ?? "Someone",
-          itemTitle: item.title,
-          message: input.message,
-        })
-      }
-      return { success: true }
     }),
 })

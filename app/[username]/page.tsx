@@ -195,9 +195,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     onSuccess: () => utils.shop.getByUsername.invalidate({ username }),
   })
 
-  const sendInquiry = trpc.shop.sendInquiry.useMutation({
-    onSuccess: () => setInquirySent(true),
-  })
+  // sendInquiry removed — shop inquiry flow replaced by DMs
 
   async function handleShopImageFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -1019,7 +1017,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 setIsUploadingShop(true)
                 try {
                   const url = await uploadToCloudinary(shopImage, "posts")
-                  createShopItem.mutate({ image: url, title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
+                  createShopItem.mutate({ image: url, fileUrl: "", title: shopTitle.trim(), description: shopDesc.trim() || undefined, price })
                 } catch (err) {
                   console.error("[shop] cloudinary upload failed:", err)
                   setShopUploadError("Failed to upload image. Please try again.")
@@ -1073,12 +1071,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     Cancel
                   </button>
                   <button
-                    onClick={() => sendInquiry.mutate({ itemId: inquiryItem.id, message: inquiryMessage.trim() })}
-                    disabled={sendInquiry.isPending || !inquiryMessage.trim()}
+                    onClick={() => setInquirySent(true)}
+                    disabled={!inquiryMessage.trim()}
                     className="flex-1 text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
                   >
-                    {sendInquiry.isPending ? "Sending…" : "Send"}
+                    Send
                   </button>
                 </div>
               </>

@@ -182,16 +182,3 @@ export async function sendPostRestoredEmail(to: string, opts: { username: string
      <a href="${GALLERY_URL}/${opts.username}" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View your profile</a>`
   ))
 }
-
-export async function sendShopInquiryEmail(to: string, opts: { artistUsername: string; buyerUsername: string; itemTitle: string; message: string }) {
-  await send(to, `@${opts.buyerUsername} inquired about "${opts.itemTitle}"`, layout(
-    "New Shop Inquiry",
-    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">New shop inquiry</h1>
-     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> is interested in <strong style="color:#fff;">${opts.itemTitle}</strong> and left you a message:</p>
-     <div style="margin:0 0 20px;padding:16px;background:rgba(255,255,255,0.05);border-left:3px solid rgba(176,68,248,0.5);border-radius:4px;">
-       <p style="margin:0;font-size:14px;line-height:1.65;color:rgba(255,255,255,0.6);">${opts.message}</p>
-     </div>
-     <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">To reply, send them a DM on Gallery.</p>
-     <a href="${GALLERY_URL}/${opts.buyerUsername}" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View @${opts.buyerUsername}'s profile</a>`
-  ))
-}
