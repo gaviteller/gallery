@@ -96,11 +96,10 @@ export default function ShopPage() {
   const observer = useRef<IntersectionObserver | null>(null)
   const sentinelRef = useCallback(
     (node: HTMLDivElement | null) => {
-      if (isFetchingNextPage) return
       if (observer.current) observer.current.disconnect()
       if (!node) return
       observer.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && hasNextPage) fetchNextPage()
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage()
       })
       observer.current.observe(node)
     },
