@@ -107,6 +107,7 @@ model User {
   shopOrdersAsBuyer         ShopOrder[]                  @relation("ShopOrderBuyer")
   shopOrdersAsSeller        ShopOrder[]                  @relation("ShopOrderSeller")
   cartOrders                CartOrder[]
+  stripeConnectId           String?
   stories                   Story[]
   storyViews                StoryView[]
   issuedStrikes             Strike[]                     @relation("IssuedStrikes")
