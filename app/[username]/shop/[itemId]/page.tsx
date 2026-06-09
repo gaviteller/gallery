@@ -19,6 +19,15 @@ export default function ShopItemPage({
 
   const { data: item, isLoading } = trpc.shop.getById.useQuery({ id: itemId })
 
+  const checkout = trpc.shop.createCheckout.useMutation({
+    onSuccess: ({ url }) => {
+      window.location.href = url
+    },
+    onError: (err) => {
+      alert(err.message)
+    },
+  })
+
   if (isLoading) {
     return (
       <div className="min-h-screen md:pl-16 pb-24" style={{ background: "#0D0D0F" }}>
@@ -161,12 +170,12 @@ export default function ShopItemPage({
                 {inCart ? "In cart ✓" : "Add to cart"}
               </button>
               <button
-                disabled
-                title="Checkout coming in the next update"
-                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white opacity-40 cursor-not-allowed"
+                onClick={() => checkout.mutate({ itemId: item.id })}
+                disabled={checkout.isPending}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
               >
-                Buy Now
+                {checkout.isPending ? "Loading…" : "Buy Now"}
               </button>
             </div>
           )}

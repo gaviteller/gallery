@@ -1,11 +1,21 @@
 "use client"
 
 import { useCart } from "@/lib/cart"
+import { trpc } from "@/components/providers"
 import Image from "next/image"
 import Link from "next/link"
 
 export default function CartDrawer({ onClose }: { onClose: () => void }) {
   const { items, total, dispatch } = useCart()
+
+  const checkout = trpc.shop.createCartCheckout.useMutation({
+    onSuccess: ({ url }) => {
+      window.location.href = url
+    },
+    onError: (err) => {
+      alert(err.message)
+    },
+  })
 
   return (
     <>
@@ -109,12 +119,16 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
               <span className="font-bold text-white text-lg">${total.toFixed(2)}</span>
             </div>
             <button
-              disabled
-              title="Checkout coming in the next update"
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white opacity-40 cursor-not-allowed"
+              onClick={() =>
+                checkout.mutate({
+                  items: items.map(i => ({ id: i.id })),
+                })
+              }
+              disabled={checkout.isPending || items.length === 0}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
             >
-              Checkout (coming soon)
+              {checkout.isPending ? "Loading…" : `Checkout · $${total.toFixed(2)}`}
             </button>
             <button
               onClick={() => dispatch({ type: "clear" })}
