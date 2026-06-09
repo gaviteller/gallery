@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 
 export default function ConnectReturnPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const isRefresh = searchParams.get("refresh") === "1"
 
@@ -22,7 +22,7 @@ export default function ConnectReturnPage() {
               Your Stripe Connect session timed out. Click below to try again.
             </p>
             <Link
-              href={`/@${session?.user?.username}/shop`}
+              href={session?.user?.username ? `/@${session.user.username}/shop` : "/shop"}
               className="inline-block py-3 px-6 rounded-xl text-sm font-semibold text-white"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
             >
@@ -36,7 +36,7 @@ export default function ConnectReturnPage() {
               Your Stripe account is set up. You can now receive payouts from sales.
             </p>
             <Link
-              href={`/@${session?.user?.username}/shop`}
+              href={session?.user?.username ? `/@${session.user.username}/shop` : "/shop"}
               className="inline-block py-3 px-6 rounded-xl text-sm font-semibold text-white"
               style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
             >

@@ -8,8 +8,10 @@ import Image from "next/image"
 import { useCart } from "@/lib/cart"
 
 function ConnectBanner() {
+  const utils = trpc.useUtils()
   const createLink = trpc.shop.createConnectLink.useMutation({
     onSuccess: ({ url }) => {
+      utils.shop.getConnectStatus.invalidate()
       window.location.href = url
     },
   })

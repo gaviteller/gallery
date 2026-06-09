@@ -212,10 +212,15 @@ export const shopRouter = router({
     })
     if (!user?.stripeConnectId) return { connected: false, stripeConnectId: null }
 
-    const account = await stripe.accounts.retrieve(user.stripeConnectId)
-    return {
-      connected: account.charges_enabled && account.payouts_enabled,
-      stripeConnectId: user.stripeConnectId,
+    try {
+      const account = await stripe.accounts.retrieve(user.stripeConnectId)
+      return {
+        connected: account.charges_enabled && account.payouts_enabled,
+        stripeConnectId: user.stripeConnectId,
+      }
+    } catch (err) {
+      console.error("Failed to retrieve Stripe account:", err)
+      return { connected: false, stripeConnectId: null }
     }
   }),
 
