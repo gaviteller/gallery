@@ -43,11 +43,17 @@ export async function GET(
 
   // Generate 24h signed URL for the private Cloudinary file.
   // order.item.fileUrl stores the public_id (set during upload in app/api/upload-file/route.ts)
-  const signedUrl = cloudinary.utils.private_download_url(order.item.fileUrl, "", {
-    resource_type: "raw",
-    expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
-    attachment: true, // triggers browser download instead of inline display
-  })
+  let signedUrl: string
+  try {
+    signedUrl = cloudinary.utils.private_download_url(order.item.fileUrl, "", {
+      resource_type: "raw",
+      expires_at: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
+      attachment: true, // triggers browser download instead of inline display
+    })
+  } catch (err) {
+    console.error("Failed to generate signed download URL:", err)
+    return NextResponse.json({ error: "Download unavailable" }, { status: 500 })
+  }
 
   return NextResponse.redirect(signedUrl)
 }
