@@ -105,7 +105,7 @@ async function handleSinglePurchase({
       to: buyer.email,
       buyerName: buyer.name ?? "there",
       itemTitle: item.title,
-      sellerUsername: seller.username ?? sellerId,
+      sellerUsername: seller.username ?? seller.name ?? sellerId,
       downloadUrl,
       amountPaid: item.price,
     }).catch(console.error)
@@ -130,14 +130,20 @@ async function handleCartPurchase({
   paymentIntentId: string
 }) {
   const { buyerId, itemIds: itemIdsJson } = meta
-  const itemIds: string[] = JSON.parse(itemIdsJson)
+  let itemIds: string[]
+  try {
+    itemIds = JSON.parse(itemIdsJson)
+  } catch {
+    console.error("Failed to parse itemIds from webhook metadata:", itemIdsJson)
+    return
+  }
 
   const [items, buyer] = await Promise.all([
     prisma.shopItem.findMany({
       where: { id: { in: itemIds } },
       include: { user: { select: { id: true, email: true, name: true, username: true, stripeConnectId: true } } },
     }),
-    prisma.user.findUnique({ where: { id: buyerId }, select: { id: true, email: true, name: true } }),
+    prisma.user.findUnique({ where: { id: buyerId }, select: { id: true, email: true, name: true, username: true } }),
   ])
 
   if (!buyer || items.length === 0) return
@@ -208,7 +214,7 @@ async function handleCartPurchase({
         to: item.user.email,
         artistName: item.user.name ?? "there",
         itemTitle: item.title,
-        buyerUsername: buyer.name ?? buyerId,
+        buyerUsername: buyer.username ?? buyer.name ?? buyerId,
         sellerPayout: fees.sellerPayout,
       }).catch(console.error)
     }
