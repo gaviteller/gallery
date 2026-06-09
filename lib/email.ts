@@ -205,7 +205,7 @@ export async function sendShopPurchaseEmail({
      <p style="margin:24px 0;">
        <a href="${downloadUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#FF1CF7 0%,#B044F8 100%);border-radius:10px;color:#fff;font-size:14px;font-weight:600;text-decoration:none;">Download your file</a>
      </p>
-     <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.5);">This link expires in 24 hours. You can generate a new link from your <a href="${GALLERY_URL}/shop/orders" style="color:#b044f8;">order history</a> at any time.</p>
+     <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.5);">Your download link is permanent — you can always re-download from your <a href="${GALLERY_URL}/shop/orders" style="color:#b044f8;">order history</a>.</p>
      <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.5);">Amount paid: $${amountPaid.toFixed(2)}. All sales are final — no refunds once a download link has been issued.</p>`
   ))
 }

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 
 export default function OrdersPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const { data: orders, isLoading } = trpc.shop.getMyOrders.useQuery(undefined, {
     enabled: status === "authenticated",
   })
