@@ -2,6 +2,7 @@ import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
+import { stripe } from "@/lib/stripe"
 
 const PAGE_SIZE = 24
 
@@ -201,4 +202,54 @@ export const shopRouter = router({
       if (item.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       return ctx.prisma.shopItem.delete({ where: { id: input.id } })
     }),
+
+  // ─── Stripe Connect ───────────────────────────────────────────────────────────
+
+  getConnectStatus: protectedProcedure.query(async ({ ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.session.user.id },
+      select: { stripeConnectId: true },
+    })
+    if (!user?.stripeConnectId) return { connected: false, stripeConnectId: null }
+
+    const account = await stripe.accounts.retrieve(user.stripeConnectId)
+    return {
+      connected: account.charges_enabled && account.payouts_enabled,
+      stripeConnectId: user.stripeConnectId,
+    }
+  }),
+
+  createConnectLink: protectedProcedure.mutation(async ({ ctx }) => {
+    await checkNotBanned(ctx.prisma, ctx.session.user.id)
+
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.session.user.id },
+      select: { stripeConnectId: true, email: true },
+    })
+
+    let accountId = user?.stripeConnectId
+
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: "express",
+        email: user?.email ?? undefined,
+        capabilities: { transfers: { requested: true } },
+      })
+      accountId = account.id
+      await ctx.prisma.user.update({
+        where: { id: ctx.session.user.id },
+        data: { stripeConnectId: accountId },
+      })
+    }
+
+    const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${baseUrl}/shop/connect-return?refresh=1`,
+      return_url: `${baseUrl}/shop/connect-return`,
+      type: "account_onboarding",
+    })
+
+    return { url: link.url }
+  }),
 })

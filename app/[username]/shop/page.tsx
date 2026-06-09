@@ -7,6 +7,37 @@ import Link from "next/link"
 import Image from "next/image"
 import { useCart } from "@/lib/cart"
 
+function ConnectBanner() {
+  const createLink = trpc.shop.createConnectLink.useMutation({
+    onSuccess: ({ url }) => {
+      window.location.href = url
+    },
+  })
+
+  return (
+    <div
+      className="rounded-2xl p-4 mb-6 flex items-start gap-3"
+      style={{ background: "rgba(255, 180, 0, 0.08)", border: "1px solid rgba(255, 180, 0, 0.2)" }}
+    >
+      <span className="text-xl">⚡</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white mb-1">Connect Stripe to receive payouts</p>
+        <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.5)" }}>
+          You need a Stripe account to get paid for your sales. It only takes a few minutes.
+        </p>
+        <button
+          onClick={() => createLink.mutate()}
+          disabled={createLink.isPending}
+          className="text-xs font-semibold py-2 px-4 rounded-xl text-white disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+        >
+          {createLink.isPending ? "Loading…" : "Set up payouts →"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function ArtistShopPage({
   params,
 }: {
@@ -31,6 +62,10 @@ export default function ArtistShopPage({
 
   const isOwner =
     session?.user?.username?.toLowerCase() === displayUsername.toLowerCase()
+
+  const { data: connectStatus } = trpc.shop.getConnectStatus.useQuery(undefined, {
+    enabled: isOwner,
+  })
 
   if (isLoading) {
     return (
@@ -77,6 +112,10 @@ export default function ArtistShopPage({
             </Link>
           )}
         </div>
+
+        {isOwner && connectStatus && !connectStatus.connected && (
+          <ConnectBanner />
+        )}
 
         {!shopItems || shopItems.length === 0 ? (
           <div className="text-center py-24" style={{ color: "rgba(255,255,255,0.4)" }}>
