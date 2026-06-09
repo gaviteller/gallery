@@ -120,6 +120,32 @@ export const shopRouter = router({
       return item
     }),
 
+  // ─── Order history ───────────────────────────────────────────────────────────
+
+  getMyOrders: protectedProcedure.query(async ({ ctx }) => {
+    const orders = await ctx.prisma.shopOrder.findMany({
+      where: { buyerId: ctx.session.user.id },
+      select: {
+        id: true,
+        downloadToken: true,
+        amountTotal: true,
+        status: true,
+        createdAt: true,
+        downloadedAt: true,
+        item: {
+          select: {
+            id: true,
+            title: true,
+            image: true,
+            user: { select: { username: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+    return orders
+  }),
+
   // ─── Artist management ───────────────────────────────────────────────────────
 
   create: protectedProcedure
