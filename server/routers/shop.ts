@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
 import { stripe } from "@/lib/stripe"
+import { calculateFee } from "@/lib/shopFees"
 
 const PAGE_SIZE = 24
 
@@ -257,4 +258,109 @@ export const shopRouter = router({
 
     return { url: link.url }
   }),
+
+  // ─── Checkout ─────────────────────────────────────────────────────────────────
+
+  createCheckout: protectedProcedure
+    .input(z.object({ itemId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
+
+      const item = await ctx.prisma.shopItem.findUnique({
+        where: { id: input.itemId },
+        include: { user: { select: { id: true, stripeConnectId: true, username: true } } },
+      })
+      if (!item || item.status !== "ACTIVE") throw new TRPCError({ code: "NOT_FOUND" })
+      if (item.userId === ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Cannot buy your own item" })
+      if (!item.user.stripeConnectId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Artist has not connected Stripe" })
+
+      const { totalCents } = calculateFee(item.price)
+      const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: item.title,
+                images: [item.image],
+              },
+              unit_amount: totalCents,
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          type: "shop_single",
+          itemId: item.id,
+          buyerId: ctx.session.user.id,
+          sellerId: item.userId,
+        },
+        success_url: `${baseUrl}/shop/order-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/@${item.user.username}/shop/${item.id}`,
+      })
+
+      return { url: session.url! }
+    }),
+
+  createCartCheckout: protectedProcedure
+    .input(
+      z.object({
+        items: z
+          .array(z.object({ id: z.string() }))
+          .min(1)
+          .max(10),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await checkNotBanned(ctx.prisma, ctx.session.user.id)
+
+      const itemIds = input.items.map(i => i.id)
+      const dbItems = await ctx.prisma.shopItem.findMany({
+        where: { id: { in: itemIds }, status: "ACTIVE" },
+        include: { user: { select: { id: true, stripeConnectId: true } } },
+      })
+
+      if (dbItems.length !== itemIds.length) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "One or more items are unavailable" })
+      }
+      if (dbItems.some(item => item.userId === ctx.session.user.id)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Cannot buy your own items" })
+      }
+      if (dbItems.some(item => !item.user.stripeConnectId)) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "One or more artists have not connected Stripe" })
+      }
+
+      const lineItems = dbItems.map(item => {
+        const { totalCents } = calculateFee(item.price)
+        return {
+          price_data: {
+            currency: "usd",
+            product_data: { name: item.title, images: [item.image] },
+            unit_amount: totalCents,
+          },
+          quantity: 1,
+        }
+      })
+
+      const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: lineItems,
+        metadata: {
+          type: "shop_cart",
+          buyerId: ctx.session.user.id,
+          itemIds: JSON.stringify(itemIds),
+        },
+        success_url: `${baseUrl}/shop/order-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/shop`,
+      })
+
+      return { url: session.url! }
+    }),
 })
