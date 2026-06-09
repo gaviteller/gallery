@@ -1,6 +1,6 @@
 # Gallery Roadmap
 
-Last updated: 2026-05-29
+Last updated: 2026-06-09
 
 ---
 
@@ -63,9 +63,9 @@ Last updated: 2026-05-29
 - [x] New listing form — preview image, private digital file, title, price, tags
 - [x] Pause/unpause + delete listings
 - [x] localStorage cart — drawer UI, count badge in both navs
-- [ ] Stripe Connect onboarding for artists — *Plan 2*
-- [ ] Stripe payment intent (single item + cart checkout) — *Plan 2*
-- [ ] Download delivery by email (signed Cloudinary URL, 24h) — *Plan 2*
+- [x] Stripe Connect onboarding for artists — *Plan 2*
+- [x] Stripe payment intent (single item + cart checkout) — *Plan 2*
+- [x] Download delivery by email (signed Cloudinary URL, 24h) — *Plan 2*
 - [ ] Artist orders + earnings in professional dashboard — *Plan 3*
 
 ### AI Features
