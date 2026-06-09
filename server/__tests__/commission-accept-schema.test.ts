@@ -8,12 +8,12 @@ describe("accept mutation input schema", () => {
   })
 
   it("rejects input missing price", () => {
-    const result = acceptInputSchema.safeParse({ id: "abc", deadline: "2026-06-01T00:00:00.000Z" })
+    const result = acceptInputSchema.safeParse({ id: "abc", deadline: "2027-01-01T00:00:00.000Z" })
     expect(result.success).toBe(false)
   })
 
   it("rejects negative price", () => {
-    const result = acceptInputSchema.safeParse({ id: "abc", price: -10, deadline: "2026-06-01T00:00:00.000Z" })
+    const result = acceptInputSchema.safeParse({ id: "abc", price: -10, deadline: "2027-01-01T00:00:00.000Z" })
     expect(result.success).toBe(false)
   })
 
@@ -23,7 +23,7 @@ describe("accept mutation input schema", () => {
   })
 
   it("accepts valid id + positive price + ISO datetime", () => {
-    const result = acceptInputSchema.safeParse({ id: "abc", price: 50, deadline: "2026-06-01T00:00:00.000Z" })
+    const result = acceptInputSchema.safeParse({ id: "abc", price: 50, deadline: "2027-01-01T00:00:00.000Z" })
     expect(result.success).toBe(true)
   })
 
