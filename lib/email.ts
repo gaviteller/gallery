@@ -182,3 +182,52 @@ export async function sendPostRestoredEmail(to: string, opts: { username: string
      <a href="${GALLERY_URL}/${opts.username}" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View your profile</a>`
   ))
 }
+
+export async function sendShopPurchaseEmail({
+  to,
+  buyerName,
+  itemTitle,
+  sellerUsername,
+  downloadUrl,
+  amountPaid,
+}: {
+  to: string
+  buyerName: string
+  itemTitle: string
+  sellerUsername: string
+  downloadUrl: string
+  amountPaid: number
+}) {
+  await send(to, `Your download is ready — ${itemTitle}`, layout(
+    "Your purchase from Gallery",
+    `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi ${buyerName},</p>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Your purchase was successful! Here's your download link for <strong style="color:#fff;">${itemTitle}</strong> by <a href="${GALLERY_URL}/@${sellerUsername}" style="color:#b044f8;">@${sellerUsername}</a>:</p>
+     <p style="margin:24px 0;">
+       <a href="${downloadUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#FF1CF7 0%,#B044F8 100%);border-radius:10px;color:#fff;font-size:14px;font-weight:600;text-decoration:none;">Download your file</a>
+     </p>
+     <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.5);">This link expires in 24 hours. You can generate a new link from your <a href="${GALLERY_URL}/shop/orders" style="color:#b044f8;">order history</a> at any time.</p>
+     <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.5);">Amount paid: $${amountPaid.toFixed(2)}. All sales are final — no refunds once a download link has been issued.</p>`
+  ))
+}
+
+export async function sendShopSaleEmail({
+  to,
+  artistName,
+  itemTitle,
+  buyerUsername,
+  sellerPayout,
+}: {
+  to: string
+  artistName: string
+  itemTitle: string
+  buyerUsername: string
+  sellerPayout: number
+}) {
+  await send(to, `New sale — ${itemTitle}`, layout(
+    "You made a sale on Gallery",
+    `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi ${artistName},</p>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">You made a sale! <a href="${GALLERY_URL}/@${buyerUsername}" style="color:#b044f8;">@${buyerUsername}</a> purchased <strong style="color:#fff;">${itemTitle}</strong>.</p>
+     <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Your payout of <strong style="color:#fff;">$${sellerPayout.toFixed(2)}</strong> will be transferred to your connected Stripe account.</p>
+     <a href="${GALLERY_URL}/dashboard" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View your dashboard →</a>`
+  ))
+}
