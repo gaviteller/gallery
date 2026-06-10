@@ -8,8 +8,6 @@ import { trpc } from "@/components/providers"
 import Link from "next/link"
 import Image from "next/image"
 import Avatar from "@/components/Avatar"
-import CartDrawer from "@/components/CartDrawer"
-import { useCart } from "@/lib/cart"
 
 
 function NotificationPanel({ onClose }: { onClose: () => void }) {
@@ -131,8 +129,6 @@ export default function BottomNav() {
   const router = useRouter()
   const [notifOpen, setNotifOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
-  const [cartOpen, setCartOpen] = useState(false)
-  const { count: cartCount } = useCart()
 
   const { data: dmUnread } = trpc.dm.getUnreadCount.useQuery(undefined, {
     enabled: status === "authenticated",
@@ -235,7 +231,6 @@ export default function BottomNav() {
   return (
     <>
 {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
-{cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
 
       {/* ── MOBILE bottom nav ─────────────────────────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 h-16" style={{ background: "#0D0D0F", borderTop: "1px solid #ffffff10" }}>
@@ -270,24 +265,6 @@ export default function BottomNav() {
               )}
             </div>
             <span className="text-[10px] font-medium">{notifNavItem.label}</span>
-          </div>
-        </button>
-        {/* Cart */}
-        <button onClick={() => setCartOpen(v => !v)}>
-          <div className={`flex flex-col items-center gap-0.5 px-2 py-2 ${cartOpen ? "text-white" : "text-white/40"}`}>
-            <div className="relative">
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <circle cx="9" cy="21" r="1"/>
-                <circle cx="20" cy="21" r="1"/>
-                <path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61H19a2 2 0 001.98-1.7L22 8H6"/>
-              </svg>
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-purple-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                  {cartCount > 9 ? "9+" : cartCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-medium">Cart</span>
           </div>
         </button>
       </nav>
@@ -364,30 +341,6 @@ export default function BottomNav() {
             </span>
           </button>
 
-          {/* Cart */}
-          <button
-            onClick={() => setCartOpen(v => !v)}
-            className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all w-full ${cartOpen ? "bg-white/5" : "hover:bg-white/5"}`}
-          >
-            <div className={`relative flex-shrink-0 transition-colors ${cartOpen ? "text-[#B044F8]" : "text-white/40 group-hover:text-[#B044F8]"}`}>
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <circle cx="9" cy="21" r="1"/>
-                <circle cx="20" cy="21" r="1"/>
-                <path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61H19a2 2 0 001.98-1.7L22 8H6"/>
-              </svg>
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {cartCount > 9 ? "9+" : cartCount}
-                </span>
-              )}
-            </div>
-            <span
-              className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
-            >
-              Cart
-            </span>
-          </button>
         </div>
 
         {/* Bottom section */}

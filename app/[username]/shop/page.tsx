@@ -1,11 +1,12 @@
 "use client"
 
-import { use } from "react"
+import { use, useState } from "react"
 import { trpc } from "@/components/providers"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import Image from "next/image"
 import { useCart } from "@/lib/cart"
+import CartDrawer from "@/components/CartDrawer"
 
 function ConnectBanner() {
   const utils = trpc.useUtils()
@@ -48,7 +49,8 @@ export default function ArtistShopPage({
   const { username } = use(params)
   const displayUsername = username.startsWith("@") ? username.slice(1) : username
   const { data: session } = useSession()
-  const { items: cartItems, dispatch } = useCart()
+  const { items: cartItems, count: cartCount, dispatch } = useCart()
+  const [cartOpen, setCartOpen] = useState(false)
   const utils = trpc.useUtils()
 
   const { data: shopItems, isLoading } = trpc.shop.getByUsername.useQuery({
@@ -88,6 +90,8 @@ export default function ArtistShopPage({
   }
 
   return (
+    <>
+      {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
     <div className="min-h-screen pb-24 md:pl-16" style={{ background: "#0D0D0F" }}>
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
@@ -102,6 +106,7 @@ export default function ArtistShopPage({
             </Link>
             <h1 className="text-2xl font-bold text-white mt-1">Shop</h1>
           </div>
+          <div className="flex items-center gap-2">
           {isOwner && (
             <Link
               href={`/@${displayUsername}/shop/new`}
@@ -113,6 +118,23 @@ export default function ArtistShopPage({
               + Add listing
             </Link>
           )}
+            <button
+              onClick={() => setCartOpen(true)}
+              className="relative p-2 rounded-xl"
+              style={{ background: "rgba(255,255,255,0.06)" }}
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="text-white">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61H19a2 2 0 001.98-1.7L22 8H6"/>
+              </svg>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {isOwner && connectStatus && !connectStatus.connected && (
@@ -239,5 +261,6 @@ export default function ArtistShopPage({
         )}
       </div>
     </div>
+    </>
   )
 }
