@@ -47,40 +47,28 @@ function ShopItemCard({ item }: { item: FeedItem }) {
           />
         </div>
       </Link>
-      <div className="p-3 flex flex-col gap-2">
-        <Link href={`/@${item.user.username}/shop/${item.id}`}>
-          <p className="text-sm font-semibold text-white line-clamp-1">{item.title}</p>
-        </Link>
-        <Link href={`/@${item.user.username}`} className="flex items-center gap-1.5">
-          {item.user.image && (
-            <Image
-              src={item.user.image}
-              alt=""
-              width={16}
-              height={16}
-              className="rounded-full"
-            />
-          )}
-          <span className="text-xs transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
-            @{item.user.username}
-          </span>
-        </Link>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-sm font-bold text-white">${item.price.toFixed(2)}</span>
-          <button
-            onClick={addToCart}
-            disabled={inCart}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-            style={{
-              background: inCart
-                ? "rgba(255,255,255,0.08)"
-                : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)",
-              color: "white",
-            }}
-          >
-            {inCart ? "In cart" : "Add to cart"}
-          </button>
+      <div className="p-3 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <Link href={`/@${item.user.username}`}>
+            <span className="text-xs transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
+              @{item.user.username}
+            </span>
+          </Link>
+          <p className="text-sm font-bold text-white mt-0.5">${item.price.toFixed(2)}</p>
         </div>
+        <button
+          onClick={addToCart}
+          disabled={inCart}
+          className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          style={{
+            background: inCart
+              ? "rgba(255,255,255,0.08)"
+              : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)",
+            color: "white",
+          }}
+        >
+          {inCart ? "In cart" : "Add to cart"}
+        </button>
       </div>
     </div>
   )

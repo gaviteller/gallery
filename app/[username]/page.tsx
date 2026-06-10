@@ -638,31 +638,28 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   <div className="aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                   </div>
-                  <div className="p-3">
-                    <p className="text-sm font-semibold text-white line-clamp-1">{item.title}</p>
-                    {item.description && (
-                      <p className="text-xs text-white/40 mt-0.5 line-clamp-2">{item.description}</p>
-                    )}
-                    <div className="flex items-center justify-between mt-2">
+                  <div className="p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs text-white/40">@{profileUser.username}</p>
                       <span className="text-sm font-bold text-white">${item.price.toFixed(2)}</span>
-                      {isOwn ? (
-                        <button
-                          onClick={() => deleteShopItem.mutate({ id: item.id })}
-                          disabled={deleteShopItem.isPending}
-                          className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-                        >
-                          Remove
-                        </button>
-                      ) : (
-                        <Link
-                          href={`/@${profileUser.username}/shop/${item.id}`}
-                          className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                          style={{ background: "#B044F820", color: "#B044F8", border: "1px solid #B044F830" }}
-                        >
-                          View
-                        </Link>
-                      )}
                     </div>
+                    {isOwn ? (
+                      <button
+                        onClick={() => deleteShopItem.mutate({ id: item.id })}
+                        disabled={deleteShopItem.isPending}
+                        className="flex-shrink-0 text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/@${profileUser.username}/shop/${item.id}`}
+                        className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                        style={{ background: "#B044F820", color: "#B044F8", border: "1px solid #B044F830" }}
+                      >
+                        View
+                      </Link>
+                    )}
                   </div>
                 </div>
               ))}

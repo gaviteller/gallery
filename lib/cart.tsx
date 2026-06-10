@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useState, useEffect, useCallback } from "react"
 
 export interface CartItem {
   id: string
@@ -31,7 +31,16 @@ export function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
 
 const STORAGE_KEY = "gallery_cart"
 
-export function useCart() {
+interface CartContextValue {
+  items: CartItem[]
+  total: number
+  count: number
+  dispatch: (action: CartAction) => void
+}
+
+const CartContext = createContext<CartContextValue | null>(null)
+
+export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
   useEffect(() => {
@@ -54,5 +63,15 @@ export function useCart() {
   const total = items.reduce((sum, i) => sum + i.price, 0)
   const count = items.length
 
-  return { items, total, count, dispatch }
+  return (
+    <CartContext.Provider value={{ items, total, count, dispatch }}>
+      {children}
+    </CartContext.Provider>
+  )
+}
+
+export function useCart(): CartContextValue {
+  const ctx = useContext(CartContext)
+  if (!ctx) throw new Error("useCart must be used inside CartProvider")
+  return ctx
 }

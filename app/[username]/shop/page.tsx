@@ -170,18 +170,14 @@ export default function ArtistShopPage({
                       )}
                     </div>
                   </Link>
-                  <div className="p-3 flex flex-col gap-2">
-                    <Link href={`/@${displayUsername}/shop/${item.id}`}>
-                      <p className="text-sm font-semibold text-white line-clamp-1">
-                        {item.title}
-                      </p>
-                    </Link>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-white">
-                        ${item.price.toFixed(2)}
-                      </span>
+                  <div className="p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>@{displayUsername}</p>
+                      <span className="text-sm font-bold text-white">${item.price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {isOwner ? (
-                        <div className="flex items-center gap-1">
+                        <>
                           <button
                             onClick={() => togglePauseMutation.mutate({ id: item.id })}
                             disabled={togglePauseMutation.isPending}
@@ -207,7 +203,7 @@ export default function ArtistShopPage({
                           >
                             Delete
                           </button>
-                        </div>
+                        </>
                       ) : (
                         <button
                           onClick={() =>
