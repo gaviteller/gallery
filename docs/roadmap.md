@@ -66,7 +66,7 @@ Last updated: 2026-06-09
 - [x] Stripe Connect onboarding for artists — *Plan 2*
 - [x] Stripe payment intent (single item + cart checkout) — *Plan 2*
 - [x] Download delivery by email (signed Cloudinary URL, 24h) — *Plan 2*
-- [ ] Artist orders + earnings in professional dashboard — *Plan 3*
+- [x] Artist orders + earnings in professional dashboard — *Plan 3*
 
 ### AI Features
 - [ ] AI moderation — image scan on upload (NSFW, gore, stolen art, CSAM), auto-action on high-confidence violations, low-confidence routed to human queue
