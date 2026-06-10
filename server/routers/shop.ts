@@ -148,7 +148,7 @@ export const shopRouter = router({
 
   getMySales: protectedProcedure.query(async ({ ctx }) => {
     return ctx.prisma.shopOrder.findMany({
-      where: { sellerId: ctx.session.user.id },
+      where: { sellerId: ctx.session.user.id, status: "PURCHASED" },
       select: {
         id: true,
         amountTotal: true,
