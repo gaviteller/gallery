@@ -330,71 +330,76 @@ function ProfessionalProfileInner({ username }: { username: string }) {
       </section>
 
       {/* ── Shop Sales ── */}
-      <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
-        <div className="px-6 py-4" style={{ borderBottom: "1px solid #ffffff10" }}>
-          <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide">Shop Sales</h2>
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4 px-6 py-4" style={{ borderBottom: "1px solid #ffffff10" }}>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">{shopStats.totalSales}</p>
-            <p className="text-xs text-white/50 mt-1">Total sales</p>
+      {mySales !== undefined && (
+        <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+          <div className="px-6 py-4" style={{ borderBottom: "1px solid #ffffff10" }}>
+            <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide">Shop Sales</h2>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">${shopStats.totalRevenue.toFixed(2)}</p>
-            <p className="text-xs text-white/50 mt-1">Total revenue</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">${shopStats.totalPayout.toFixed(2)}</p>
-            <p className="text-xs text-white/50 mt-1">Net payout</p>
-          </div>
-        </div>
 
-        {/* Sales list */}
-        {!mySales || mySales.length === 0 ? (
-          <div className="px-6 py-8 text-center">
-            <p className="text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>No sales yet</p>
-          </div>
-        ) : (
-          mySales.slice(0, 20).map(order => (
-            <div
-              key={order.id}
-              className="flex items-center gap-3 px-6 py-3.5 last:border-0"
-              style={{ borderBottom: "1px solid #ffffff08" }}
-            >
-              {/* Item thumbnail */}
-              <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "#ffffff10" }}>
-                <img
-                  src={order.item.image}
-                  alt={order.item.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              {/* Item + buyer */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{order.item.title}</p>
-                <p className="text-xs text-white/40 mt-0.5">
-                  @{order.buyer.username ?? order.buyer.name ?? "unknown"}
-                </p>
-              </div>
-
-              {/* Amount + date */}
-              <div className="text-right flex-shrink-0">
-                <p className="text-sm font-semibold text-white">${order.sellerPayout.toFixed(2)}</p>
-                <p className="text-xs text-white/40 mt-0.5">
-                  {new Date(order.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-4 px-6 py-4" style={{ borderBottom: "1px solid #ffffff10" }}>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{shopStats.totalSales}</p>
+              <p className="text-xs text-white/50 mt-1">Total sales</p>
             </div>
-          ))
-        )}
-      </section>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">${shopStats.totalRevenue.toFixed(2)}</p>
+              <p className="text-xs text-white/50 mt-1">Total revenue</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">${shopStats.totalPayout.toFixed(2)}</p>
+              <p className="text-xs text-white/50 mt-1">Net payout</p>
+            </div>
+          </div>
+
+          {/* Sales list */}
+          {!mySales || mySales.length === 0 ? (
+            <div className="px-6 py-8 text-center">
+              <p className="text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>No sales yet</p>
+            </div>
+          ) : (
+            mySales.slice(0, 20).map(order => (
+              <div
+                key={order.id}
+                className="flex items-center gap-3 px-6 py-3.5 last:border-0"
+                style={{ borderBottom: "1px solid #ffffff08" }}
+              >
+                {/* Item thumbnail */}
+                <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "#ffffff10" }}>
+                  <img
+                    src={order.item.image}
+                    alt={order.item.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Item + buyer */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{order.item.title}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Avatar src={order.buyer.image} name={order.buyer.name} username={order.buyer.username} size={16} />
+                    <p className="text-xs text-white/40">
+                      @{order.buyer.username ?? order.buyer.name ?? "unknown"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Amount + date */}
+                <div className="text-right flex-shrink-0">
+                  <p className="text-sm font-semibold text-white">${order.sellerPayout.toFixed(2)}</p>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    {new Date(order.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </section>
+      )}
 
       {/* ── Commission Settings ── */}
       <section className="rounded-2xl p-6 mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
