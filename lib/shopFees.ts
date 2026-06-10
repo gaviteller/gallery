@@ -20,3 +20,21 @@ export function calculateFee(price: number): FeeBreakdown {
     totalCents,
   }
 }
+
+export interface ShopStats {
+  totalSales: number
+  totalRevenue: number
+  totalFees: number
+  totalPayout: number
+}
+
+export function computeShopStats(
+  orders: Array<{ amountTotal: number; galleryFee: number; sellerPayout: number }>
+): ShopStats {
+  return {
+    totalSales: orders.length,
+    totalRevenue: orders.reduce((sum, o) => sum + o.amountTotal, 0),
+    totalFees: orders.reduce((sum, o) => sum + o.galleryFee, 0),
+    totalPayout: orders.reduce((sum, o) => sum + o.sellerPayout, 0),
+  }
+}
