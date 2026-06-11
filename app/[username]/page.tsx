@@ -11,6 +11,7 @@ import CommissionRequestModal from "@/components/CommissionRequestModal"
 import StoryViewer from "@/components/StoryViewer"
 import StoryUpload from "@/components/StoryUpload"
 import ImageCropEditor from "@/components/ImageCropEditor"
+import ShopListingModal from "@/components/ShopListingModal"
 import { TIER_LABELS, TIER_COLORS } from "@/server/lib/trustScore"
 import { applyWatermark } from "@/lib/watermark"
 import { uploadImage as uploadToCloudinary } from "@/lib/upload"
@@ -117,6 +118,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [viewingStory, setViewingStory] = useState(false)
   const [addingStory, setAddingStory] = useState(false)
   const [showNewMenu, setShowNewMenu] = useState(false)
+  const [showShopModal, setShowShopModal] = useState(false)
 
   // ── New post modal state ──────────────────────────────────────
   const [showUpload, setShowUpload] = useState(false)
@@ -508,8 +510,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   [
                     { label: "Post", action: () => { setShowUpload(true); setShowNewMenu(false) } },
                     { label: "Story", action: () => { setAddingStory(true); setShowNewMenu(false) } },
-                    { label: "Commission", action: () => { router.push("/professional-profile"); setShowNewMenu(false) } },
-                    { label: "Shop listing", action: () => { router.push(`/@${username}/shop/new`); setShowNewMenu(false) } },
+                    { label: "Commission", action: () => { setUploadIsCommission(true); setShowUpload(true); setShowNewMenu(false) } },
+                    { label: "Shop listing", action: () => { setShowShopModal(true); setShowNewMenu(false) } },
                   ] as { label: string; action: () => void }[]
                 ).map(item => (
                   <button
@@ -859,7 +861,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">New post</h2>
+              <h2 className="text-lg font-bold text-white">{uploadIsCommission ? "New commission post" : "New post"}</h2>
               <button onClick={() => { setShowUpload(false); setRawImage(null); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false); setPostUploadError(null) }}
                 className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
             </div>
@@ -980,6 +982,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <StoryUpload
           onClose={() => setAddingStory(false)}
           onSuccess={() => setAddingStory(false)}
+        />
+      )}
+
+      {showShopModal && (
+        <ShopListingModal
+          username={username}
+          onClose={() => setShowShopModal(false)}
         />
       )}
 
