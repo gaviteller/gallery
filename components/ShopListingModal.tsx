@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { trpc } from "@/components/providers"
 import { uploadImage } from "@/lib/upload"
-import { uploadFile } from "@/lib/uploadFile"
 
 interface Props {
   username: string
@@ -11,13 +10,12 @@ interface Props {
   onSuccess?: () => void
 }
 
-export default function ShopListingModal({ username, onClose, onSuccess }: Props) {
+export default function ShopListingModal({ onClose, onSuccess }: Props) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
   const [tags, setTags] = useState("")
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null)
-  const [digitalFile, setDigitalFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
 
@@ -42,8 +40,8 @@ export default function ShopListingModal({ username, onClose, onSuccess }: Props
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!previewDataUrl || !digitalFile) {
-      setError("Please provide a preview image and a digital file.")
+    if (!previewDataUrl) {
+      setError("Please upload an image.")
       return
     }
     const priceNum = parseFloat(price)
@@ -58,14 +56,6 @@ export default function ShopListingModal({ username, onClose, onSuccess }: Props
     try {
       const imageUrl = await uploadImage(previewDataUrl, "shop-previews")
 
-      const fileDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = ev => resolve(ev.target?.result as string)
-        reader.onerror = () => reject(new Error("Failed to read file"))
-        reader.readAsDataURL(digitalFile!)
-      })
-      const filePublicId = await uploadFile(fileDataUrl, digitalFile!.name)
-
       const tagList = tags
         .split(",")
         .map(t => t.trim())
@@ -74,7 +64,7 @@ export default function ShopListingModal({ username, onClose, onSuccess }: Props
 
       createMutation.mutate({
         image: imageUrl,
-        fileUrl: filePublicId,
+        fileUrl: imageUrl,
         title,
         description: description || undefined,
         price: priceNum,
@@ -105,10 +95,10 @@ export default function ShopListingModal({ username, onClose, onSuccess }: Props
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
-          {/* Preview image */}
+          {/* Image */}
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Preview image *
+              Image *
             </label>
             <input
               type="file"
@@ -122,26 +112,6 @@ export default function ShopListingModal({ username, onClose, onSuccess }: Props
             )}
           </div>
 
-          {/* Digital file */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Digital file *{" "}
-              <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>PNG, JPG, PDF, ZIP, PSD — max 50 MB</span>
-            </label>
-            <input
-              type="file"
-              accept=".png,.jpg,.jpeg,.pdf,.zip,.psd,.procreate,.webp,.gif"
-              onChange={e => setDigitalFile(e.target.files?.[0] ?? null)}
-              required
-              className="w-full text-sm text-white/50 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-white/70 hover:file:bg-white/15"
-            />
-            {digitalFile && (
-              <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
-                {digitalFile.name} ({(digitalFile.size / 1024 / 1024).toFixed(1)} MB)
-              </p>
-            )}
-          </div>
-
           {/* Title */}
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>Title *</label>
@@ -151,8 +121,7 @@ export default function ShopListingModal({ username, onClose, onSuccess }: Props
           {/* Description */}
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Description{" "}
-              <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>(what&apos;s included, format, resolution)</span>
+              Description <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>(optional)</span>
             </label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={1000} rows={3} placeholder="Describe what buyers will receive…" className={`${inputClass} resize-none`} style={inputStyle} />
           </div>
@@ -169,8 +138,7 @@ export default function ShopListingModal({ username, onClose, onSuccess }: Props
           {/* Tags */}
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Tags{" "}
-              <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>comma-separated, up to 10</span>
+              Tags <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>comma-separated, up to 10</span>
             </label>
             <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="brush pack, watercolour, digital art" className={inputClass} style={inputStyle} />
           </div>

@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 import { uploadImage } from "@/lib/upload"
-import { uploadFile } from "@/lib/uploadFile"
 
 export default function NewListingPage({
   params,
@@ -22,7 +21,6 @@ export default function NewListingPage({
   const [price, setPrice] = useState("")
   const [tags, setTags] = useState("")
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null)
-  const [digitalFile, setDigitalFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
 
@@ -57,8 +55,8 @@ export default function NewListingPage({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!previewDataUrl || !digitalFile) {
-      setError("Please provide a preview image and a digital file.")
+    if (!previewDataUrl) {
+      setError("Please upload an image.")
       return
     }
     const priceNum = parseFloat(price)
@@ -73,14 +71,6 @@ export default function NewListingPage({
     try {
       const imageUrl = await uploadImage(previewDataUrl, "shop-previews")
 
-      const fileDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = ev => resolve(ev.target?.result as string)
-        reader.onerror = () => reject(new Error("Failed to read file"))
-        reader.readAsDataURL(digitalFile!)
-      })
-      const filePublicId = await uploadFile(fileDataUrl, digitalFile!.name)
-
       const tagList = tags
         .split(",")
         .map(t => t.trim())
@@ -89,7 +79,7 @@ export default function NewListingPage({
 
       createMutation.mutate({
         image: imageUrl,
-        fileUrl: filePublicId,
+        fileUrl: imageUrl,
         title,
         description: description || undefined,
         price: priceNum,
@@ -123,10 +113,10 @@ export default function NewListingPage({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Preview image */}
+          {/* Image */}
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Preview image *
+              Image *
             </label>
             <input
               type="file"
@@ -142,28 +132,6 @@ export default function NewListingPage({
                 className="mt-2 rounded-xl object-cover"
                 style={{ maxHeight: 200, maxWidth: "100%" }}
               />
-            )}
-          </div>
-
-          {/* Digital file */}
-          <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>
-              Digital file *{" "}
-              <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>
-                PNG, JPG, PDF, ZIP, PSD, Procreate — max 50 MB
-              </span>
-            </label>
-            <input
-              type="file"
-              accept=".png,.jpg,.jpeg,.pdf,.zip,.psd,.procreate,.webp,.gif"
-              onChange={e => setDigitalFile(e.target.files?.[0] ?? null)}
-              required
-              className="w-full text-sm text-white/50 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-white/70 hover:file:bg-white/15"
-            />
-            {digitalFile && (
-              <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
-                {digitalFile.name} ({(digitalFile.size / 1024 / 1024).toFixed(1)} MB)
-              </p>
             )}
           </div>
 
@@ -189,7 +157,7 @@ export default function NewListingPage({
             <label className="block text-sm font-medium mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>
               Description{" "}
               <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>
-                (what&apos;s included, format, resolution, usage rights)
+                (optional)
               </span>
             </label>
             <textarea
