@@ -823,8 +823,8 @@ export default function CommissionsPage() {
         )
       })()}
 
-      {/* Full-viewport container — breaks out of layout padding */}
-      <div className="flex flex-col fixed inset-0 md:left-16" style={{ zIndex: 10 }}>
+      {/* Full-viewport container — starts below the mobile Navbar */}
+      <div className="flex flex-col fixed top-14 md:top-0 left-0 right-0 bottom-0 md:left-16" style={{ zIndex: 10 }}>
         {/* Narrow column on desktop */}
         <div className="flex flex-col h-full w-full md:max-w-lg md:mx-auto">
           {/* Tab bar */}
