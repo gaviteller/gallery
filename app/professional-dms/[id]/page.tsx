@@ -257,26 +257,32 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     <div className="max-w-2xl mx-auto flex flex-col h-screen pb-16" style={{ background: "var(--bg)" }}>
 
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-4 flex-shrink-0" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
-        <button onClick={() => router.push("/professional-dms")} className="p-1 transition-colors" style={{ color: "var(--muted)" }}>
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+      {/* Immersive art-backdrop header — 80px */}
+      <div className="relative flex-shrink-0" style={{ height: 80, background: "radial-gradient(ellipse at 65% 35%, rgba(140,60,200,0.6), transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(255,60,172,0.25), transparent 50%), linear-gradient(160deg,#1E0D30,#120820)" }}>
+        {/* bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 50, background: "linear-gradient(transparent, rgba(8,6,15,0.98))" }} />
+        {/* back */}
+        <button
+          onClick={() => router.push("/professional-dms")}
+          className="absolute z-10 flex items-center gap-1"
+          style={{ top: 11, left: 12, color: "rgba(240,235,248,0.6)", fontSize: 9 }}
+        >
+          <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          Back
         </button>
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={36} />
-          <div className="min-w-0">
-            <p className="text-sm font-bold truncate font-playfair" style={{ color: "var(--text)" }}>
-              {otherParty?.name ?? `@${otherParty?.username}`}
-            </p>
-            {otherParty?.name && (
-              <p className="text-[11px] truncate" style={{ color: "var(--muted)" }}>@{otherParty.username}</p>
-            )}
-          </div>
-        </div>
-        <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${statusColor[commission.status] ?? "bg-white/10 text-white/40"}`}>
+        {/* status badge — top right */}
+        <span className={`absolute z-10 text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusColor[commission.status] ?? "bg-white/10 text-white/40"}`} style={{ top: 10, right: 12 }}>
           {statusLabel[commission.status] ?? commission.status}
         </span>
+        {/* name at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex items-end gap-2 px-3 pb-2">
+          <p className="font-playfair font-bold text-white truncate" style={{ fontSize: 14, lineHeight: 1 }}>
+            {otherParty?.name ?? `@${otherParty?.username}`}
+          </p>
+          {otherParty?.name && (
+            <p className="text-[11px] truncate flex-shrink-0" style={{ color: "rgba(240,235,248,0.45)", marginBottom: 1 }}>@{otherParty.username}</p>
+          )}
+        </div>
       </div>
 
       {/* Scrollable messages area */}

@@ -343,11 +343,16 @@ function ForYouCard({
   )
 }
 
-// ── Explore grid card ─────────────────────────────────────────────────────────
+// ── Studio card (Explore list) ────────────────────────────────────────────────
+const studioStatusStyle: Record<string, React.CSSProperties> = {
+  OPEN:    { background: "rgba(72,200,120,0.12)", color: "#48C878", border: "1px solid rgba(72,200,120,0.28)" },
+  LIMITED: { background: "rgba(255,180,60,0.1)",  color: "#FFB43C", border: "1px solid rgba(255,180,60,0.22)" },
+  CLOSED:  { background: "rgba(240,60,60,0.08)",  color: "#F06060", border: "1px solid rgba(240,60,60,0.18)" },
+}
+
 function ExploreCard({
   artist,
   onRequest,
-  onImageClick,
 }: {
   artist: DiscoveryUser
   onRequest: (artist: DiscoveryUser) => void
@@ -355,18 +360,15 @@ function ExploreCard({
 }) {
   const router = useRouter()
   const { data: session } = useSession()
-  const [imgIndex, setImgIndex] = useState(0)
-  const scrollRef = useRef<HTMLDivElement>(null)
 
-  const images: string[] = artist.commissionCardImages.length > 0
-    ? artist.commissionCardImages
-    : artist.posts.map(p => p.image)
+  const coverImage: string | null = (
+    artist.commissionCardImages.length > 0 ? artist.commissionCardImages[0] :
+    artist.posts.length > 0 ? artist.posts[0].image : null
+  )
 
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current
-    if (!el || images.length < 2) return
-    setImgIndex(Math.round(el.scrollLeft / el.offsetWidth))
-  }, [images.length])
+  const startingPrice: number | null = artist.priceRanges && artist.priceRanges.length > 0
+    ? Math.min(...artist.priceRanges.map(r => r.price))
+    : null
 
   function handleRequest(e: React.MouseEvent) {
     e.stopPropagation()
@@ -375,67 +377,78 @@ function ExploreCard({
   }
 
   return (
-    <div onClick={() => router.push(`/@${artist.username}?tab=Commissions`)} className="cursor-pointer overflow-hidden" style={{ background: "#111118" }}>
-      <div className="aspect-square relative">
-        {images.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/5">
-            <p className="text-xs text-white/30">No examples</p>
-          </div>
+    <div style={{ borderBottom: "1px solid var(--border)" }}>
+      {/* Art header — 105px */}
+      <div
+        className="relative cursor-pointer"
+        style={{ height: 105, overflow: "hidden" }}
+        onClick={() => router.push(`/@${artist.username}?tab=Commissions`)}
+      >
+        {coverImage ? (
+          <img src={coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
         ) : (
-          <>
-            <div
-              ref={scrollRef}
-              onScroll={handleScroll}
-              onClick={e => e.stopPropagation()}
-              className="absolute inset-0 flex overflow-x-scroll snap-x snap-mandatory"
-              style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
-            >
-              {images.map((img, i) => (
-                <div
-                  key={i}
-                  className="relative flex-shrink-0 snap-center"
-                  style={{ width: "100%", height: "100%" }}
-                  onClick={() => onImageClick(artist, i)}
-                >
-                  <img src={img} alt="" className="absolute inset-0 w-full h-full object-cover cursor-zoom-in" draggable={false} />
-                </div>
-              ))}
-            </div>
-            {images.length > 1 && (
-              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 pointer-events-none z-10">
-                {images.map((_, i) => (
-                  <span key={i} className={`block w-1.5 h-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`} />
-                ))}
-              </div>
-            )}
-          </>
+          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(120,75,160,0.5), transparent 65%), linear-gradient(135deg,#2A1838,#1E1430)" }} />
         )}
-      </div>
-      <div className="px-2 pt-2 pb-3">
-        <div className="flex items-center gap-1.5 mb-1">
-          <Avatar src={artist.image} name={artist.name} username={artist.username} size={20} />
-          <p className="text-xs font-bold text-white truncate flex-1 font-playfair">{artist.name ?? artist.username}</p>
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusBadge[artist.commissionStatus]}`}>
-            {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
+        {/* fade overlay */}
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 65, background: "linear-gradient(transparent, rgba(8,6,15,0.95))" }} />
+        {/* artist ident */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-end gap-2 px-3 pb-2">
+          <Avatar src={artist.image} name={artist.name} username={artist.username} size={28} />
+          <div className="flex-1 min-w-0">
+            <p className="font-playfair font-bold text-white leading-tight truncate" style={{ fontSize: 12 }}>
+              {artist.name ?? artist.username}
+            </p>
+            {artist.artStyles.length > 0 && (
+              <p style={{ fontSize: 7, color: "rgba(240,235,248,0.45)", marginTop: 1 }}>
+                {artist.artStyles.slice(0, 3).join(" · ")}
+              </p>
+            )}
+          </div>
+          <span className="text-[6.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded flex-shrink-0"
+            style={studioStatusStyle[artist.commissionStatus] ?? studioStatusStyle.CLOSED}>
+            {artist.commissionStatus === "LIMITED" ? "Limited" : artist.commissionStatus === "OPEN" ? "Open" : "Closed"}
           </span>
         </div>
-        <p className="text-[10px] font-bold mb-2" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          {avgPrice(artist.priceRanges)}{artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
-        </p>
-        {artist.artStyles.length > 0 && (
+      </div>
+
+      {/* Card body */}
+      <div className="px-3 pt-2.5 pb-3" style={{ background: "var(--surface)" }}>
+        {/* Price row */}
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <span className="font-playfair font-bold" style={{ fontSize: 16, color: "var(--text)" }}>
+            {startingPrice !== null ? `from $${startingPrice}` : "Price TBD"}
+          </span>
+          {artist.commissionTurnaround && (
+            <span style={{ fontSize: 7.5, color: "var(--muted)" }}>· {artist.commissionTurnaround}</span>
+          )}
+        </div>
+
+        {/* Tier pills */}
+        {artist.priceRanges && artist.priceRanges.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {artist.artStyles.slice(0, 3).map(s => (
-              <span key={s} className="text-[9px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded-full">{s}</span>
+            {artist.priceRanges.map(r => (
+              <span key={r.label} style={{ fontSize: 7, padding: "3px 8px", borderRadius: 4, background: "var(--bg)", color: "var(--muted)", border: "1px solid var(--border)" }}>
+                {r.label} <span style={{ color: "var(--text)", fontWeight: 600 }}>${r.price}</span>
+              </span>
             ))}
-            {artist.artStyles.length > 3 && <span className="text-[9px] text-white/30">+{artist.artStyles.length - 3}</span>}
           </div>
         )}
+
+        {/* CTA */}
         <button
           onClick={handleRequest}
-          className="w-full py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
+          className="w-full rounded-lg text-white font-semibold"
+          style={{
+            padding: "9px 0",
+            fontSize: 9.5,
+            background: artist.commissionStatus === "CLOSED"
+              ? "var(--bg)"
+              : "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)",
+            border: artist.commissionStatus === "CLOSED" ? "1px solid var(--border)" : undefined,
+            color: artist.commissionStatus === "CLOSED" ? "var(--muted)" : "white",
+          }}
         >
-          Request
+          {artist.commissionStatus === "CLOSED" ? "Closed" : "Request commission"}
         </button>
       </div>
     </div>
@@ -749,7 +762,7 @@ function ExploreTabInner({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-px" style={{ background: "#ffffff08" }}>
+        <div>
           {filtered.map(artist => (
             <ExploreCard
               key={artist.id}

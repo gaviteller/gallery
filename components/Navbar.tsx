@@ -145,9 +145,8 @@ export default function Navbar() {
   const username = session?.user?.username
 
   return (
-    <>
-    {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
     <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
+      {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
       {/* Gallery wordmark */}
       <span className="font-playfair text-lg font-bold tracking-wider" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
         Gallery
@@ -267,6 +266,5 @@ export default function Navbar() {
       </div>
       </div>
     </div>
-    </>
   )
 }
