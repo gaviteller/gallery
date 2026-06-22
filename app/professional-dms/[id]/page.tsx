@@ -257,15 +257,22 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
     <div className="max-w-2xl mx-auto flex flex-col h-screen pb-16" style={{ background: "var(--bg)" }}>
 
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ background: "#160b30", borderBottom: "1px solid var(--border)" }}>
-        <button onClick={() => router.push("/professional-dms")} className="text-white/40 hover:text-white/70 p-1">
+      <div className="flex items-center gap-3 px-4 py-4 flex-shrink-0" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
+        <button onClick={() => router.push("/professional-dms")} className="p-1 transition-colors" style={{ color: "var(--muted)" }}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={32} />
-          <p className="text-sm font-semibold text-white truncate">@{otherParty?.username}</p>
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={36} />
+          <div className="min-w-0">
+            <p className="text-sm font-bold truncate font-playfair" style={{ color: "var(--text)" }}>
+              {otherParty?.name ?? `@${otherParty?.username}`}
+            </p>
+            {otherParty?.name && (
+              <p className="text-[11px] truncate" style={{ color: "var(--muted)" }}>@{otherParty.username}</p>
+            )}
+          </div>
         </div>
         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${statusColor[commission.status] ?? "bg-white/10 text-white/40"}`}>
           {statusLabel[commission.status] ?? commission.status}
@@ -497,11 +504,11 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                 )}
                 {msg.text && (
                   isMe ? (
-                    <div className="px-4 py-2.5 rounded-2xl text-sm bg-blue-600 text-white rounded-tr-sm">
+                    <div className="px-4 py-2.5 rounded-2xl text-sm text-white rounded-tr-sm" style={{ background: "linear-gradient(135deg, #FF3CAC, #784BA0)" }}>
                       {msg.text}
                     </div>
                   ) : (
-                    <div className="px-4 py-2.5 rounded-2xl text-sm text-white rounded-tl-sm" style={{ background: "#1e0d3f" }}>
+                    <div className="px-4 py-2.5 rounded-2xl text-sm rounded-tl-sm" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}>
                       {msg.text}
                     </div>
                   )

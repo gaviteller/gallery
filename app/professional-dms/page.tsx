@@ -59,15 +59,18 @@ function CommissionRow({ commission, otherParty, role }: {
       <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={40} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <p className="text-sm font-semibold text-white truncate">
-            @{otherParty?.username ?? "unknown"}
+          <p className="text-sm font-bold truncate font-playfair" style={{ color: "var(--text)" }}>
+            {otherParty?.name ?? `@${otherParty?.username ?? "unknown"}`}
           </p>
           <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0"
-            style={{ background: role === "artist" ? "rgba(120,75,160,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#784BA0" : "rgba(255,255,255,0.4)" }}>
-            {role === "artist" ? "client" : "you commissioned"}
+            style={{ background: role === "artist" ? "rgba(120,75,160,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#B090D8" : "rgba(255,255,255,0.4)" }}>
+            {role === "artist" ? "client" : "commissioned"}
           </span>
         </div>
-        <p className="text-xs text-white/30 mt-0.5">{timeAgo(commission.updatedAt)}</p>
+        {otherParty?.name && (
+          <p className="text-[11px]" style={{ color: "var(--muted)" }}>@{otherParty.username}</p>
+        )}
+        <p className="text-[11px] mt-0.5" style={{ color: "rgba(107,95,136,0.6)" }}>{timeAgo(commission.updatedAt)}</p>
       </div>
       <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${statusColor[commission.status] ?? "bg-white/10 text-white/40"}`}>
         {statusLabel[commission.status] ?? commission.status}

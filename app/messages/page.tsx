@@ -162,11 +162,14 @@ function MessagesInner({ userId }: { userId: string }) {
                   <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={48} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate font-semibold text-white">
-                    @{c.other.username ?? "unknown"}
+                  <p className="text-sm truncate font-bold font-playfair" style={{ color: "var(--text)" }}>
+                    {c.other.name ?? `@${c.other.username ?? "unknown"}`}
                   </p>
+                  {c.other.name && (
+                    <p className="text-[11px] truncate" style={{ color: "var(--muted)" }}>@{c.other.username}</p>
+                  )}
                   {c.lastMsg && (
-                    <p className="text-xs truncate mt-0.5 text-white/40">
+                    <p className="text-xs truncate mt-0.5" style={{ color: "rgba(107,95,136,0.7)" }}>
                       {c.lastMsg.senderId === userId ? "You: " : ""}{c.lastMsg.text}
                     </p>
                   )}
