@@ -504,7 +504,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
                 )}
                 {msg.text && (
                   isMe ? (
-                    <div className="px-4 py-2.5 rounded-2xl text-sm text-white rounded-tr-sm" style={{ background: "linear-gradient(135deg, #FF3CAC, #784BA0)" }}>
+                    <div className="px-4 py-2.5 rounded-2xl text-sm text-white rounded-tr-sm" style={{ background: "linear-gradient(135deg, #2A1040, #1A1840)" }}>
                       {msg.text}
                     </div>
                   ) : (

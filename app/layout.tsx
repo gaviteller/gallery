@@ -34,7 +34,7 @@ export default function RootLayout({
           <div className="md:hidden">
             <Navbar />
           </div>
-          <div className="pb-20 md:pb-0 md:pl-16 min-h-screen">
+          <div className="pb-20 pt-14 md:pb-0 md:pt-0 md:pl-16 min-h-screen">
             {children}
             <footer style={{ padding: "16px 24px", textAlign: "center" }}>
               <Link href="/dmca" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>

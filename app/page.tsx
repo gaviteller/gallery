@@ -140,7 +140,7 @@ export default function FeedPage() {
   const posts = data?.pages.flatMap((p) => p.posts) ?? []
 
   return (
-    <div className="feed-container mx-auto pb-24">
+    <div className="feed-container mx-auto pb-24 max-w-lg">
       <FeaturedArtistsStrip />
       <div className="px-4 py-3 flex justify-end">
         <Link
@@ -175,11 +175,10 @@ export default function FeedPage() {
             {posts.map((post) => (
               <article
                 key={post.id}
-                className="mx-3 my-2 gallery-card"
-                style={{ overflow: "hidden" }}
+                style={{ borderBottom: "1px solid var(--border)" }}
               >
-                {/* Post header — two lines: display name + commission badge / @username + timestamp */}
-                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                {/* Post header */}
+                <div className="flex items-center gap-3 px-4 pt-3 pb-2">
                   <Link href={`/@${post.user.username}`} className="flex-shrink-0">
                     {/* Avatar with always-on subtle gradient ring */}
                     <div
@@ -274,7 +273,7 @@ export default function FeedPage() {
                   <img
                     src={post.image}
                     alt={post.description ?? ""}
-                    style={{ display: "block", width: "100%", aspectRatio: "1/1", objectFit: "cover" }}
+                    style={{ display: "block", width: "100%", aspectRatio: "1/1", objectFit: "cover", borderRadius: 0 }}
                   />
                 </button>
 

@@ -147,7 +147,12 @@ export default function Navbar() {
   return (
     <>
     {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
+      {/* Gallery wordmark */}
+      <span className="font-playfair text-lg font-bold tracking-wider" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+        Gallery
+      </span>
+      <div className="flex items-center gap-2">
       {/* Search */}
       <button
         onClick={() => router.push("/search")}
@@ -259,6 +264,7 @@ export default function Navbar() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
     </>
