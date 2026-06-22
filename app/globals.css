@@ -1,44 +1,63 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --brand-pink: #FF1CF7;
-  --brand-purple: #B044F8;
-  --brand-cyan: #00B4EE;
-  --brand-dark: #0D0D0F;
+  --bg: #0F0D14;
+  --surface: #1C1825;
+  --border: #2A2438;
+  --text: #F0EBF8;
+  --muted: #6B5F88;
+  --nav: #16131E;
+  --grad: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
+  --grad-135: linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-playfair: "Playfair Display", Georgia, serif;
+
+  /* Remap Tailwind's gray scale to dark palette */
+  --color-gray-50:  #16131E;
+  --color-gray-100: #1C1825;
+  --color-gray-200: #2A2438;
+  --color-gray-300: #3D3354;
+  --color-gray-400: #6B5F88;
+  --color-gray-500: #8B7FA8;
+  --color-gray-600: #A89EC8;
+  --color-gray-700: #C8C0E0;
+  --color-gray-800: #DDD8EE;
+  --color-gray-900: #F0EBF8;
 }
 
 body {
-  background: #0D0D0F;
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Brand gradient utility */
+/* Brand gradient — updated palette */
 .brand-gradient {
-  background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%);
+  background: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
 }
 
 .brand-gradient-text {
-  background: linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%);
+  background: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Gallery card token — used by feed post cards */
+/* Playfair Display utility — !important needed to beat next/font Inter on <body> */
+.font-playfair {
+  font-family: "Playfair Display", Georgia, serif !important;
+}
+
+/* Surface card — the standard dark card */
 .gallery-card {
-  background: #141414;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
 }
 
@@ -47,9 +66,40 @@ body {
   max-width: 42rem;
 }
 
-/* Feed images — cap height so tall artworks don't take over the screen */
+/* Feed images — cap height so tall artworks don't take over */
 .feed-image {
   width: 100%;
   max-height: 520px;
   object-fit: cover;
+}
+
+/* Gradient button utility */
+.btn-gradient {
+  background: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Gradient toggle (on state) */
+.toggle-on {
+  background: linear-gradient(90deg, #FF3CAC, #784BA0);
+}
+
+/* White input → dark surface input */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="url"],
+textarea,
+select {
+  background: rgba(240, 235, 248, 0.05);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
 }

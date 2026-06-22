@@ -97,7 +97,7 @@ export default function StoryViewer({ user, onClose }: { user: StoryUser; onClos
         <div className="absolute top-8 left-0 right-0 flex items-center gap-3 px-4">
           {user.image
             ? <img src={user.image} className="w-9 h-9 rounded-full object-cover" alt="" />
-            : <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+            : <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
                 {(user.name ?? user.username ?? "?")[0].toUpperCase()}
               </div>
           }

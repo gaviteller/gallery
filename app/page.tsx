@@ -147,7 +147,7 @@ export default function FeedPage() {
           href="/commissions"
           aria-label="Browse all artists open for commissions"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white transition-opacity hover:opacity-80"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
         >
           Browse Commissions →
         </Link>
@@ -164,7 +164,7 @@ export default function FeedPage() {
           <Link
             href="/commissions"
             className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
           >
             Find artists →
           </Link>
@@ -186,13 +186,13 @@ export default function FeedPage() {
                       style={{
                         padding: 1.5,
                         background:
-                          "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                          "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                         borderRadius: "50%",
                         opacity: 0.9,
                       }}
                     >
                       <div
-                        style={{ padding: 2, background: "#141414", borderRadius: "50%" }}
+                        style={{ padding: 2, background: "var(--bg)", borderRadius: "50%" }}
                       >
                         {post.user.image ? (
                           <img
@@ -205,7 +205,7 @@ export default function FeedPage() {
                             className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
                             style={{
                               background:
-                                "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                                "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                             }}
                           >
                             {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
@@ -220,15 +220,15 @@ export default function FeedPage() {
                     <div className="flex items-center justify-between gap-2">
                       <Link
                         href={`/@${post.user.username}`}
-                        className="text-sm font-semibold text-white truncate"
-                        style={{ fontFamily: "Space Grotesk, sans-serif" }}
+                        className="text-sm font-bold text-white truncate font-playfair"
                       >
-                        @{post.user.username}
+                        {post.user.name ?? post.user.username}
                       </Link>
                       {(post.user.commissionStatus === "OPEN" ||
                         post.user.commissionStatus === "LIMITED") && (
-                        <span className="text-xs font-semibold brand-gradient-text flex-shrink-0">
-                          Commission open ↗
+                        <span className="flex items-center gap-1 text-xs font-semibold brand-gradient-text flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />
+                          Commission open
                         </span>
                       )}
                     </div>
@@ -249,7 +249,7 @@ export default function FeedPage() {
                       className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0"
                       style={{
                         background: "rgba(176,68,248,0.2)",
-                        color: "#B044F8",
+                        color: "#B090D8",
                       }}
                     >
                       AI

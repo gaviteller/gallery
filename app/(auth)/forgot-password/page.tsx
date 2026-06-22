@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-white/10 p-8" style={{ background: "#1a1a2e" }}>
+      <div className="rounded-2xl border border-white/10 p-8" style={{ background: "var(--surface)" }}>
         <div className="flex flex-col items-center mb-8">
           <Image src="/logo.png" alt="Gallery" width={100} height={100} className="mb-3" />
           <p className="text-white/50 text-sm">Reset your password</p>
@@ -53,13 +53,13 @@ export default function ForgotPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
-              style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
             />
             <button
               type="submit"
               disabled={mutation.isPending || !email || cooldown}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               {mutation.isPending ? "Sending…" : "Send reset link"}
             </button>
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-white/10 p-5 text-center" style={{ background: "#1a1a2e" }}>
+      <div className="rounded-2xl border border-white/10 p-5 text-center" style={{ background: "var(--surface)" }}>
         <p className="text-sm text-white/50">
           <Link href="/signin" className="font-semibold text-white hover:opacity-80 transition">
             Back to sign in

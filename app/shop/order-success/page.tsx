@@ -15,7 +15,7 @@ export default function OrderSuccessPage() {
   return (
     <div
       className="min-h-screen md:pl-16 flex items-center justify-center"
-      style={{ background: "#0D0D0F" }}
+      style={{ background: "var(--bg)" }}
     >
       <div className="max-w-md mx-auto px-6 text-center">
         <div className="text-5xl mb-4">🎉</div>
@@ -30,7 +30,7 @@ export default function OrderSuccessPage() {
           <Link
             href="/shop/orders"
             className="py-3 px-6 rounded-xl text-sm font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+            style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
           >
             View orders
           </Link>

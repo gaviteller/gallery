@@ -49,8 +49,8 @@ export default function ReportModal({ postId, onClose, onReported }: ReportModal
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div style={{
-        background: "#1a1a2e", borderRadius: 12, padding: 24, width: 360,
-        border: "1px solid rgba(255,255,255,0.12)",
+        background: "var(--surface)", borderRadius: 12, padding: 24, width: 360,
+        border: "1px solid var(--border)",
       }}>
         <h3 style={{ color: "white", fontSize: 16, fontWeight: 600, margin: "0 0 16px" }}>
           Report Post

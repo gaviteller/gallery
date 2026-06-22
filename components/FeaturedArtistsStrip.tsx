@@ -54,7 +54,7 @@ export default function FeaturedArtistsStrip() {
             ? {
                 padding: 2,
                 background:
-                  "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                  "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                 borderRadius: 12,
               }
             : hasStory
@@ -102,7 +102,7 @@ export default function FeaturedArtistsStrip() {
                         className="w-full h-full flex items-center justify-center text-white font-bold text-xl"
                         style={{
                           background:
-                            "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                            "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                         }}
                       >
                         {(group.name ?? group.username ?? "?")[0].toUpperCase()}
@@ -117,7 +117,7 @@ export default function FeaturedArtistsStrip() {
                             width: 22,
                             height: 22,
                             background:
-                              "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                              "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                           }}
                         >
                           <svg

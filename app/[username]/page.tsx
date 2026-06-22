@@ -191,7 +191,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     .split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
 
   const inputClass = "w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-  const inputStyle = { background: "#ffffff10", border: "1px solid #ffffff15" }
+  const inputStyle = { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
 
   return (
     <>
@@ -207,11 +207,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* Mutual followers modal */}
       {showMutuals && !isOwn && mutualData && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setShowMutuals(false)}>
-          <div className="w-full max-w-lg rounded-t-2xl pb-8" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }} onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-lg rounded-t-2xl pb-8" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full" style={{ background: "#ffffff20" }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: "rgba(240,235,248,0.07)" }} />
             </div>
-            <p className="text-sm font-semibold text-white px-4 pb-3" style={{ borderBottom: "1px solid #ffffff10" }}>
+            <p className="text-sm font-semibold text-white px-4 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
               Mutual followers
             </p>
             <div className="max-h-72 overflow-y-auto">
@@ -220,7 +220,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
                   {u.image
                     ? <img src={u.image} className="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="" />
-                    : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-sm" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>{(u.name ?? u.username ?? "?")[0].toUpperCase()}</div>
+                    : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-sm" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>{(u.name ?? u.username ?? "?")[0].toUpperCase()}</div>
                   }
                   <div>
                     <p className="text-sm font-semibold text-white">@{u.username}</p>
@@ -267,13 +267,13 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <div
               style={{
                 padding: userStories.length > 0 ? 2.5 : 1.5,
-                background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                 borderRadius: "50%",
                 opacity: userStories.length > 0 ? 1 : 0.4,
               }}
             >
               <div
-                style={{ padding: 2, background: "#0D0D0F", borderRadius: "50%" }}
+                style={{ padding: 2, background: "var(--bg)", borderRadius: "50%" }}
               >
                 {profileUser.image ? (
                   <img
@@ -289,7 +289,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                       width: 80,
                       height: 80,
                       background:
-                        "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                        "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                     }}
                   >
                     {initials}
@@ -301,30 +301,36 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         </div>
 
         {/* Name */}
-        <h1 style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 22, fontWeight: 700, color: "white", lineHeight: 1.2 }}>
-          @{profileUser.username}
+        <h1 className="font-playfair" style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>
+          {profileUser.name ?? `@${profileUser.username}`}
         </h1>
-        {(profileUser as { showRealName?: boolean; name?: string | null }).showRealName &&
-          profileUser.name && (
-          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, marginTop: 2 }}>{profileUser.name}</p>
-        )}
+        <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>@{profileUser.username}</p>
 
         {/* Commission badge */}
         {commissionProfile && (commissionProfile.commissionStatus === "OPEN" || commissionProfile.commissionStatus === "LIMITED") && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(176,68,248,0.15)", border: "1px solid rgba(176,68,248,0.3)", borderRadius: 20, padding: "3px 10px", marginTop: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "linear-gradient(135deg, #FF1CF7, #B044F8)" }} />
-            <span style={{ fontSize: 12, fontWeight: 600, background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Commission open</span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(120,75,160,0.15)", border: "1px solid rgba(120,75,160,0.3)", borderRadius: 20, padding: "3px 10px", marginTop: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "linear-gradient(90deg, #FF3CAC, #784BA0)" }} />
+            <span style={{ fontSize: 12, fontWeight: 600, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Commission open</span>
           </div>
         )}
 
 
         {/* Stats */}
-        <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}><strong style={{ color: "white" }}>{posts?.length ?? 0}</strong> posts</span>
-          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}><strong style={{ color: "white" }}>{followStatus?.followerCount ?? 0}</strong> followers</span>
-          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}><strong style={{ color: "white" }}>{followStatus?.followingCount ?? 0}</strong> following</span>
+        <div style={{ display: "flex", gap: 20, marginTop: 10, flexWrap: "wrap" }}>
+          <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <strong className="font-playfair" style={{ fontSize: 16, color: "var(--text)" }}>{posts?.length ?? 0}</strong>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>posts</span>
+          </span>
+          <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <strong className="font-playfair" style={{ fontSize: 16, color: "var(--text)" }}>{followStatus?.followerCount ?? 0}</strong>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>followers</span>
+          </span>
+          <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <strong className="font-playfair" style={{ fontSize: 16, color: "var(--text)" }}>{followStatus?.followingCount ?? 0}</strong>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>following</span>
+          </span>
           {!isOwn && mutualData && mutualData.count > 0 && (
-            <button onClick={() => setShowMutuals(true)} style={{ fontSize: 14, color: "#22d3ee" }}>{mutualData.count} mutual</button>
+            <button onClick={() => setShowMutuals(true)} style={{ fontSize: 13, color: "#2B86C5" }}>{mutualData.count} mutual</button>
           )}
         </div>
 
@@ -397,8 +403,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               <Link href="/settings" style={{ fontSize: 13, padding: "7px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
                 Edit profile
               </Link>
-              <div style={{ padding: 1.5, background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", borderRadius: 20 }}>
-                <button onClick={() => setAddingStory(true)} style={{ fontSize: 12, fontWeight: 600, color: "white", padding: "6px 14px", borderRadius: 20, background: "#0D0D0F" }}>
+              <div style={{ padding: 1.5, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: 20 }}>
+                <button onClick={() => setAddingStory(true)} style={{ fontSize: 12, fontWeight: 600, color: "white", padding: "6px 14px", borderRadius: 20, background: "var(--bg)" }}>
                   + Story
                 </button>
               </div>
@@ -408,7 +414,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               <button
                 onClick={() => followStatus?.following ? unfollowMutation.mutate({ username }) : followMutation.mutate({ username })}
                 disabled={followMutation.isPending || unfollowMutation.isPending}
-                style={{ padding: "8px 24px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: followStatus?.following ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", border: followStatus?.following ? "1px solid rgba(255,255,255,0.2)" : "none" }}
+                style={{ padding: "8px 24px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: followStatus?.following ? "rgba(255,255,255,0.1)" : "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", border: followStatus?.following ? "1px solid rgba(255,255,255,0.2)" : "none" }}
               >
                 {followMutation.isPending || unfollowMutation.isPending ? "…" : followStatus?.following ? "Following" : "Follow"}
               </button>
@@ -430,7 +436,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 {moreMenuOpen && (
                   <div
                     className="absolute right-0 top-10 z-50 rounded-xl border border-white/10 py-1 shadow-xl"
-                    style={{ background: "#1a1a2e", minWidth: 180 }}
+                    style={{ background: "var(--surface)", minWidth: 180 }}
                   >
                     <button
                       onClick={() => {
@@ -478,7 +484,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 tab === t
                   ? {
                       background:
-                        "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+                        "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                       color: "white",
                     }
                   : {
@@ -500,12 +506,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             )}
             <button
               onClick={() => setShowNewMenu(v => !v)}
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", color: "white", fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 10, position: "relative", zIndex: 41 }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", color: "white", fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 10, position: "relative", zIndex: 41 }}
             >
               + New
             </button>
             {showNewMenu && (
-              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, overflow: "hidden", minWidth: 160, zIndex: 50 }}>
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", minWidth: 160, zIndex: 50 }}>
                 {(
                   [
                     { label: "Post", action: () => { setShowUpload(true); setShowNewMenu(false) } },
@@ -655,7 +661,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               <Link
                 href={`/@${profileUser.username}/shop/new`}
                 className="text-sm font-medium px-3 py-2 rounded-xl transition-colors"
-                style={{ background: "#B044F820", color: "#B044F8", border: "1px solid #B044F830" }}
+                style={{ background: "rgba(120,75,160,0.15)", color: "#784BA0", border: "1px solid rgba(120,75,160,0.3)" }}
               >
                 + Add listing
               </Link>
@@ -667,7 +673,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           ) : shopItems && shopItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
               {shopItems.map((item) => (
-                <div key={item.id} className="rounded-2xl overflow-hidden" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+                <div key={item.id} className="rounded-2xl overflow-hidden" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}>
                   <div className="aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
                     <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                   </div>
@@ -688,7 +694,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                       <Link
                         href={`/@${profileUser.username}/shop/${item.id}`}
                         className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                        style={{ background: "#B044F820", color: "#B044F8", border: "1px solid #B044F830" }}
+                        style={{ background: "rgba(120,75,160,0.15)", color: "#784BA0", border: "1px solid rgba(120,75,160,0.3)" }}
                       >
                         View
                       </Link>
@@ -717,12 +723,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           ) : (
             <>
               {/* Info card */}
-              <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+              <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}>
                 {/* Trust score */}
                 {trustScore && (
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5" style={{ background: "#ffffff10" }}>
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5" style={{ background: "rgba(240,235,248,0.07)" }}>
                       <span style={{ width: 6, height: 6, borderRadius: "50%", background: TIER_COLORS[trustScore.tier], display: "inline-block", flexShrink: 0 }} />
                       <span style={{ color: TIER_COLORS[trustScore.tier], fontWeight: 700 }}>{TIER_LABELS[trustScore.tier]}</span>
                       {trustScore.finalScore !== null && (
@@ -750,7 +756,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         <p className="text-xs text-white/40 mb-0.5">Price ranges</p>
                         <div className="flex flex-wrap gap-1.5">
                           {ranges.map((r) => (
-                            <span key={r.label + '-' + r.price} className="text-xs px-2 py-0.5 rounded-full text-white/70" style={{ background: "#ffffff10" }}>
+                            <span key={r.label + '-' + r.price} className="text-xs px-2 py-0.5 rounded-full text-white/70" style={{ background: "rgba(240,235,248,0.07)" }}>
                               {r.label} — ${r.price}
                             </span>
                           ))}
@@ -764,7 +770,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   <button
                     onClick={() => setShowCommissionRequest(true)}
                     className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
-                    style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                    style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
                   >
                     Request Commission
                   </button>
@@ -859,7 +865,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
       {/* ── New post modal ────────────────────────────────────── */}
       {showUpload && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}>
+          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white">{uploadIsCommission ? "New commission post" : "New post"}</h2>
               <button onClick={() => { setShowUpload(false); setRawImage(null); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false); setPostUploadError(null) }}
@@ -881,7 +887,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center rounded-xl h-48 cursor-pointer hover:bg-white/5 transition-colors" style={{ border: "2px dashed #ffffff20" }}>
+              <label className="flex flex-col items-center justify-center rounded-xl h-48 cursor-pointer hover:bg-white/5 transition-colors" style={{ border: "2px dashed var(--border)" }}>
                 <span className="text-3xl mb-2">🖼️</span>
                 <span className="text-sm text-white/40">{imgProcessing ? "Processing…" : "Click to choose image"}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageFile} disabled={imgProcessing} />
@@ -891,7 +897,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             {!rawImage && <textarea value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
               placeholder="Write a caption…" maxLength={500} rows={3}
               className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }} />}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }} />}
 
             {!rawImage && [
               { label: "AI generated", sub: "Let others know this was made with AI", value: uploadIsAi, set: setUploadIsAi },
@@ -958,7 +964,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               }}
               disabled={createPost.isPending || !uploadImage || imgProcessing || isWatermarking || isUploadingPost}
               className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
               {createPost.isPending || isWatermarking || isUploadingPost ? (isUploadingPost ? "Uploading…" : "Posting…") : "Share"}
             </button>}
           </div>

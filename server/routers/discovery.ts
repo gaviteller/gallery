@@ -35,7 +35,7 @@ type ScoredCandidate = {
   commissionStatus: CommissionStatus
   createdAt: Date
   _count: { followers: number }
-  posts: { _count: { likes: number } }[]
+  posts: { _count: { likes: number }; aiVerdict: string | null; createdAt: Date }[]
   artistCommissions: { buyerRating: number | null }[]
 }
 
@@ -48,24 +48,36 @@ function totalLikes(posts: { _count: { likes: number } }[]): number {
   return posts.reduce((s, p) => s + p._count.likes, 0)
 }
 
-/** Rising Star score: weighted by follower + like growth per account-age-day */
+// 0–1: fraction of AI-scanned posts that are SAFE. Unscanned posts are neutral (0.5).
+function contentQuality(posts: { aiVerdict: string | null }[]): number {
+  const scanned = posts.filter(p => p.aiVerdict !== null)
+  if (scanned.length === 0) return 0.5
+  const safe = scanned.filter(p => p.aiVerdict === "SAFE").length
+  return safe / scanned.length
+}
+
+/** Rising Star score: weighted by follower + like growth per account-age-day, boosted by content quality */
 function scoreRisingStar(u: ScoredCandidate): number {
   const ageDays = Math.max(1, (Date.now() - u.createdAt.getTime()) / 86_400_000)
   const followerScore = u._count.followers / ageDays
   const likeScore = totalLikes(u.posts) / ageDays
   const ratingScore = avgRating(u.artistCommissions) / 5
-  return followerScore * 0.4 + likeScore * 0.35 + ratingScore * 0.25
+  const base = followerScore * 0.4 + likeScore * 0.35 + ratingScore * 0.25
+  // Content quality multiplier: 0.8x (all flagged) → 1.1x (all safe)
+  const quality = 0.8 + contentQuality(u.posts) * 0.3
+  return base * quality
 }
 
-/** Spotlight score: weighted by absolute followers, commissions, likes, rating */
+/** Spotlight score: weighted by absolute followers, commissions, likes, rating, boosted by content quality */
 function scoreSpotlight(u: ScoredCandidate): number {
   const completedCount = u.artistCommissions.length
-  return (
+  const base =
     u._count.followers * 0.4 +
     completedCount * 10 * 0.3 +
     totalLikes(u.posts) * 0.15 +
     (avgRating(u.artistCommissions) / 5) * 100 * 0.15
-  )
+  const quality = 0.8 + contentQuality(u.posts) * 0.3
+  return base * quality
 }
 
 function toArtistCard(u: ScoredCandidate) {
@@ -91,7 +103,7 @@ const CANDIDATE_SELECT = {
   _count: { select: { followers: true } },
   posts: {
     where: { status: "PUBLISHED" as const },
-    select: { _count: { select: { likes: true } } },
+    select: { _count: { select: { likes: true } }, aiVerdict: true, createdAt: true },
   },
   artistCommissions: {
     where: { status: "COMPLETE" as const, buyerRating: { not: null } },
@@ -185,19 +197,31 @@ export const discoveryRouter = router({
         ...(excludeIds.length > 0 ? { userId: { notIn: excludeIds } } : {}),
       }
 
-      const items = await ctx.prisma.post.findMany({
-        where,
+      const candidates = await ctx.prisma.post.findMany({
+        where: { ...where, aiVerdict: { not: "EXPLICIT" } },
         select: {
           id: true,
           image: true,
           description: true,
+          createdAt: true,
           user: { select: { username: true } },
           _count: { select: { likes: true } },
         },
         orderBy: { createdAt: "desc" },
-        take: input.limit,
+        take: input.limit * 6,
       })
 
-      return { items }
+      // Rank by engagement velocity: likes / hoursOld^1.5 (favours recent high-engagement posts)
+      const scored = candidates
+        .map(p => {
+          const hoursOld = Math.max(1, (Date.now() - p.createdAt.getTime()) / 3_600_000)
+          const score = p._count.likes / Math.pow(hoursOld + 2, 1.5)
+          return { p, score }
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, input.limit)
+        .map(({ p }) => p)
+
+      return { items: scored }
     }),
 })

@@ -49,7 +49,7 @@ export default function StoriesRow() {
           const hasStory = group.stories.length > 0
           const ringColor = hasStory
             ? group.hasUnviewed
-              ? "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)"
+              ? "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)"
               : "rgba(255,255,255,0.25)"
             : "transparent"
 
@@ -67,12 +67,12 @@ export default function StoriesRow() {
               >
                 <div
                   className="rounded-full overflow-hidden relative"
-                  style={{ width: 52, height: 52, background: "#0D0D0F", padding: hasStory ? 2 : 0 }}
+                  style={{ width: 52, height: 52, background: "var(--bg)", padding: hasStory ? 2 : 0 }}
                 >
                   {group.image ? (
                     <img src={group.image} className="w-full h-full rounded-full object-cover" alt="" />
                   ) : (
-                    <div className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}>
+                    <div className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
                       {(group.name ?? group.username ?? "?")[0].toUpperCase()}
                     </div>
                   )}

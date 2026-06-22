@@ -2,6 +2,7 @@ import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { router, publicProcedure, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
+import { scanAvatar } from "@/lib/ai-scan"
 
 // ── User-facing moderation helpers ──────────────────────────────────────────
 
@@ -273,8 +274,9 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.user.update({
-        where: { id: ctx.session.user.id },
+      const userId = ctx.session.user.id
+      const result = await ctx.prisma.user.update({
+        where: { id: userId },
         data: {
           name: input.name,
           bio: input.bio,
@@ -286,5 +288,9 @@ export const userRouter = router({
           artstationHandle: input.artstationHandle,
         },
       })
+      if (input.image) await scanAvatar(ctx.prisma, userId, "image", input.image)
+      if (input.bannerImage) await scanAvatar(ctx.prisma, userId, "bannerImage", input.bannerImage)
+
+      return result
     }),
 })

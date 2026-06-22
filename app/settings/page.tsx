@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState, Suspense } from "react"
+import React, { useEffect, useState, Suspense } from "react"
 import { trpc } from "@/components/providers"
 import { uploadImage } from "@/lib/upload"
 
@@ -205,27 +205,55 @@ function SettingsForm() {
     return <div className="min-h-screen flex items-center justify-center"><p className="text-white/40">Loading…</p></div>
   }
 
+  const rowCls = "grid gap-4 py-3 border-b items-center" as const
+  const rowStyle = { gridTemplateColumns: "120px 1fr", borderColor: "var(--border)" }
+  const rowTopStyle = { ...rowStyle, alignItems: "flex-start", paddingTop: 14, paddingBottom: 14 }
+  const labelCls = "text-xs font-medium" as const
+  const inputStyle = {
+    width: "100%", background: "rgba(240,235,248,0.05)", border: "1px solid var(--border)",
+    borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "var(--text)", fontFamily: "inherit",
+  }
+  const ghostBtnStyle = {
+    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
+    background: "rgba(240,235,248,0.06)", border: "1px solid var(--border)", color: "var(--muted)",
+  }
+  const gradBtnStyle = {
+    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
+    background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff",
+  }
+  const toggleStyle = (on: boolean): React.CSSProperties => ({
+    width: 42, height: 24, borderRadius: 99, display: "flex", alignItems: "center",
+    padding: 2, flexShrink: 0, flexDirection: "row",
+    background: on ? "linear-gradient(90deg,#FF3CAC,#784BA0)" : "rgba(240,235,248,0.1)",
+    border: on ? "none" : "1px solid var(--border)",
+  })
+
   return (
     <div className="max-w-lg mx-auto px-4 py-12">
       <button
         onClick={() => router.push(username ? `/@${username}` : "/")}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-6"
+        className="flex items-center gap-1.5 text-sm transition-colors mb-6"
+        style={{ color: "var(--muted)" }}
       >
         ← Back to profile
       </button>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+      <h1 className="font-playfair text-2xl font-bold mb-6" style={{ color: "var(--text)" }}>Settings</h1>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="mb-6" style={{ borderBottom: "1px solid var(--border)" }}>
         <nav className="flex gap-6">
           {(["profile", "account"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`pb-3 text-sm font-medium border-b-2 transition-colors capitalize ${
-                tab === t ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
+              className="pb-3 text-sm font-medium transition-colors capitalize"
+              style={{
+                color: tab === t ? "var(--text)" : "var(--muted)",
+                borderBottom: tab === t ? "2px solid" : "2px solid transparent",
+                borderImage: tab === t ? "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5) 1" : undefined,
+                marginBottom: -1,
+              }}
             >
               {t}
             </button>
@@ -235,148 +263,158 @@ function SettingsForm() {
 
       {/* ── Profile tab ─────────────────────────────────────── */}
       {tab === "profile" && (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-6 mb-6">
+      <div className="flex flex-col mb-6">
 
-        {/* Profile photo */}
-        <div className="flex items-center gap-4">
-          {image ? (
-            <img src={image} alt="Profile" className="rounded-full object-cover flex-shrink-0" style={{ width: 72, height: 72 }} />
-          ) : (
-            <div className="rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-2xl font-bold flex-shrink-0" style={{ width: 72, height: 72 }}>
-              {initials}
-            </div>
-          )}
+        {/* APPEARANCE section */}
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: "var(--muted)" }}>Appearance</p>
+
+        {/* Photo row */}
+        <div className={rowCls} style={rowStyle}>
           <div>
-            <p className="text-sm font-semibold text-gray-900">Profile photo</p>
-            <div className="flex gap-2 mt-2">
-              <label className="cursor-pointer text-sm px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors">
+            <p className={labelCls} style={{ color: "var(--muted)" }}>Photo</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>Your public avatar</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {image ? (
+              <img src={image} alt="Profile" className="rounded-full object-cover flex-shrink-0" style={{ width: 44, height: 44, border: "2px solid var(--border)" }} />
+            ) : (
+              <div className="rounded-full flex items-center justify-center font-playfair font-bold flex-shrink-0 text-sm" style={{ width: 44, height: 44, background: "linear-gradient(135deg,#FF3CAC,#784BA0,#2B86C5)", padding: 2 }}>
+                <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: "#2A1838", color: "rgba(240,235,248,0.6)" }}>{initials}</div>
+              </div>
+            )}
+            <div className="flex flex-col gap-1.5">
+              <label className="cursor-pointer" style={gradBtnStyle}>
                 {photoProcessing ? "Processing…" : "Upload photo"}
                 <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} disabled={photoProcessing} />
               </label>
               {image && (
-                <button onClick={() => setImage(null)} className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
-                  Remove
-                </button>
+                <button onClick={() => setImage(null)} style={ghostBtnStyle}>Remove</button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Profile banner */}
-        <div>
-          <p className="text-sm font-semibold text-gray-900 mb-2">Profile banner</p>
-          <p className="text-xs text-gray-400 mb-3">Shown at the top of your profile. Recommended: wide landscape image.</p>
-          {bannerImage ? (
-            <div className="relative rounded-xl overflow-hidden mb-2" style={{ height: 80 }}>
-              <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
-            </div>
-          ) : (
-            <div
-              className="rounded-xl mb-2 flex items-center justify-center text-xs text-gray-400"
-              style={{ height: 80, background: "#f3f4f6", border: "2px dashed #d1d5db" }}
-            >
-              No banner set — a gradient will be used
-            </div>
-          )}
-          <div className="flex gap-2">
-            <label className="cursor-pointer text-sm px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors">
-              {bannerProcessing ? "Processing…" : "Upload banner"}
-              <input type="file" accept="image/*" className="hidden" onChange={handleBannerChange} disabled={bannerProcessing} />
-            </label>
-            {bannerImage && (
-              <button onClick={() => setBannerImage(null)} className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
-                Remove
-              </button>
+        {/* Banner row */}
+        <div className={rowCls} style={rowTopStyle}>
+          <div>
+            <p className={labelCls} style={{ color: "var(--muted)" }}>Banner</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>Top of your profile</p>
+          </div>
+          <div>
+            {bannerImage ? (
+              <div className="relative rounded-lg overflow-hidden mb-2" style={{ height: 52 }}>
+                <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="rounded-lg mb-2 flex items-center justify-center text-[11px]" style={{ height: 52, border: "1px dashed var(--border)", color: "var(--muted)", background: "rgba(240,235,248,0.02)" }}>
+                No banner — gradient will be used
+              </div>
             )}
+            <div className="flex gap-2">
+              <label className="cursor-pointer" style={gradBtnStyle}>
+                {bannerProcessing ? "Processing…" : "Upload banner"}
+                <input type="file" accept="image/*" className="hidden" onChange={handleBannerChange} disabled={bannerProcessing} />
+              </label>
+              {bannerImage && (
+                <button onClick={() => setBannerImage(null)} style={ghostBtnStyle}>Remove</button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Display name</label>
+        {/* IDENTITY section */}
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Identity</p>
+
+        {/* Display name row */}
+        <div className={rowCls} style={rowStyle}>
+          <p className={labelCls} style={{ color: "var(--muted)" }}>Display name</p>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={100}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={inputStyle}
+            className="focus:outline-none"
           />
-          {user?.name && (
-            <div className="flex items-center justify-between mt-3">
-              <div>
-                <p className="text-sm font-medium text-gray-700">Show my real name on my profile</p>
-                <p className="text-xs text-gray-400 mt-0.5">When on, your real name appears on your public profile page.</p>
-              </div>
-              <button
-                onClick={() => {
-                  const next = !showRealName
-                  setShowRealName(next)
-                  updateShowRealName.mutate({ showRealName: next })
-                }}
-                disabled={updateShowRealName.isPending}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-                  showRealName ? "bg-blue-600" : "bg-gray-200"
-                }`}
-                role="switch"
-                aria-checked={showRealName}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showRealName ? "translate-x-6" : "translate-x-1"}`} />
-              </button>
+        </div>
+
+        {/* Show real name toggle */}
+        {user?.name && (
+          <div className={rowCls} style={rowStyle}>
+            <div>
+              <p className={labelCls} style={{ color: "var(--muted)" }}>Show real name</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>On your public profile</p>
             </div>
-          )}
-        </div>
+            <button
+              onClick={() => { const next = !showRealName; setShowRealName(next); updateShowRealName.mutate({ showRealName: next }) }}
+              disabled={updateShowRealName.isPending}
+              style={toggleStyle(showRealName)}
+              role="switch" aria-checked={showRealName}
+            >
+              <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: showRealName ? "auto" : 0 }} />
+            </button>
+          </div>
+        )}
 
-        {/* Bio */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Bio</label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            maxLength={160}
-            rows={3}
-            placeholder="Tell people about your work…"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-gray-400 mt-1">{bio.length}/160</p>
-        </div>
-
-        {/* Links */}
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">Links</p>
-          <div className="flex flex-col gap-2">
-            {(
-              [
-                { icon: "🌐", placeholder: "Website  https://yoursite.com", value: websiteUrl, set: setWebsiteUrl },
-                { icon: "𝕏",  placeholder: "Twitter / X  @handle",         value: twitterHandle, set: setTwitterHandle },
-                { icon: "📸", placeholder: "Instagram  @handle",            value: instagramHandle, set: setInstagramHandle },
-                { icon: "🎨", placeholder: "ArtStation  username",          value: artstationHandle, set: setArtstationHandle },
-              ] as const
-            ).map(({ icon, placeholder, value, set }) => (
-              <div key={placeholder} className="flex items-center gap-2">
-                <span className="w-6 text-center text-base select-none">{icon}</span>
-                <input
-                  type="text"
-                  value={value}
-                  onChange={(e) => (set as (v: string) => void)(e.target.value)}
-                  placeholder={placeholder}
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            ))}
+        {/* Bio row */}
+        <div className={rowCls} style={rowTopStyle}>
+          <div>
+            <p className={labelCls} style={{ color: "var(--muted)" }}>Bio</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>Up to 160 chars</p>
+          </div>
+          <div>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              maxLength={160}
+              rows={3}
+              placeholder="Tell people about your work…"
+              style={{ ...inputStyle, height: 72, resize: "none" }}
+              className="focus:outline-none"
+            />
+            <p className="text-[10px] text-right mt-1" style={{ color: "var(--muted)" }}>{bio.length}/160</p>
           </div>
         </div>
 
+        {/* LINKS section */}
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Links</p>
+
+        {(
+          [
+            { icon: "🌐", label: "Website",    placeholder: "https://yoursite.com", value: websiteUrl,       set: setWebsiteUrl },
+            { icon: "𝕏",  label: "Twitter / X", placeholder: "@handle",             value: twitterHandle,   set: setTwitterHandle },
+            { icon: "📸", label: "Instagram",   placeholder: "@handle",             value: instagramHandle, set: setInstagramHandle },
+            { icon: "🎨", label: "ArtStation",  placeholder: "username",            value: artstationHandle, set: setArtstationHandle },
+          ] as const
+        ).map(({ icon, label, placeholder, value, set }) => (
+          <div key={label} className={rowCls} style={rowStyle}>
+            <p className={labelCls} style={{ color: "var(--muted)" }}>{label}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-sm w-5 text-center flex-shrink-0">{icon}</span>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => (set as (v: string) => void)(e.target.value)}
+                placeholder={placeholder}
+                style={{ ...inputStyle, fontSize: 12 }}
+                className="focus:outline-none flex-1"
+              />
+            </div>
+          </div>
+        ))}
+
         {updateProfile.error && (
-          <p className="text-sm text-red-500">{updateProfile.error.message}</p>
+          <p className="text-sm text-red-400 mt-4">{updateProfile.error.message}</p>
         )}
         {saveError && (
-          <p className="text-sm text-red-500">{saveError}</p>
+          <p className="text-sm text-red-400 mt-4">{saveError}</p>
         )}
 
         <button
           onClick={handleSave}
           disabled={updateProfile.isPending || photoProcessing || bannerProcessing || isUploading}
-          className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 rounded-xl text-sm font-bold mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff" }}
         >
           {isUploading ? "Uploading…" : updateProfile.isPending ? "Saving…" : "Save changes"}
         </button>
@@ -385,87 +423,81 @@ function SettingsForm() {
 
       {/* ── Account tab ─────────────────────────────────────── */}
       {tab === "account" && (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col">
 
-        {/* Commission toggle */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center justify-between">
+        {/* PREFERENCES */}
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: "var(--muted)" }}>Preferences</p>
+
+        {/* Commissions toggle */}
+        <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border)" }}>
           <div>
-            <div className="text-sm font-medium text-gray-900">Commissions</div>
-            <div className="text-xs text-gray-500 mt-0.5">
+            <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Commissions</div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
               {user?.sellingEnabled ? "Visible on your profile" : "Not shown on your profile"}
             </div>
           </div>
           <button
             onClick={() => updateSelling.mutate({ enabled: !user?.sellingEnabled })}
             disabled={updateSelling.isPending}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-              user?.sellingEnabled ? "bg-blue-600" : "bg-gray-200"
-            }`}
-            role="switch"
-            aria-checked={user?.sellingEnabled}
+            style={toggleStyle(!!user?.sellingEnabled)}
+            role="switch" aria-checked={user?.sellingEnabled}
           >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${user?.sellingEnabled ? "translate-x-6" : "translate-x-1"}`} />
+            <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: user?.sellingEnabled ? "auto" : 0 }} />
           </button>
         </div>
 
-        {/* Ad targeting opt-out */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center justify-between">
+        {/* Ad targeting toggle */}
+        <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border)" }}>
           <div>
-            <div className="text-sm font-medium text-gray-900">Opt out of location-based ad targeting</div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              When on, your location will not be used to personalise ads shown to you.
-            </div>
+            <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Location-based ad targeting</div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Opt out to stop location from personalising ads.</div>
           </div>
           <button
-            onClick={() => {
-              const next = !adTargetingOptOut
-              setAdTargetingOptOut(next)
-              updateAdTargeting.mutate({ optOut: next })
-            }}
+            onClick={() => { const next = !adTargetingOptOut; setAdTargetingOptOut(next); updateAdTargeting.mutate({ optOut: next }) }}
             disabled={updateAdTargeting.isPending}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-              adTargetingOptOut ? "bg-blue-600" : "bg-gray-200"
-            }`}
-            role="switch"
-            aria-checked={adTargetingOptOut}
+            style={toggleStyle(adTargetingOptOut)}
+            role="switch" aria-checked={adTargetingOptOut}
           >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${adTargetingOptOut ? "translate-x-6" : "translate-x-1"}`} />
+            <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: adTargetingOptOut ? "auto" : 0 }} />
           </button>
         </div>
 
+        {/* ACCOUNT */}
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Account</p>
+
         {/* Change username */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="border-b" style={{ borderColor: "var(--border)" }}>
           {accountSection !== "username" ? (
             <button
               onClick={() => setAccountSection("username")}
-              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between py-3 transition-colors text-left"
             >
-              <div className="text-left">
-                <div className="text-sm font-medium text-gray-900">Username</div>
-                <div className="text-xs text-gray-500 mt-0.5">@{user?.username}</div>
+              <div>
+                <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Username</div>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>@{user?.username}</div>
               </div>
-              <span className="text-gray-400 text-lg">›</span>
+              <span className="text-lg" style={{ color: "var(--muted)" }}>›</span>
             </button>
           ) : (
-            <div className="p-5 flex flex-col gap-3">
-              <button onClick={closeSection} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-1">
-                ← Back
-              </button>
-              <div className="text-sm font-medium text-gray-900">Change username</div>
+            <div className="py-3 flex flex-col gap-3">
+              <button onClick={closeSection} className="text-xs text-left" style={{ color: "var(--muted)" }}>← Back</button>
+              <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Change username</div>
               <input
                 type="text"
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
                 placeholder={`Current: @${user?.username}`}
                 maxLength={30}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={inputStyle}
+                className="focus:outline-none"
               />
-              {changeUsername.error && <p className="text-xs text-red-500">{changeUsername.error.message}</p>}
-              {changeUsername.isSuccess && <p className="text-xs text-green-600">Username updated!</p>}
+              {changeUsername.error && <p className="text-xs text-red-400">{changeUsername.error.message}</p>}
+              {changeUsername.isSuccess && <p className="text-xs text-green-400">Username updated!</p>}
               <button
                 onClick={() => changeUsername.mutate({ username: newUsername.trim() })}
                 disabled={changeUsername.isPending || !newUsername.trim()}
-                className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+                style={{ background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff" }}
               >
                 {changeUsername.isPending ? "Saving…" : "Save username"}
               </button>
@@ -474,51 +506,37 @@ function SettingsForm() {
         </div>
 
         {/* Change password */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="border-b" style={{ borderColor: "var(--border)" }}>
           {accountSection !== "password" ? (
             <button
               onClick={() => setAccountSection("password")}
-              className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between py-3 transition-colors text-left"
             >
-              <div className="text-sm font-medium text-gray-900">Password</div>
-              <span className="text-gray-400 text-lg">›</span>
+              <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Password</div>
+              <span className="text-lg" style={{ color: "var(--muted)" }}>›</span>
             </button>
           ) : (
-            <div className="p-5 flex flex-col gap-3">
-              <button onClick={closeSection} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-1">
-                ← Back
-              </button>
-              <div className="text-sm font-medium text-gray-900">Change password</div>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Current password"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="New password (min 8 characters)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="py-3 flex flex-col gap-3">
+              <button onClick={closeSection} className="text-xs text-left" style={{ color: "var(--muted)" }}>← Back</button>
+              <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Change password</div>
+              {[
+                { value: currentPassword, set: setCurrentPassword, placeholder: "Current password", type: "password" },
+                { value: newPassword, set: setNewPassword, placeholder: "New password (min 8 characters)", type: "password" },
+                { value: confirmPassword, set: setConfirmPassword, placeholder: "Confirm new password", type: "password" },
+              ].map(({ value, set, placeholder, type }) => (
+                <input key={placeholder} type={type} value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
+                  style={inputStyle} className="focus:outline-none" />
+              ))}
               {confirmPassword && newPassword !== confirmPassword && (
-                <p className="text-xs text-red-500">Passwords don&apos;t match.</p>
+                <p className="text-xs text-red-400">Passwords don&apos;t match.</p>
               )}
-              {changePassword.error && <p className="text-xs text-red-500">{changePassword.error.message}</p>}
-              {changePassword.isSuccess && <p className="text-xs text-green-600">Password updated!</p>}
+              {changePassword.error && <p className="text-xs text-red-400">{changePassword.error.message}</p>}
+              {changePassword.isSuccess && <p className="text-xs text-green-400">Password updated!</p>}
               <button
                 onClick={() => changePassword.mutate({ currentPassword, newPassword })}
                 disabled={changePassword.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
-                className="w-full bg-gray-900 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+                style={{ background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff" }}
               >
                 {changePassword.isPending ? "Saving…" : "Update password"}
               </button>
@@ -527,26 +545,25 @@ function SettingsForm() {
         </div>
 
         {/* Email */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <div className="text-sm font-medium text-gray-900">Email</div>
-          <div className="text-sm text-gray-500 mt-0.5">{user?.email}</div>
+        <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border)" }}>
+          <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Email</div>
+          <div className="text-sm" style={{ color: "var(--muted)" }}>{user?.email}</div>
         </div>
 
         {/* Blocked accounts */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <div className="text-sm font-medium text-gray-900 mb-3">Blocked accounts</div>
-          {blockedUsers.length === 0 ? (
-            <p className="text-sm text-gray-400">You haven&apos;t blocked anyone.</p>
-          ) : (
-            <div className="space-y-3">
-              {blockedUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {user.image ? (
-                      <img src={user.image} alt="" className="w-8 h-8 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold">
-                        {(user.name ?? user.username ?? "?")[0].toUpperCase()}
+        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Blocked accounts</p>
+        {blockedUsers.length === 0 ? (
+          <p className="text-sm py-2" style={{ color: "var(--muted)" }}>You haven&apos;t blocked anyone.</p>
+        ) : (
+          <div>
+            {blockedUsers.map((user) => (
+              <div key={user.id} className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-center gap-3">
+                  {user.image ? (
+                    <img src={user.image} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>
+                      {(user.name ?? user.username ?? "?")[0].toUpperCase()}
                       </div>
                     )}
                     <span className="text-sm text-gray-700">@{user.username}</span>
@@ -554,21 +571,21 @@ function SettingsForm() {
                   <button
                     onClick={() => unblockMutation.mutate({ username: user.username! })}
                     disabled={unblockMutation.isPending && unblockMutation.variables?.username === user.username}
-                    className="text-xs text-gray-400 hover:text-gray-600 transition disabled:opacity-30"
+                    className="text-xs transition disabled:opacity-30"
+                    style={{ color: "var(--muted)", padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "rgba(240,235,248,0.04)" }}
                   >
                     Unblock
                   </button>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Sign out */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="pt-6">
           <button
             onClick={() => signOut({ callbackUrl: "/signin" })}
-            className="text-sm text-red-500 hover:text-red-600 font-medium transition-colors"
+            className="text-sm font-medium transition-colors text-red-400 hover:text-red-300"
           >
             Sign out
           </button>

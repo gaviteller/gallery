@@ -20,7 +20,7 @@ export default function ConnectReturnPage() {
   return (
     <div
       className="min-h-screen md:pl-16 flex items-center justify-center"
-      style={{ background: "#0D0D0F" }}
+      style={{ background: "var(--bg)" }}
     >
       <div className="max-w-md mx-auto px-6 text-center">
         {isRefresh ? (
@@ -32,7 +32,7 @@ export default function ConnectReturnPage() {
             <Link
               href={shopHref}
               className="inline-block py-3 px-6 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               Back to your shop
             </Link>
@@ -52,7 +52,7 @@ export default function ConnectReturnPage() {
             <Link
               href={shopHref}
               className="inline-block py-3 px-6 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               Back to your shop
             </Link>
@@ -66,7 +66,7 @@ export default function ConnectReturnPage() {
             <Link
               href={shopHref}
               className="inline-block py-3 px-6 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               Back to your shop
             </Link>

@@ -30,11 +30,11 @@ export default function ShopItemPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen md:pl-16 pb-24" style={{ background: "#0D0D0F" }}>
+      <div className="min-h-screen md:pl-16 pb-24" style={{ background: "var(--bg)" }}>
         <div className="max-w-2xl mx-auto px-4 py-8">
           <div
             className="rounded-2xl aspect-square w-full animate-pulse"
-            style={{ background: "#1a1a2e" }}
+            style={{ background: "var(--surface)" }}
           />
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function ShopItemPage({
     return (
       <div
         className="min-h-screen md:pl-16 flex items-center justify-center"
-        style={{ background: "#0D0D0F" }}
+        style={{ background: "var(--bg)" }}
       >
         <p style={{ color: "rgba(255,255,255,0.4)" }}>Item not found</p>
       </div>
@@ -57,7 +57,7 @@ export default function ShopItemPage({
     session?.user?.username?.toLowerCase() === displayUsername.toLowerCase()
 
   return (
-    <div className="min-h-screen md:pl-16 pb-24" style={{ background: "#0D0D0F" }}>
+    <div className="min-h-screen md:pl-16 pb-24" style={{ background: "var(--bg)" }}>
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link
           href={`/@${displayUsername}/shop`}
@@ -173,7 +173,7 @@ export default function ShopItemPage({
                 onClick={() => checkout.mutate({ itemId: item.id })}
                 disabled={checkout.isPending}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+                style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
               >
                 {checkout.isPending ? "Loading…" : "Buy Now"}
               </button>

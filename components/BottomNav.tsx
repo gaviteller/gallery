@@ -25,12 +25,12 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
         className="fixed z-50 shadow-2xl overflow-hidden
           bottom-16 left-0 right-0 max-h-[70vh] rounded-t-2xl
           md:bottom-auto md:left-16 md:right-auto md:top-16 md:w-80 md:max-h-[70vh] md:rounded-2xl"
-        style={{ background: "#1a1a2e", border: "1px solid #ffffff15" }}
+        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         onClick={e => e.stopPropagation()}
       >
-      <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: "1px solid #ffffff10" }}>
-        <p className="text-sm font-semibold text-white">Notifications</p>
-        <button onClick={onClose} className="text-xs text-white/40 hover:text-white/80 transition-colors">Close</button>
+      <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Notifications</p>
+        <button onClick={onClose} className="text-xs hover:opacity-80 transition-colors" style={{ color: "var(--muted)" }}>Close</button>
       </div>
       <div className="overflow-y-auto" style={{ maxHeight: "calc(70vh - 48px)" }}>
         {!notifications || notifications.length === 0 ? (
@@ -85,9 +85,9 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
                   if (link) router.push(link)
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
-                style={{ background: !n.read ? "rgba(176,68,248,0.08)" : "transparent" }}
+                style={{ background: !n.read ? "rgba(120,75,160,0.1)" : "transparent" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                onMouseLeave={e => (e.currentTarget.style.background = !n.read ? "rgba(176,68,248,0.08)" : "transparent")}
+                onMouseLeave={e => (e.currentTarget.style.background = !n.read ? "rgba(120,75,160,0.1)" : "transparent")}
               >
                 {isSystem ? (
                   <div
@@ -233,7 +233,7 @@ export default function BottomNav() {
 {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
 
       {/* ── MOBILE bottom nav ─────────────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 h-16" style={{ background: "#0D0D0F", borderTop: "1px solid #ffffff10" }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 h-16" style={{ background: "var(--nav)", borderTop: "1px solid var(--border)" }}>
         {navItems.map((item) => {
           const inner = (
             <div className={`flex flex-col items-center gap-0.5 px-2 py-2 ${item.active ? "text-white" : "text-white/40"}`}>
@@ -272,7 +272,7 @@ export default function BottomNav() {
       {/* ── DESKTOP left sidebar — collapses to icons, expands on hover ─── */}
       <nav
         className="group hidden md:flex flex-col fixed left-0 top-0 h-full z-40 py-6 px-3 transition-all duration-200 overflow-hidden"
-        style={{ width: "64px", background: "#0D0D0F", borderRight: "1px solid #ffffff10" }}
+        style={{ width: "64px", background: "var(--nav)", borderRight: "1px solid var(--border)" }}
         onMouseEnter={e => (e.currentTarget.style.width = "240px")}
         onMouseLeave={e => (e.currentTarget.style.width = "64px")}
       >
@@ -290,7 +290,7 @@ export default function BottomNav() {
             const label = (
               <span
                 className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+                style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
               >
                 {item.label}
               </span>
@@ -300,9 +300,9 @@ export default function BottomNav() {
                 className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all w-full ${
                   item.active ? "bg-white/8" : "hover:bg-white/5"
                 }`}
-                style={item.active ? { background: "linear-gradient(135deg, #FF1CF720, #B044F820, #00B4EE20)" } : {}}
+                style={item.active ? { background: "rgba(120,75,160,0.15)" } : {}}
               >
-                <div className={`relative flex-shrink-0 transition-colors ${item.active ? "text-[#B044F8]" : "text-white/40 group-hover:text-[#B044F8]"}`}>
+                <div className={`relative flex-shrink-0 transition-colors ${item.active ? "text-[#B090D8]" : "text-white/40 group-hover:text-[#B090D8]"}`}>
                   {item.icon}
                   {item.badge && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
@@ -322,7 +322,7 @@ export default function BottomNav() {
             onClick={() => setNotifOpen(v => !v)}
             className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all w-full ${notifOpen ? "bg-white/5" : "hover:bg-white/5"}`}
           >
-            <div className={`relative flex-shrink-0 transition-colors ${notifOpen ? "text-[#B044F8]" : "text-white/40 group-hover:text-[#B044F8]"}`}>
+            <div className={`relative flex-shrink-0 transition-colors ${notifOpen ? "text-[#B090D8]" : "text-white/40 group-hover:text-[#B090D8]"}`}>
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -335,7 +335,7 @@ export default function BottomNav() {
             </div>
             <span
               className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
               Notifications
             </span>
@@ -344,9 +344,9 @@ export default function BottomNav() {
         </div>
 
         {/* Bottom section */}
-        <div className="flex flex-col gap-0.5 pt-4 mt-4" style={{ borderTop: "1px solid #ffffff10" }}>
+        <div className="flex flex-col gap-0.5 pt-4 mt-4" style={{ borderTop: "1px solid var(--border)" }}>
           <Link href="/professional-profile" className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/5 transition-all">
-            <div className="text-white/40 group-hover:text-[#B044F8] flex-shrink-0 transition-colors">
+            <div className="text-white/40 group-hover:text-[#B090D8] flex-shrink-0 transition-colors">
               <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                 <path d="M8 21h8M12 17v4"/>
@@ -354,7 +354,7 @@ export default function BottomNav() {
             </div>
             <span
               className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
             >
               Artist Dashboard
             </span>
@@ -362,7 +362,7 @@ export default function BottomNav() {
 
           <div className="relative">
             <button onClick={() => setMoreOpen(v => !v)} className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-white/5 transition-all w-full">
-              <div className="text-white/40 group-hover:text-[#B044F8] flex-shrink-0 transition-colors">
+              <div className="text-white/40 group-hover:text-[#B090D8] flex-shrink-0 transition-colors">
                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="3" y1="6" x2="21" y2="6"/>
                   <line x1="3" y1="12" x2="21" y2="12"/>
@@ -371,7 +371,7 @@ export default function BottomNav() {
               </div>
               <span
                 className="text-[15px] whitespace-nowrap transition-opacity duration-200 opacity-0 group-hover:opacity-100"
-                style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+                style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
               >
                 More
               </span>
@@ -379,14 +379,14 @@ export default function BottomNav() {
             {moreOpen && (
               <div
                 className="absolute bottom-full left-0 mb-2 w-52 rounded-2xl shadow-xl py-1 overflow-hidden z-50"
-                style={{ background: "#1a1a2e", border: "1px solid #ffffff15" }}
+                style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
                 onClick={() => setMoreOpen(false)}
               >
                 <button onClick={() => router.push("/settings?tab=account")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Account settings</button>
                 <button onClick={() => router.push("/appeal")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Appeals</button>
                 <button onClick={() => router.push("/professional-dms")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Commission Chats</button>
                 <button onClick={() => router.push("/terms")} className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/5 hover:text-white transition-colors">Terms of Service</button>
-                <div className="mx-3 my-1" style={{ borderTop: "1px solid #ffffff15" }} />
+                <div className="mx-3 my-1" style={{ borderTop: "1px solid var(--border)" }} />
                 <button onClick={() => signOut({ callbackUrl: "/signin" })} className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/5 transition-colors">Sign out</button>
               </div>
             )}

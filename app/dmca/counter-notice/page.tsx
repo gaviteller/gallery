@@ -115,7 +115,7 @@ function CounterNoticeInner() {
         style={{
           marginTop: 12, width: "100%", padding: "12px",
           borderRadius: 12,
-          background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+          background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
           color: "white", fontSize: 14, fontWeight: 600,
           opacity: fileCounterNotice.isPending || statement.length < 20 ? 0.5 : 1,
           cursor: fileCounterNotice.isPending || statement.length < 20 ? "not-allowed" : "pointer",

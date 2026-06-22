@@ -76,7 +76,7 @@ export default function ShopListingModal({ onClose, onSuccess }: Props) {
     }
   }
 
-  const inputStyle = { background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.08)" }
+  const inputStyle = { background: "var(--surface)", border: "1px solid rgba(255,255,255,0.08)" }
   const inputClass = "w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-purple-500"
 
   return (
@@ -87,7 +87,7 @@ export default function ShopListingModal({ onClose, onSuccess }: Props) {
     >
       <div
         className="w-full max-w-lg rounded-2xl overflow-y-auto"
-        style={{ background: "#0D0D0F", border: "1px solid rgba(255,255,255,0.08)", maxHeight: "90vh" }}
+        style={{ background: "var(--bg)", border: "1px solid rgba(255,255,255,0.08)", maxHeight: "90vh" }}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
           <h2 className="text-base font-semibold text-white">New shop listing</h2>
@@ -149,7 +149,7 @@ export default function ShopListingModal({ onClose, onSuccess }: Props) {
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white transition-colors" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
               Cancel
             </button>
-            <button type="submit" disabled={uploading || createMutation.isPending} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}>
+            <button type="submit" disabled={uploading || createMutation.isPending} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
               {uploading || createMutation.isPending ? "Publishing…" : "Publish listing"}
             </button>
           </div>

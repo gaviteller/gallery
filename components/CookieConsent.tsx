@@ -54,8 +54,8 @@ export default function CookieConsent() {
         style={{
           maxWidth: 560,
           width: "100%",
-          background: "#1a1a2e",
-          border: "1px solid rgba(255,255,255,0.12)",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
           borderRadius: 16,
           padding: "16px 20px",
           display: "flex",
@@ -68,7 +68,7 @@ export default function CookieConsent() {
         <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
           We use essential cookies to keep you signed in and make the platform work. We don&rsquo;t
           use tracking or advertising cookies.{" "}
-          <Link href="/terms" style={{ color: "#B044F8", textDecoration: "underline" }}>
+          <Link href="/terms" style={{ color: "#784BA0", textDecoration: "underline" }}>
             Learn more
           </Link>
         </p>
@@ -78,7 +78,7 @@ export default function CookieConsent() {
             style={{
               background: "rgba(255,255,255,0.08)",
               color: "rgba(255,255,255,0.6)",
-              border: "1px solid rgba(255,255,255,0.12)",
+              border: "1px solid var(--border)",
               borderRadius: 8,
               padding: "7px 16px",
               fontSize: 13,
@@ -91,7 +91,7 @@ export default function CookieConsent() {
           <button
             onClick={accept}
             style={{
-              background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+              background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
               color: "white",
               border: "none",
               borderRadius: 8,

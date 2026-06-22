@@ -149,7 +149,7 @@ export default function ImageCropEditor({ src, onConfirm, onCancel }: Props) {
         <button
           onClick={handleConfirm}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
         >
           Use photo
         </button>

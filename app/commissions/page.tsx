@@ -155,7 +155,7 @@ function Lightbox({
         <button
           onClick={e => { e.stopPropagation(); if (!session) { onClose(); router.push("/signin"); return } onRequest(artist) }}
           className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
         >
           Request commission
         </button>
@@ -253,7 +253,7 @@ function ForYouCard({
           ))}
         </div>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "#1a1a2e" }}>
+        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "var(--surface)" }}>
           <p className="text-white/30 text-sm">No examples yet</p>
         </div>
       )}
@@ -266,8 +266,8 @@ function ForYouCard({
         <button onClick={e => { e.stopPropagation(); router.push(`/@${artist.username}?tab=Commissions`) }} className="flex items-center gap-2">
           <Avatar src={artist.image} name={artist.name} username={artist.username} size={36} />
           <div>
-            <p className="text-white font-bold text-sm leading-tight">@{artist.username}</p>
-            <p className="text-white/60 text-xs">{artist.name}</p>
+            <p className="text-white font-bold text-sm leading-tight font-playfair">{artist.name ?? artist.username}</p>
+            <p className="text-white/60 text-xs">@{artist.username}</p>
           </div>
         </button>
         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${statusBadge[artist.commissionStatus]}`}>
@@ -326,13 +326,14 @@ function ForYouCard({
           <p className="text-white/70 text-xs mb-2 line-clamp-2">{artist.commissionDescription}</p>
         )}
         <div className="flex items-center gap-3">
-          <p className="text-white/60 text-xs">
-            {avgPrice(artist.priceRanges)}{artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
-          </p>
+          <div>
+            <p className="font-playfair text-white text-base font-bold leading-tight">{avgPrice(artist.priceRanges)}</p>
+            {artist.commissionTurnaround && <p className="text-white/50 text-[11px] mt-0.5">{artist.commissionTurnaround}</p>}
+          </div>
           <button
             onClick={handleRequest}
-            className="px-4 py-2 rounded-full text-xs font-bold text-white transition-all active:scale-95"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            className="ml-auto px-5 py-2 rounded-full text-xs font-bold text-white transition-all active:scale-95"
+            style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
           >
             Request
           </button>
@@ -413,12 +414,12 @@ function ExploreCard({
       <div className="px-2 pt-2 pb-3">
         <div className="flex items-center gap-1.5 mb-1">
           <Avatar src={artist.image} name={artist.name} username={artist.username} size={20} />
-          <p className="text-xs font-semibold text-white truncate flex-1">@{artist.username}</p>
+          <p className="text-xs font-bold text-white truncate flex-1 font-playfair">{artist.name ?? artist.username}</p>
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusBadge[artist.commissionStatus]}`}>
             {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
           </span>
         </div>
-        <p className="text-[10px] text-white/40 mb-2">
+        <p className="text-[10px] font-bold mb-2" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
           {avgPrice(artist.priceRanges)}{artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
         </p>
         {artist.artStyles.length > 0 && (
@@ -432,7 +433,7 @@ function ExploreCard({
         <button
           onClick={handleRequest}
           className="w-full py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
         >
           Request
         </button>
@@ -636,7 +637,7 @@ function ExploreTabInner({
   return (
     <div className="h-full overflow-y-auto pb-24">
       {/* Sticky filter bar */}
-      <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "#0D0D0F" }}>
+      <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "var(--bg)" }}>
         {/* Search */}
         <div className="relative mb-3">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -648,7 +649,7 @@ function ExploreTabInner({
             onChange={e => setSearch(e.target.value)}
             placeholder="Search artists, styles…"
             className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
-            style={{ background: "#ffffff10", border: "1px solid #ffffff18" }}
+            style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
           />
         </div>
 
@@ -663,8 +664,8 @@ function ExploreTabInner({
                 sortBy === chip.value ? "text-white" : "text-white/50 hover:text-white/80"
               }`}
               style={sortBy === chip.value
-                ? { background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }
-                : { background: "#ffffff10", border: "1px solid #ffffff18" }
+                ? { background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }
+                : { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
               }
             >
               {chip.label}
@@ -685,8 +686,8 @@ function ExploreTabInner({
                   active ? "text-white" : "text-white/50 hover:text-white/80"
                 }`}
                 style={active
-                  ? { background: "rgba(176,68,248,0.6)", border: "1px solid rgba(176,68,248,0.8)" }
-                  : { background: "#ffffff10", border: "1px solid #ffffff18" }
+                  ? { background: "rgba(120,75,160,0.6)", border: "1px solid rgba(120,75,160,0.8)" }
+                  : { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
                 }
               >
                 {chip}
@@ -708,8 +709,8 @@ function ExploreTabInner({
                   active ? "text-white" : "text-white/50 hover:text-white/80"
                 }`}
                 style={active
-                  ? { background: "rgba(0,180,238,0.5)", border: "1px solid rgba(0,180,238,0.8)" }
-                  : { background: "#ffffff10", border: "1px solid #ffffff18" }
+                  ? { background: "rgba(43,134,197,0.5)", border: "1px solid rgba(43,134,197,0.8)" }
+                  : { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
                 }
               >
                 {bucket.label}
@@ -741,7 +742,7 @@ function ExploreTabInner({
                 updateUrl([], null, sortBy)
               }}
               className="mt-2 px-4 py-1.5 rounded-full text-xs font-semibold text-white/70 hover:text-white transition"
-              style={{ background: "#ffffff10", border: "1px solid #ffffff18" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
             >
               Clear filters
             </button>
@@ -820,14 +821,14 @@ export default function CommissionsPage() {
               className={`text-sm font-bold transition-all ${tab === "foryou" ? "text-white" : "text-white/40"}`}
             >
               For You
-              {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+              {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />}
             </button>
             <button
               onClick={() => setTab("explore")}
               className={`text-sm font-bold transition-all ${tab === "explore" ? "text-white" : "text-white/40"}`}
             >
               Explore
-              {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }} />}
+              {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />}
             </button>
           </div>
 

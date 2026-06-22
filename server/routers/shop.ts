@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
 import { stripe } from "@/lib/stripe"
 import { calculateFee } from "@/lib/shopFees"
+import { scanShopItem } from "@/lib/ai-scan"
 
 const PAGE_SIZE = 24
 
@@ -190,7 +191,7 @@ export const shopRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      return ctx.prisma.shopItem.create({
+      const item = await ctx.prisma.shopItem.create({
         data: {
           userId: ctx.session.user.id,
           image: input.image,
@@ -202,6 +203,10 @@ export const shopRouter = router({
           status: "ACTIVE",
         },
       })
+
+      await scanShopItem(ctx.prisma, item.id, ctx.session.user.id, input.image)
+
+      return item
     }),
 
   update: protectedProcedure

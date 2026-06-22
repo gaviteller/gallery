@@ -32,7 +32,7 @@ function ConnectBanner() {
           onClick={() => createLink.mutate()}
           disabled={createLink.isPending}
           className="text-xs font-semibold py-2 px-4 rounded-xl text-white disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
         >
           {createLink.isPending ? "Loading…" : "Set up payouts →"}
         </button>
@@ -73,14 +73,14 @@ export default function ArtistShopPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pb-24 md:pl-16" style={{ background: "#0D0D0F" }}>
+      <div className="min-h-screen pb-24 md:pl-16" style={{ background: "var(--bg)" }}>
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
                 className="rounded-2xl aspect-square animate-pulse"
-                style={{ background: "#1a1a2e" }}
+                style={{ background: "var(--surface)" }}
               />
             ))}
           </div>
@@ -92,7 +92,7 @@ export default function ArtistShopPage({
   return (
     <>
       {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
-    <div className="min-h-screen pb-24 md:pl-16" style={{ background: "#0D0D0F" }}>
+    <div className="min-h-screen pb-24 md:pl-16" style={{ background: "var(--bg)" }}>
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -112,7 +112,7 @@ export default function ArtistShopPage({
               href={`/@${displayUsername}/shop/new`}
               className="px-4 py-2 rounded-xl text-sm font-semibold text-white"
               style={{
-                background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)",
+                background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
               }}
             >
               + Add listing
@@ -151,7 +151,7 @@ export default function ArtistShopPage({
                   href={`/@${displayUsername}/shop/new`}
                   className="inline-block mt-4 px-6 py-2 rounded-xl text-sm font-semibold text-white"
                   style={{
-                    background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)",
+                    background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                   }}
                 >
                   Add listing
@@ -169,7 +169,7 @@ export default function ArtistShopPage({
                 <div
                   key={item.id}
                   className="rounded-2xl overflow-hidden flex flex-col"
-                  style={{ background: "#1a1a2e", border: "1px solid #ffffff0f" }}
+                  style={{ background: "var(--surface)", border: "1px solid #ffffff0f" }}
                 >
                   <Link href={`/@${displayUsername}/shop/${item.id}`}>
                     <div className="relative aspect-square overflow-hidden">
@@ -245,7 +245,7 @@ export default function ArtistShopPage({
                           style={{
                             background: inCart
                               ? "rgba(255,255,255,0.08)"
-                              : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)",
+                              : "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
                             color: "white",
                           }}
                         >

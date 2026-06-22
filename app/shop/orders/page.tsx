@@ -13,13 +13,13 @@ export default function OrdersPage() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="min-h-screen md:pl-16 pb-24" style={{ background: "#0D0D0F" }}>
+      <div className="min-h-screen md:pl-16 pb-24" style={{ background: "var(--bg)" }}>
         <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
               className="h-24 rounded-2xl animate-pulse"
-              style={{ background: "#1a1a2e" }}
+              style={{ background: "var(--surface)" }}
             />
           ))}
         </div>
@@ -31,7 +31,7 @@ export default function OrdersPage() {
     return (
       <div
         className="min-h-screen md:pl-16 flex items-center justify-center"
-        style={{ background: "#0D0D0F" }}
+        style={{ background: "var(--bg)" }}
       >
         <p style={{ color: "rgba(255,255,255,0.4)" }}>Sign in to view your orders</p>
       </div>
@@ -39,7 +39,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen md:pl-16 pb-24" style={{ background: "#0D0D0F" }}>
+    <div className="min-h-screen md:pl-16 pb-24" style={{ background: "var(--bg)" }}>
       <div className="max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-white mb-6">Your orders</h1>
 
@@ -84,7 +84,7 @@ export default function OrdersPage() {
                 <a
                   href={`/api/shop/download/${order.downloadToken}`}
                   className="flex-shrink-0 py-2 px-4 rounded-xl text-xs font-semibold text-white"
-                  style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+                  style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
                 >
                   Download
                 </a>

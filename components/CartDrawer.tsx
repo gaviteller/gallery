@@ -25,7 +25,7 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
       {/* Slide-in panel */}
       <div
         className="fixed z-50 right-0 top-0 h-full w-full max-w-sm flex flex-col shadow-2xl"
-        style={{ background: "#1a1a2e", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ background: "var(--surface)", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
       >
         {/* Header */}
         <div
@@ -63,7 +63,7 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
               <div
                 key={item.id}
                 className="flex items-center gap-3 p-3 rounded-xl"
-                style={{ background: "#0D0D0F" }}
+                style={{ background: "var(--bg)" }}
               >
                 <Link
                   href={`/@${item.sellerUsername}/shop/${item.id}`}
@@ -126,7 +126,7 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
               }
               disabled={checkout.isPending || items.length === 0}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               {checkout.isPending ? "Loading…" : `Checkout · $${total.toFixed(2)}`}
             </button>

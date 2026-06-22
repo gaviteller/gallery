@@ -44,3 +44,6 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# Database backups — contain all user data, never commit
+/backups/

@@ -92,14 +92,14 @@ export default function NewListingPage({
   }
 
   const inputStyle = {
-    background: "#1a1a2e",
+    background: "var(--surface)",
     border: "1px solid rgba(255,255,255,0.08)",
   }
   const inputClass =
     "w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-1 focus:ring-purple-500"
 
   return (
-    <div className="min-h-screen pb-24 md:pl-16" style={{ background: "#0D0D0F" }}>
+    <div className="min-h-screen pb-24 md:pl-16" style={{ background: "var(--bg)" }}>
       <div className="max-w-xl mx-auto px-4 py-8">
         <div className="mb-6">
           <button
@@ -221,7 +221,7 @@ export default function NewListingPage({
             type="submit"
             disabled={uploading || createMutation.isPending}
             className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)" }}
+            style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
           >
             {uploading || createMutation.isPending ? "Publishing…" : "Publish listing"}
           </button>

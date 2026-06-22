@@ -59,7 +59,7 @@ function ArtistsSection({ items, total, onSeeAll }: { items: ArtistItem[]; total
   if (items.length === 0) return null
   return (
     <div>
-      <SectionHeader label="Artists" color="rgba(176,68,248,0.9)" total={total} onSeeAll={onSeeAll} />
+      <SectionHeader label="Artists" color="rgba(120,75,160,0.9)" total={total} onSeeAll={onSeeAll} />
       <div className="flex flex-col">
         {items.map((user) => (
           <Link
@@ -171,7 +171,7 @@ function DiscoveryScreen() {
 
       <ArtistScrollRow
         label="✦ Spotlight"
-        labelColor="rgba(176,68,248,0.9)"
+        labelColor="rgba(120,75,160,0.9)"
         filterParam="spotlight"
         items={spotlightData?.items ?? []}
         total={spotlightData?.total ?? 0}
@@ -201,7 +201,7 @@ function SearchInner() {
   }
   const filterColors: Record<string, string> = {
     "rising-stars": "rgba(255,200,0,0.9)",
-    "spotlight": "rgba(176,68,248,0.9)",
+    "spotlight": "rgba(120,75,160,0.9)",
   }
   const [inputValue, setInputValue] = useState(initialQ)
   const [limit, setLimit] = useState(20)
@@ -272,7 +272,7 @@ function SearchInner() {
   const searchedAndEmpty = overviewEnabled && artistsData && postsData && shopData && !hasAnyResults
 
   const tabColors: Record<string, string> = {
-    artists: "rgba(176,68,248,0.9)",
+    artists: "rgba(120,75,160,0.9)",
     posts: "rgba(0,180,238,0.9)",
     shop: "rgba(255,200,0,0.9)",
   }

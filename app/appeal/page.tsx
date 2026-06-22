@@ -60,8 +60,8 @@ function AppealPageInner() {
               onClick={() => { setSelectedStrikeId(prev => prev === s.id ? undefined : s.id); setSelectedPostId(undefined) }}
               style={{
                 padding: "10px 12px", borderRadius: 10, marginBottom: 6, cursor: "pointer",
-                background: selectedStrikeId === s.id ? "rgba(176,68,248,0.15)" : "rgba(255,255,255,0.05)",
-                border: `1px solid ${selectedStrikeId === s.id ? "rgba(176,68,248,0.4)" : "rgba(255,255,255,0.08)"}`,
+                background: selectedStrikeId === s.id ? "rgba(120,75,160,0.15)" : "rgba(255,255,255,0.05)",
+                border: `1px solid ${selectedStrikeId === s.id ? "rgba(120,75,160,0.4)" : "rgba(255,255,255,0.08)"}`,
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}
             >
@@ -75,7 +75,7 @@ function AppealPageInner() {
             </div>
           ))}
           {selectedStrikeId && (
-            <p style={{ color: "rgba(176,68,248,0.8)", fontSize: 12, marginTop: 4 }}>Strike selected — your appeal will reference this strike.</p>
+            <p style={{ color: "rgba(120,75,160,0.8)", fontSize: 12, marginTop: 4 }}>Strike selected — your appeal will reference this strike.</p>
           )}
         </div>
       )}
@@ -104,7 +104,7 @@ function AppealPageInner() {
                       borderRadius: 8,
                       overflow: "hidden",
                       cursor: alreadyAppealed ? "default" : "pointer",
-                      border: `2px solid ${isSelected ? "rgba(176,68,248,0.8)" : "rgba(255,255,255,0.1)"}`,
+                      border: `2px solid ${isSelected ? "rgba(120,75,160,0.8)" : "rgba(255,255,255,0.1)"}`,
                       opacity: alreadyAppealed ? 0.5 : 1,
                       flexShrink: 0,
                     }}
@@ -132,7 +132,7 @@ function AppealPageInner() {
             })}
           </div>
           {selectedPostId && (
-            <p style={{ color: "rgba(176,68,248,0.8)", fontSize: 12, marginTop: 8 }}>
+            <p style={{ color: "rgba(120,75,160,0.8)", fontSize: 12, marginTop: 8 }}>
               Post selected — your appeal will reference this removed post.
             </p>
           )}
@@ -174,7 +174,7 @@ function AppealPageInner() {
             disabled={submitAppeal.isPending || text.length < 20 || (!selectedStrikeId && !selectedPostId)}
             style={{
               marginTop: 12, width: "100%", padding: "12px", borderRadius: 12,
-              background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)",
+              background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
               color: "white", fontSize: 14, fontWeight: 600,
               opacity: submitAppeal.isPending || text.length < 20 || (!selectedStrikeId && !selectedPostId) ? 0.5 : 1,
               cursor: submitAppeal.isPending || text.length < 20 || (!selectedStrikeId && !selectedPostId) ? "not-allowed" : "pointer",

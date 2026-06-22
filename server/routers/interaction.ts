@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { checkNotBanned } from "@/server/lib/ban"
+import { scanComment } from "@/lib/ai-scan"
 
 const commentSelect = {
   id: true,
@@ -38,11 +39,12 @@ export const interactionRouter = router({
           ? ctx.prisma.like.findUnique({ where: { userId_postId: { userId: ctx.session.user.id, postId: input.postId } } })
           : null,
         ctx.prisma.comment.findMany({
-          where: { postId: input.postId, parentId: null },
+          where: { postId: input.postId, parentId: null, hidden: false },
           orderBy: { createdAt: "asc" },
           select: {
             ...commentSelect,
             replies: {
+              where: { hidden: false },
               orderBy: { createdAt: "asc" },
               select: commentSelect,
             },
@@ -93,7 +95,7 @@ export const interactionRouter = router({
     .input(z.object({ postId: z.string(), text: z.string().min(1).max(500), parentId: z.string().nullish() }))
     .mutation(async ({ ctx, input }) => {
       await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      await ctx.prisma.comment.create({
+      const comment = await ctx.prisma.comment.create({
         data: {
           userId: ctx.session.user.id,
           postId: input.postId,
@@ -101,6 +103,7 @@ export const interactionRouter = router({
           parentId: input.parentId ?? null,
         },
       })
+      await scanComment(ctx.prisma, comment.id)
     }),
 
   deleteComment: protectedProcedure

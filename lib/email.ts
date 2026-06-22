@@ -50,6 +50,18 @@ export async function sendPostAutoRemovedEmail(to: string, opts: { username: str
   ))
 }
 
+export async function sendAiContentRemovedEmail(to: string, opts: { username: string; contentType: string; reason: string }) {
+  const label = opts.contentType.replace(/_/g, ' ').toLowerCase()
+  await send(to, "Content removed from your Gallery account", layout(
+    "Content Removed",
+    `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Content removed by AI moderation</h1>
+     <p style="margin:0 0 8px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, our automated moderation system removed your ${label}.</p>
+     <p style="margin:0 0 8px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);"><strong style="color:#fff;">Reason:</strong> ${opts.reason}</p>
+     <p style="margin:0 0 8px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">If you believe this was removed in error, you can submit an appeal and a human moderator will review it.</p>
+     <a href="${GALLERY_URL}/appeal" style="display:inline-block;margin-top:24px;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">Appeal this removal</a>`
+  ))
+}
+
 export async function sendPasswordResetEmail(to: string, opts: {
   username: string
   token: string  // raw (unhashed) token

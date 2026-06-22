@@ -150,6 +150,8 @@ model ShopItem {
   tags          String[]    @default([])
   status        String      @default("ACTIVE")
   purchaseCount Int         @default(0)
+  aiVerdict     String?
+  aiScores      Json?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -209,6 +211,8 @@ model Post {
   reportCount   Int        @default(0)
   removedAt     DateTime?
   removalReason String?
+  aiVerdict     String?
+  aiScores      Json?
   appeals       Appeal[]
   comments      Comment[]
   likes         Like[]
@@ -221,6 +225,25 @@ model Hashtag {
   id    String @id @default(cuid())
   tag   String @unique
   posts Post[] @relation("HashtagToPost")
+}
+
+// Polymorphic audit log — no FK constraints so it survives content deletion
+// and works across all content types (POST, SHOP_ITEM, AVATAR, COMMISSION_REF, etc.)
+model AIScanLog {
+  id           String    @id @default(cuid())
+  contentType  String
+  contentId    String
+  scores       Json
+  verdict      String
+  action       String
+  overridden   Boolean   @default(false)
+  overriddenBy String?
+  overriddenAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([contentType, contentId])
+  @@index([verdict, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
 model Report {
@@ -271,17 +294,19 @@ model Like {
 }
 
 model Comment {
-  id        String        @id @default(cuid())
-  userId    String
-  postId    String
-  text      String
-  createdAt DateTime      @default(now())
-  parentId  String?
-  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[]     @relation("CommentReplies")
-  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  likes     CommentLike[]
+  id           String        @id @default(cuid())
+  userId       String
+  postId       String
+  text         String
+  createdAt    DateTime      @default(now())
+  parentId     String?
+  hidden       Boolean       @default(false)
+  hiddenReason String?
+  parent       Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment[]     @relation("CommentReplies")
+  post         Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes        CommentLike[]
 }
 
 model CommentLike {
@@ -298,7 +323,8 @@ model CommentLike {
 model Strike {
   id          String          @id @default(cuid())
   userId      String
-  issuedById  String
+  issuedById  String?
+  aiIssued    Boolean         @default(false)
   level       StrikeLevel
   violation   StrikeViolation
   isSelling   Boolean         @default(false)
@@ -308,7 +334,7 @@ model Strike {
   reversed    Boolean         @default(false)
   createdAt   DateTime        @default(now())
   appeals     Appeal[]
-  issuedBy    User            @relation("IssuedStrikes", fields: [issuedById], references: [id])
+  issuedBy    User?           @relation("IssuedStrikes", fields: [issuedById], references: [id])
   user        User            @relation("ReceivedStrikes", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -554,6 +580,9 @@ enum StrikeViolation {
   NCMEC_VIOLATION
   CHARGEBACK_FRAUD
   ZERO_TOLERANCE_CONDUCT
+  EXPLICIT_SEXUAL
+  EXPLICIT_HENTAI
+  SELF_HARM_CONTENT
 }
 
 enum AppealStatus {

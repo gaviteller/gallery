@@ -63,7 +63,7 @@ function CommissionRow({ commission, otherParty, role }: {
             @{otherParty?.username ?? "unknown"}
           </p>
           <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0"
-            style={{ background: role === "artist" ? "rgba(176,68,248,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#B044F8" : "rgba(255,255,255,0.4)" }}>
+            style={{ background: role === "artist" ? "rgba(120,75,160,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#784BA0" : "rgba(255,255,255,0.4)" }}>
             {role === "artist" ? "client" : "you commissioned"}
           </span>
         </div>
@@ -117,7 +117,7 @@ function ProfessionalDMsInner() {
             <p className="text-xs text-white/30 mt-1">Request a commission from the Commissions tab to get started</p>
           </div>
         ) : (
-          <div className="rounded-2xl overflow-hidden" style={{ background: "#160b30", border: "1px solid #ffffff10" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "#160b30", border: "1px solid var(--border)" }}>
             {threads.map(({ commission, otherParty, role }) => (
               <CommissionRow key={commission.id} commission={commission} otherParty={otherParty} role={role} />
             ))}

@@ -35,7 +35,7 @@ function ShopItemCard({ item }: { item: FeedItem }) {
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col"
-      style={{ background: "#1a1a2e", border: "1px solid #ffffff0f" }}
+      style={{ background: "var(--surface)", border: "1px solid #ffffff0f" }}
     >
       <Link href={`/@${item.user.username}/shop/${item.id}`}>
         <div className="relative aspect-square overflow-hidden">
@@ -64,7 +64,7 @@ function ShopItemCard({ item }: { item: FeedItem }) {
           style={{
             background: inCart
               ? "rgba(255,255,255,0.08)"
-              : "linear-gradient(135deg, #FF1CF7 0%, #B044F8 100%)",
+              : "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
             color: "white",
           }}
         >
@@ -103,7 +103,7 @@ export default function ShopPage() {
   return (
     <>
       {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
-    <div className="min-h-screen pb-24 md:pl-16" style={{ background: "#0D0D0F" }}>
+    <div className="min-h-screen pb-24 md:pl-16" style={{ background: "var(--bg)" }}>
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -136,7 +136,7 @@ export default function ShopPage() {
               <div
                 key={i}
                 className="rounded-2xl aspect-square animate-pulse"
-                style={{ background: "#1a1a2e" }}
+                style={{ background: "var(--surface)" }}
               />
             ))}
           </div>

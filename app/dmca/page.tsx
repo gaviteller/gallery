@@ -19,7 +19,7 @@ export default function DmcaPage() {
   if (submitted) {
     return (
       <div style={{
-        minHeight: "100vh", background: "#0D0D0F", display: "flex",
+        minHeight: "100vh", background: "var(--bg)", display: "flex",
         alignItems: "center", justifyContent: "center",
       }}>
         <div style={{ maxWidth: 480, textAlign: "center", padding: "0 24px" }}>
@@ -36,7 +36,7 @@ export default function DmcaPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0D0D0F", padding: "48px 24px" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "48px 24px" }}>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         <h1 style={{ color: "white", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>
           DMCA Takedown Request
@@ -123,7 +123,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", background: "#1a1a2e", color: "white",
+  width: "100%", background: "var(--surface)", color: "white",
   border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8,
   padding: "10px 12px", fontSize: 14, boxSizing: "border-box",
 }

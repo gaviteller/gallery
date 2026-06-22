@@ -4,6 +4,8 @@ import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
 import { ReportReason } from "@prisma/client"
 import { sendPostFlaggedEmail } from "@/lib/email"
+import { scanPost } from "@/lib/ai-scan"
+import { after } from "next/server"
 
 export const postRouter = router({
   create: protectedProcedure
@@ -22,7 +24,7 @@ export const postRouter = router({
             ?.map((t) => t.slice(1).toLowerCase()) ?? []
         ),
       ]
-      return ctx.prisma.post.create({
+      const post = await ctx.prisma.post.create({
         data: {
           userId: ctx.session.user.id,
           image: input.image,
@@ -37,6 +39,10 @@ export const postRouter = router({
           } : undefined,
         },
       })
+
+      await scanPost(ctx.prisma, post.id, ctx.session.user.id, input.image)
+
+      return post
     }),
 
   getFeed: publicProcedure
@@ -236,6 +242,8 @@ export const postRouter = router({
           userId: true,
           status: true,
           reportCount: true,
+          image: true,
+          aiVerdict: true,
           user: { select: { email: true, username: true } },
         },
       })
@@ -260,6 +268,11 @@ export const postRouter = router({
           throw new TRPCError({ code: "CONFLICT", message: "You have already reported this post." })
         }
         throw e
+      }
+
+      // If post hasn't been AI-scanned yet, scan it now so the mod queue can prioritise it
+      if (!post.aiVerdict) {
+        after(() => scanPost(ctx.prisma, post.id, post.userId, post.image))
       }
 
       // 3. Increment reportCount atomically and check threshold

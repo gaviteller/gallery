@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
@@ -49,7 +49,7 @@ export default function ProfessionalProfilePage() {
 
   if (status === "unauthenticated" || status === "loading" || !session?.user?.username) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
         <p className="text-white/50">Loading…</p>
       </div>
     )
@@ -254,7 +254,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0D0D0F" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
         <p className="text-white/50">Loading…</p>
       </div>
     )
@@ -262,12 +262,37 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 pb-24">
-      <h1 className="text-2xl font-bold text-white mb-1">Artist Dashboard</h1>
-      <p className="text-sm text-white/50 mb-8">Manage your commission settings and track your business.</p>
+      {/* Title + quick status toggle */}
+      <div className="flex items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="font-playfair text-2xl font-bold" style={{ color: "var(--text)" }}>Artist Dashboard</h1>
+          <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>Manage your commissions and track earnings.</p>
+        </div>
+        <div className="flex gap-1 flex-shrink-0 p-1 rounded-xl" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          {(["OPEN", "LIMITED", "CLOSED"] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => { setStatus(s) }}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+              style={status === s ? {
+                background: s === "OPEN" ? "rgba(72,200,120,0.2)" : s === "LIMITED" ? "rgba(255,180,60,0.15)" : "rgba(240,235,248,0.1)",
+                color: s === "OPEN" ? "#48C878" : s === "LIMITED" ? "#FFB43C" : "var(--muted)",
+                border: `1px solid ${s === "OPEN" ? "rgba(72,200,120,0.35)" : s === "LIMITED" ? "rgba(255,180,60,0.3)" : "rgba(240,235,248,0.12)"}`,
+              } : {
+                background: "transparent",
+                color: "var(--muted)",
+                border: "1px solid transparent",
+              }}
+            >
+              {s === "OPEN" ? "Open" : s === "LIMITED" ? "Limited" : "Closed"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* ── Active Commissions ── */}
       {myCommissions?.asArtist && myCommissions.asArtist.filter(c => !["COMPLETE","DECLINED","CANCELLED"].includes(c.status)).length > 0 && (
-        <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+        <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "var(--surface)", border: "1px solid #ffffff10" }}>
           <div className="px-6 py-4" style={{ borderBottom: "1px solid #ffffff10" }}>
             <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide">Active Commissions</h2>
           </div>
@@ -291,7 +316,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                   key={c.id}
                   href={`/professional-dms/${c.id}`}
                   className="flex items-center gap-3 px-6 py-3.5 hover:bg-white/5 transition-colors last:border-0"
-                  style={{ borderBottom: "1px solid #ffffff08" }}
+                  style={{ borderBottom: "1px solid rgba(240,235,248,0.03)" }}
                 >
                   <Avatar src={c.buyer?.image} name={c.buyer?.name} username={c.buyer?.username} size={36} />
                   <div className="flex-1 min-w-0">
@@ -311,27 +336,41 @@ function ProfessionalProfileInner({ username }: { username: string }) {
       )}
 
       {/* ── Business Overview ── */}
-      <section className="rounded-2xl p-6 mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
-        <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide mb-4">Business Overview</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">{stats?.activeCount ?? 0}</p>
-            <p className="text-xs text-white/50 mt-1">Active commissions</p>
+      <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
+          <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Overview</h2>
+        </div>
+        <div className="grid grid-cols-2" style={{ borderBottom: "1px solid var(--border)" }}>
+          {/* Total earned — gradient accent */}
+          <div className="px-6 py-5" style={{ borderRight: "1px solid var(--border)" }}>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted)" }}>Total earned</p>
+            <p className="font-playfair text-2xl font-bold" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              ${(stats?.totalEarned ?? 0).toFixed(2)}
+            </p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">${(stats?.escrowHeld ?? 0).toFixed(2)}</p>
-            <p className="text-xs text-white/50 mt-1">In escrow</p>
+          {/* In escrow */}
+          <div className="px-6 py-5">
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted)" }}>In escrow</p>
+            <p className="font-playfair text-2xl font-bold" style={{ color: "var(--text)" }}>${(stats?.escrowHeld ?? 0).toFixed(2)}</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">${(stats?.totalEarned ?? 0).toFixed(2)}</p>
-            <p className="text-xs text-white/50 mt-1">Total earned</p>
+        </div>
+        <div className="grid grid-cols-2">
+          {/* Shop revenue */}
+          <div className="px-6 py-5" style={{ borderRight: "1px solid var(--border)" }}>
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted)" }}>Shop revenue</p>
+            <p className="font-playfair text-2xl font-bold" style={{ color: "var(--text)" }}>${(mySales ?? []).reduce((s, o) => s + o.sellerPayout, 0).toFixed(2)}</p>
+          </div>
+          {/* Active commissions */}
+          <div className="px-6 py-5">
+            <p className="text-xs uppercase tracking-widest mb-2" style={{ color: "var(--muted)" }}>Active jobs</p>
+            <p className="font-playfair text-2xl font-bold" style={{ color: "var(--text)" }}>{stats?.activeCount ?? 0}</p>
           </div>
         </div>
       </section>
 
       {/* ── Shop Sales ── */}
       {mySales !== undefined && (
-        <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+        <section className="rounded-2xl overflow-hidden mb-6" style={{ background: "var(--surface)", border: "1px solid #ffffff10" }}>
           <div className="px-6 py-4" style={{ borderBottom: "1px solid #ffffff10" }}>
             <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide">Shop Sales</h2>
           </div>
@@ -362,10 +401,10 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               <div
                 key={order.id}
                 className="flex items-center gap-3 px-6 py-3.5 last:border-0"
-                style={{ borderBottom: "1px solid #ffffff08" }}
+                style={{ borderBottom: "1px solid rgba(240,235,248,0.03)" }}
               >
                 {/* Item thumbnail */}
-                <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "#ffffff10" }}>
+                <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ background: "rgba(240,235,248,0.07)" }}>
                   <img
                     src={order.item.image}
                     alt={order.item.title}
@@ -402,7 +441,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
       )}
 
       {/* ── Commission Settings ── */}
-      <section className="rounded-2xl p-6 mb-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+      <section className="rounded-2xl p-6 mb-6" style={{ background: "var(--surface)", border: "1px solid #ffffff10" }}>
         <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide mb-4">Commission Settings</h2>
 
         {/* Status */}
@@ -416,7 +455,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                 className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
                   status === s ? statusColors[s] : "bg-white/5 text-white/40 hover:bg-white/10"
                 }`}
-                style={status !== s ? { borderColor: "#ffffff10" } : undefined}
+                style={status !== s ? { borderColor: "rgba(240,235,248,0.07)" } : undefined}
               >
                 {s === "OPEN" ? "Open" : s === "LIMITED" ? "Limited" : "Closed"}
               </button>
@@ -433,7 +472,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
             placeholder="Tell buyers what you offer, your style, any terms…"
             rows={4}
             className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 resize-none"
-            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+            style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
           />
         </div>
 
@@ -446,7 +485,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
             onChange={e => setTurnaround(e.target.value)}
             placeholder="e.g. 1–2 weeks"
             className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+            style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
           />
         </div>
 
@@ -456,7 +495,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
           {priceRanges.length > 0 && (
             <div className="flex flex-col gap-2 mb-3">
               {priceRanges.map((r, i) => (
-                <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: "#ffffff10", border: "1px solid #ffffff10" }}>
+                <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff10" }}>
                   <span className="text-sm text-white/70">{r.label}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-white">${r.price}</span>
@@ -478,7 +517,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               onChange={e => setNewRangeLabel(e.target.value)}
               placeholder="Label (e.g. Bust)"
               className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
             />
             <input
               type="number"
@@ -487,12 +526,12 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               placeholder="Price ($)"
               min="0"
               className="w-28 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
             />
             <button
               onClick={addPriceRange}
               className="px-4 py-2 text-white rounded-xl text-sm font-medium transition-colors"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               Add
             </button>
@@ -527,7 +566,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
           {cardUploadError && <p className="text-xs text-red-500 mb-2">{cardUploadError}</p>}
 
           {cardImages.length < 5 && (
-            <label className="flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl hover:bg-white/5 transition-colors" style={{ border: "1px dashed #ffffff30" }}>
+            <label className="flex items-center gap-2 cursor-pointer px-4 py-3 rounded-xl hover:bg-white/5 transition-colors" style={{ border: "1px dashed rgba(240,235,248,0.19)" }}>
               <svg className="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -545,7 +584,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
           {artStyles.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {artStyles.map(s => (
-                <span key={s} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(176, 68, 248, 0.15)", color: "#d580ff", border: "1px solid rgba(176, 68, 248, 0.3)" }}>
+                <span key={s} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(120,75,160,0.15)", color: "#d580ff", border: "1px solid rgba(120,75,160,0.3)" }}>
                   {s}
                   <button type="button" onClick={() => setArtStyles(prev => prev.filter(x => x !== s))} className="ml-0.5 opacity-70 hover:opacity-100">×</button>
                 </span>
@@ -570,7 +609,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               }}
               placeholder="Type a style, press Enter…"
               className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
             />
             <button
               type="button"
@@ -582,7 +621,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                 }
               }}
               className="px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:bg-white/10 transition-colors"
-              style={{ background: "#ffffff10" }}
+              style={{ background: "rgba(240,235,248,0.07)" }}
             >
               Add
             </button>
@@ -593,34 +632,34 @@ function ProfessionalProfileInner({ username }: { username: string }) {
           onClick={saveSettings}
           disabled={updateProfile.isPending}
           className="w-full mt-6 text-white py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
         >
           {updateProfile.isPending ? "Saving…" : settingsSaved ? "✓ Saved" : "Save settings"}
         </button>
       </section>
 
       {/* ── Dropdown Categories ── */}
-      <section className="rounded-2xl p-6" style={{ background: "#111118", border: "1px solid #ffffff10" }}>
+      <section className="rounded-2xl p-6" style={{ background: "var(--surface)", border: "1px solid #ffffff10" }}>
         <h2 className="text-sm font-bold text-white/70 uppercase tracking-wide mb-1">Commission Form Options</h2>
         <p className="text-xs text-white/40 mb-4">These dropdowns appear on your commission request form. Each is mandatory for buyers.</p>
 
         {categories && categories.length > 0 && (
           <div className="flex flex-col gap-3 mb-4">
             {categories.map(cat => (
-              <div key={cat.id} className="rounded-xl p-4" style={{ background: "#ffffff08", border: "1px solid #ffffff10" }}>
+              <div key={cat.id} className="rounded-xl p-4" style={{ background: "rgba(240,235,248,0.03)", border: "1px solid #ffffff10" }}>
                 {editingCat === cat.id ? (
                   <div className="flex flex-col gap-2">
                     <input
                       value={editCatName}
                       onChange={e => setEditCatName(e.target.value)}
                       className="px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-                      style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+                      style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
                       placeholder="Category name"
                     />
                     {editCatOptionsList.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {editCatOptionsList.map(opt => (
-                          <span key={opt} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(176, 68, 248, 0.15)", color: "#d580ff", border: "1px solid rgba(176, 68, 248, 0.3)" }}>
+                          <span key={opt} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(120,75,160,0.15)", color: "#d580ff", border: "1px solid rgba(120,75,160,0.3)" }}>
                             {opt}
                             <button type="button" onClick={() => setEditCatOptionsList(prev => prev.filter(o => o !== opt))} className="ml-0.5 opacity-70 hover:opacity-100">×</button>
                           </span>
@@ -633,14 +672,14 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                         onChange={e => setEditCatOptionInput(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEditChip() } }}
                         className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-                        style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+                        style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
                         placeholder="Add option, press Enter"
                       />
                       <button
                         type="button"
                         onClick={addEditChip}
                         className="px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:bg-white/10 transition-colors"
-                        style={{ background: "#ffffff10" }}
+                        style={{ background: "rgba(240,235,248,0.07)" }}
                       >
                         Add
                       </button>
@@ -649,7 +688,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                       <button
                         onClick={() => saveEditCat(cat.id)}
                         className="flex-1 px-3 py-2 text-white rounded-xl text-xs font-semibold transition-opacity"
-                        style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+                        style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
                       >
                         Save
                       </button>
@@ -668,7 +707,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
                       <p className="text-sm font-semibold text-white mb-1.5">{cat.name}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {cat.options.map(opt => (
-                          <span key={opt} className="text-xs text-white/60 px-2.5 py-0.5 rounded-full" style={{ background: "#ffffff10", border: "1px solid #ffffff10" }}>{opt}</span>
+                          <span key={opt} className="text-xs text-white/60 px-2.5 py-0.5 rounded-full" style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff10" }}>{opt}</span>
                         ))}
                       </div>
                     </div>
@@ -702,12 +741,12 @@ function ProfessionalProfileInner({ username }: { username: string }) {
             onChange={e => setNewCatName(e.target.value)}
             placeholder="Category name (e.g. Art Style)"
             className="px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+            style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
           />
           {newCatOptionsList.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {newCatOptionsList.map(opt => (
-                <span key={opt} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(176, 68, 248, 0.15)", color: "#d580ff", border: "1px solid rgba(176, 68, 248, 0.3)" }}>
+                <span key={opt} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(120,75,160,0.15)", color: "#d580ff", border: "1px solid rgba(120,75,160,0.3)" }}>
                   {opt}
                   <button type="button" onClick={() => setNewCatOptionsList(prev => prev.filter(o => o !== opt))} className="ml-0.5 opacity-70 hover:opacity-100">×</button>
                 </span>
@@ -722,13 +761,13 @@ function ProfessionalProfileInner({ username }: { username: string }) {
               onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addNewChip() } }}
               placeholder="Add option, press Enter (e.g. Anime)"
               className="flex-1 px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
-              style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid #ffffff15" }}
             />
             <button
               type="button"
               onClick={addNewChip}
               className="px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:bg-white/10 transition-colors"
-              style={{ background: "#ffffff10" }}
+              style={{ background: "rgba(240,235,248,0.07)" }}
             >
               Add
             </button>
@@ -737,7 +776,7 @@ function ProfessionalProfileInner({ username }: { username: string }) {
             onClick={addCategory}
             disabled={createCategory.isPending || !newCatName.trim() || newCatOptionsList.length === 0}
             className="px-4 py-2 text-white rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+            style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
           >
             {createCategory.isPending ? "Adding…" : "Save category"}
           </button>
@@ -746,3 +785,4 @@ function ProfessionalProfileInner({ username }: { username: string }) {
     </div>
   )
 }
+

@@ -39,7 +39,7 @@ function ResetPasswordForm() {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-white/10 p-8" style={{ background: "#1a1a2e" }}>
+      <div className="rounded-2xl border border-white/10 p-8" style={{ background: "var(--surface)" }}>
         <div className="flex flex-col items-center mb-8">
           <Image src="/logo.png" alt="Gallery" width={100} height={100} className="mb-3" />
           <p className="text-white/50 text-sm">Choose a new password</p>
@@ -55,7 +55,7 @@ function ResetPasswordForm() {
               required
               minLength={8}
               className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
-              style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
             />
             <input
               type="password"
@@ -64,7 +64,7 @@ function ResetPasswordForm() {
               onChange={(e) => setConfirm(e.target.value)}
               required
               className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
-              style={{ background: "#ffffff12", border: "1px solid #ffffff18" }}
+              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
             />
 
             {matchError && <p className="text-sm text-red-400 text-center">{matchError}</p>}
@@ -78,7 +78,7 @@ function ResetPasswordForm() {
               type="submit"
               disabled={mutation.isPending || !password || !confirm}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               {mutation.isPending ? "Saving…" : "Set new password"}
             </button>

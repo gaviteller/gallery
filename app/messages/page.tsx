@@ -36,14 +36,14 @@ function NewMessageModal({ onClose }: { onClose: () => void }) {
     >
       <div
         className="w-full max-w-lg rounded-t-2xl pb-8"
-        style={{ background: "#1e0d3f", border: "1px solid #ffffff15" }}
+        style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: "#ffffff20" }} />
+          <div className="w-10 h-1 rounded-full" style={{ background: "rgba(240,235,248,0.07)" }} />
         </div>
 
-        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "1px solid #ffffff10" }}>
+        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
           <p className="flex-1 text-sm font-semibold text-white">New Message</p>
           <button onClick={onClose} className="text-sm text-white/40 hover:text-white transition-colors">Cancel</button>
         </div>
@@ -56,7 +56,7 @@ function NewMessageModal({ onClose }: { onClose: () => void }) {
             onChange={e => setQuery(e.target.value)}
             placeholder="Search people…"
             className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
-            style={{ background: "#ffffff10", border: "1px solid #ffffff15" }}
+            style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
           />
         </div>
 
@@ -134,7 +134,7 @@ function MessagesInner({ userId }: { userId: string }) {
 
         {!convos || convos.length === 0 ? (
           <div className="text-center py-20 px-6">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "#ffffff10" }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(240,235,248,0.07)" }}>
               <svg className="w-8 h-8 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
@@ -144,13 +144,13 @@ function MessagesInner({ userId }: { userId: string }) {
             <button
               onClick={() => setComposing(true)}
               className="px-5 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors"
-              style={{ background: "linear-gradient(135deg, #FF1CF7 0%, #B044F8 50%, #00B4EE 100%)" }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
             >
               Send message
             </button>
           </div>
         ) : (
-          <div style={{ borderTop: "1px solid #ffffff10" }}>
+          <div style={{ borderTop: "1px solid var(--border)" }}>
             {convos.map(c => (
               <button
                 key={c.id}
