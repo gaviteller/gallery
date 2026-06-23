@@ -164,19 +164,17 @@ export default function FeedPage() {
         <>
           <div>
             {posts.map((post) => (
-              <article
-                key={post.id}
-                style={{ borderBottom: "1px solid var(--border)" }}
-              >
-                {/* Post header */}
-                <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-                  <Link href={`/@${post.user.username}`} className="flex-shrink-0">
-                    <div style={{ padding: 1.5, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: "50%", opacity: 0.9 }}>
-                      <div style={{ padding: 2, background: "var(--bg)", borderRadius: "50%" }}>
+              <article key={post.id} style={{ borderBottom: "1px solid var(--border)" }}>
+
+                {/* Post header — matches mockup: 9px 12px padding, 9px gap, 28px avatar */}
+                <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px" }}>
+                  <Link href={`/@${post.user.username}`} style={{ flexShrink: 0 }}>
+                    <div style={{ padding: 1.5, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: "50%" }}>
+                      <div style={{ padding: 1.5, background: "var(--bg)", borderRadius: "50%" }}>
                         {post.user.image ? (
-                          <img src={post.user.image} alt={post.user.username ?? ""} className="w-9 h-9 rounded-full object-cover" />
+                          <img src={post.user.image} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", display: "block" }} />
                         ) : (
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
+                          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 11, fontWeight: 700 }}>
                             {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
                           </div>
                         )}
@@ -184,52 +182,41 @@ export default function FeedPage() {
                     </div>
                   </Link>
 
-                  <div className="flex-1 min-w-0">
-                    <Link href={`/@${post.user.username}`} className="text-sm font-bold truncate font-playfair block" style={{ color: "var(--text)" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 11, fontWeight: 700, color: "var(--text)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}>
                       {post.user.name ?? post.user.username}
                     </Link>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs" style={{ color: "var(--muted)" }}>@{post.user.username}</span>
-                      <span className="text-xs" style={{ color: "var(--border)" }}>·</span>
-                      <span className="text-xs" style={{ color: "var(--muted)" }}>{timeAgo(post.createdAt)}</span>
+                    <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 1 }}>
+                      @{post.user.username} · {timeAgo(post.createdAt)}
                     </div>
                   </div>
 
-                  {/* 3-dot menu */}
-                  <div className="relative flex-shrink-0">
+                  {/* 3-dot menu — 16×16, dots 3px */}
+                  <div style={{ position: "relative", flexShrink: 0 }}>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
-                      className="flex flex-col items-center justify-center gap-1 w-8 h-8"
-                      style={{ color: "var(--muted)" }}
+                      style={{ width: 24, height: 24, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, background: "none", border: "none", cursor: "pointer", padding: 0 }}
                     >
-                      <span className="w-1 h-1 rounded-full bg-current" />
-                      <span className="w-1 h-1 rounded-full bg-current" />
-                      <span className="w-1 h-1 rounded-full bg-current" />
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
                     </button>
                     {openMenuId === post.id && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
-                        <div className="absolute right-0 top-9 z-50 rounded-xl shadow-xl overflow-hidden w-40" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                        <div style={{ position: "absolute", right: 0, top: 28, zIndex: 50, width: 140, borderRadius: 12, overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)" }}>
                           {post.isOwnPost ? (
-                            <button
-                              onClick={() => { setOpenMenuId(null); setViewPost(post as FeedPost) }}
-                              className="w-full text-left px-4 py-3 text-sm"
-                              style={{ color: "var(--text)" }}
+                            <button onClick={() => { setOpenMenuId(null); setViewPost(post as FeedPost) }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12, color: "var(--text)", background: "none", border: "none", cursor: "pointer" }}
                               onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                            >
+                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                               View post
                             </button>
                           ) : localReported.has(post.id) || post.viewerHasReported ? (
-                            <div className="px-4 py-3 text-sm" style={{ color: "var(--muted)" }}>Reported</div>
+                            <div style={{ padding: "10px 14px", fontSize: 12, color: "var(--muted)" }}>Reported</div>
                           ) : (
-                            <button
-                              onClick={() => { setOpenMenuId(null); setReportingPostId(post.id) }}
-                              className="w-full text-left px-4 py-3 text-sm"
-                              style={{ color: "#F06060" }}
+                            <button onClick={() => { setOpenMenuId(null); setReportingPostId(post.id) }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12, color: "#F06060", background: "none", border: "none", cursor: "pointer" }}
                               onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                            >
+                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                               Report
                             </button>
                           )}
@@ -239,90 +226,63 @@ export default function FeedPage() {
                   </div>
                 </div>
 
-                {/* Image — rounded inside the card, slight margin */}
-                <button
-                  style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none" }}
-                  onClick={() => setViewPost(post as FeedPost)}
-                >
-                  <img
-                    src={post.image}
-                    alt={post.description ?? ""}
-                    style={{ display: "block", width: "100%", aspectRatio: "1/1", objectFit: "cover", borderRadius: 0 }}
-                  />
+                {/* Image — natural height, NO aspect ratio forcing, 0px radius */}
+                <button style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "pointer" }} onClick={() => setViewPost(post as FeedPost)}>
+                  <img src={post.image} alt={post.description ?? ""} style={{ display: "block", width: "100%", borderRadius: 0 }} />
                 </button>
 
-                {/* Artwork title (Space Grotesk) */}
-                {post.title && (
-                  <p
-                    className="px-4 pt-2.5 text-sm font-semibold text-white/80"
-                    style={{ fontFamily: "Space Grotesk, sans-serif" }}
-                  >
-                    {post.title}
-                  </p>
-                )}
-
-                {/* Actions */}
-                <div className="flex items-center gap-4 px-4 pt-3 pb-1">
-                  <button
-                    onClick={() => toggleLike.mutate({ postId: post.id })}
-                    disabled={toggleLike.isPending}
-                    className="flex items-center gap-1.5 transition-opacity disabled:opacity-50"
-                  >
-                    <span
-                      className="text-sm font-semibold"
-                      style={post.likedByMe ? {
+                {/* Actions row — 8px 12px padding, space-between */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button onClick={() => toggleLike.mutate({ postId: post.id })} disabled={toggleLike.isPending} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, opacity: toggleLike.isPending ? 0.5 : 1 }}>
+                      <span style={post.likedByMe ? {
+                        fontSize: 10, fontWeight: 600,
                         background: "linear-gradient(90deg, #FF3CAC, #784BA0)",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        backgroundClip: "text",
-                      } : { color: "rgba(240,235,248,0.6)" }}
-                    >
-                      ♥ {post._count.likes}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }}
-                    className="flex items-center gap-1.5 transition-opacity"
-                    style={{ color: "rgba(240,235,248,0.6)" }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                    </svg>
-                    <span className="text-sm font-semibold">{post._count.comments}</span>
-                  </button>
-                  {/* Bookmark — right side */}
-                  <button className="ml-auto" style={{ color: "rgba(240,235,248,0.35)" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                      } : { fontSize: 10, color: "var(--muted)" }}>
+                        ♥ {post._count.likes}
+                      </span>
+                    </button>
+                    <button onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--muted)", fontSize: 10 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                      </svg>
+                      {post._count.comments}
+                    </button>
+                  </div>
+                  <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--muted)" }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
                     </svg>
                   </button>
                 </div>
 
-                {/* Caption */}
+                {/* Caption — 10px Inter, name 11px Playfair */}
                 {post.description && (
-                  <div className="px-4 pt-1 pb-1.5">
-                    <p className="text-sm leading-snug" style={{ color: "var(--muted)" }}>
-                      <Link href={`/@${post.user.username}`} className="font-bold font-playfair mr-1" style={{ color: "var(--text)" }}>
-                        {post.user.name ?? post.user.username}
-                      </Link>
-                      <MentionText text={post.description} />
-                    </p>
+                  <div style={{ padding: "0 12px 9px", fontSize: 10, color: "var(--muted)", lineHeight: 1.4 }}>
+                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 11, fontWeight: 700, color: "var(--text)", marginRight: 4, textDecoration: "none" }}>
+                      {post.user.name ?? post.user.username}
+                    </Link>
+                    <MentionText text={post.description} />
                   </div>
                 )}
 
-                {/* Hashtag pills */}
+                {/* Hashtag pills — 9px, 2px 7px padding */}
                 {(() => {
                   const tags = Array.from(new Set((post.description ?? "").match(/#[a-zA-Z0-9_]+/g) ?? [])).slice(0, 5)
-                  return tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 px-4 pb-3 pt-1">
+                  if (!tags.length) return null
+                  return (
+                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 5, padding: "0 12px 9px" }}>
                       {tags.map(tag => (
-                        <span key={tag} className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "#9080B8" }}>
+                        <span key={tag} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "var(--surface)", color: "#9080B8", border: "1px solid var(--border)" }}>
                           {tag}
                         </span>
                       ))}
                     </div>
-                  ) : <div className="pb-3" />
+                  )
                 })()}
+
+                {!post.description && <div style={{ height: 9 }} />}
               </article>
             ))}
           </div>
