@@ -141,7 +141,7 @@ export default function FeedPage() {
   const posts = data?.pages.flatMap((p) => p.posts) ?? []
 
   return (
-    <div className="feed-container mx-auto pb-24 max-w-lg">
+    <div className="feed-container pb-24 max-w-lg mx-auto md:mx-0 md:max-w-2xl">
       <FeaturedArtistsStrip />
       {isLoading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
