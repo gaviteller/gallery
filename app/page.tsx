@@ -48,6 +48,7 @@ export default function FeedPage() {
   const [focusComment, setFocusComment] = useState(false)
   const [reportingPostId, setReportingPostId] = useState<string | null>(null)
   const [localReported, setLocalReported] = useState<Set<string>>(new Set())
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -170,33 +171,12 @@ export default function FeedPage() {
                 {/* Post header */}
                 <div className="flex items-center gap-3 px-4 pt-3 pb-2">
                   <Link href={`/@${post.user.username}`} className="flex-shrink-0">
-                    {/* Avatar with always-on subtle gradient ring */}
-                    <div
-                      style={{
-                        padding: 1.5,
-                        background:
-                          "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                        borderRadius: "50%",
-                        opacity: 0.9,
-                      }}
-                    >
-                      <div
-                        style={{ padding: 2, background: "var(--bg)", borderRadius: "50%" }}
-                      >
+                    <div style={{ padding: 1.5, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: "50%", opacity: 0.9 }}>
+                      <div style={{ padding: 2, background: "var(--bg)", borderRadius: "50%" }}>
                         {post.user.image ? (
-                          <img
-                            src={post.user.image}
-                            alt={post.user.username ?? ""}
-                            className="w-9 h-9 rounded-full object-cover"
-                          />
+                          <img src={post.user.image} alt={post.user.username ?? ""} className="w-9 h-9 rounded-full object-cover" />
                         ) : (
-                          <div
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                            style={{
-                              background:
-                                "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                            }}
-                          >
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
                             {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
                           </div>
                         )}
@@ -205,54 +185,58 @@ export default function FeedPage() {
                   </Link>
 
                   <div className="flex-1 min-w-0">
-                    {/* Line 1: display name + commission badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <Link
-                        href={`/@${post.user.username}`}
-                        className="text-sm font-bold text-white truncate font-playfair"
-                      >
-                        {post.user.name ?? post.user.username}
-                      </Link>
-                      {(post.user.commissionStatus === "OPEN" ||
-                        post.user.commissionStatus === "LIMITED") && (
-                        <span className="flex items-center gap-1 text-xs font-semibold brand-gradient-text flex-shrink-0">
-                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />
-                          Commission open
-                        </span>
-                      )}
-                    </div>
-                    {/* Line 2: @username · timestamp */}
+                    <Link href={`/@${post.user.username}`} className="text-sm font-bold truncate font-playfair block" style={{ color: "var(--text)" }}>
+                      {post.user.name ?? post.user.username}
+                    </Link>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs text-white/40">
-                        @{post.user.username}
-                      </span>
-                      <span className="text-white/20 text-xs">·</span>
-                      <span className="text-xs text-white/30">
-                        {timeAgo(post.createdAt)}
-                      </span>
+                      <span className="text-xs" style={{ color: "var(--muted)" }}>@{post.user.username}</span>
+                      <span className="text-xs" style={{ color: "var(--border)" }}>·</span>
+                      <span className="text-xs" style={{ color: "var(--muted)" }}>{timeAgo(post.createdAt)}</span>
                     </div>
                   </div>
 
-                  {post.isAiGenerated && (
-                    <span
-                      className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0"
-                      style={{
-                        background: "rgba(176,68,248,0.2)",
-                        color: "#B090D8",
-                      }}
+                  {/* 3-dot menu */}
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
+                      className="flex flex-col items-center justify-center gap-1 w-8 h-8"
+                      style={{ color: "var(--muted)" }}
                     >
-                      AI
-                    </span>
-                  )}
-                  {post.status === "PENDING_REVIEW" && (
-                    <span style={{
-                      background: "#854d0e", color: "#fef08a", fontSize: 11, fontWeight: 700,
-                      padding: "3px 8px", borderRadius: 12, border: "1px solid #a16207",
-                      marginLeft: 8,
-                    }}>
-                      Under Review
-                    </span>
-                  )}
+                      <span className="w-1 h-1 rounded-full bg-current" />
+                      <span className="w-1 h-1 rounded-full bg-current" />
+                      <span className="w-1 h-1 rounded-full bg-current" />
+                    </button>
+                    {openMenuId === post.id && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
+                        <div className="absolute right-0 top-9 z-50 rounded-xl shadow-xl overflow-hidden w-40" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                          {post.isOwnPost ? (
+                            <button
+                              onClick={() => { setOpenMenuId(null); setViewPost(post as FeedPost) }}
+                              className="w-full text-left px-4 py-3 text-sm"
+                              style={{ color: "var(--text)" }}
+                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                            >
+                              View post
+                            </button>
+                          ) : localReported.has(post.id) || post.viewerHasReported ? (
+                            <div className="px-4 py-3 text-sm" style={{ color: "var(--muted)" }}>Reported</div>
+                          ) : (
+                            <button
+                              onClick={() => { setOpenMenuId(null); setReportingPostId(post.id) }}
+                              className="w-full text-left px-4 py-3 text-sm"
+                              style={{ color: "#F06060" }}
+                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                            >
+                              Report
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Image — rounded inside the card, slight margin */}
@@ -320,23 +304,6 @@ export default function FeedPage() {
                       {post._count.comments}
                     </span>
                   </button>
-                  {session && !post.isOwnPost && (
-                    localReported.has(post.id) || post.viewerHasReported ? (
-                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginLeft: "auto" }}>
-                        Reported
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setReportingPostId(post.id)}
-                        style={{
-                          background: "none", border: "none", color: "rgba(255,255,255,0.3)",
-                          fontSize: 11, cursor: "pointer", marginLeft: "auto", padding: "2px 6px",
-                        }}
-                      >
-                        ⚑ Report
-                      </button>
-                    )
-                  )}
                 </div>
 
                 {/* Caption */}
