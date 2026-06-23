@@ -232,41 +232,50 @@ export default function BottomNav() {
     <>
 {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
 
-      {/* ── MOBILE bottom nav ─────────────────────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-2 h-16" style={{ background: "var(--nav)", borderTop: "1px solid var(--border)" }}>
-        {navItems.map((item) => {
-          const inner = (
-            <div className={`flex flex-col items-center gap-0.5 px-2 py-2 ${item.active ? "text-white" : "text-white/40"}`}>
-              <div className="relative">
-                {item.icon}
-                {item.badge && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                    {item.badge > 9 ? "9+" : item.badge}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </div>
-          )
-          if (item.onClick) {
-            return <button key={item.label} onClick={item.onClick}>{inner}</button>
-          }
-          return <Link key={item.label} href={item.href!}>{inner}</Link>
-        })}
-        {/* Notifications bell */}
-        <button onClick={() => setNotifOpen(v => !v)}>
-          <div className={`flex flex-col items-center gap-0.5 px-2 py-2 ${notifOpen ? "text-white" : "text-white/40"}`}>
-            <div className="relative">
-              {notifNavItem.icon}
-              {notifNavItem.badge && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                  {notifNavItem.badge > 9 ? "9+" : notifNavItem.badge}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-medium">{notifNavItem.label}</span>
+      {/* ── MOBILE bottom nav — 5 items matching mockup ─────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-4 h-16" style={{ background: "var(--nav)", borderTop: "1px solid var(--border)" }}>
+        {/* Home */}
+        <Link href="/" className="flex flex-col items-center justify-center p-2" style={{ color: pathname === "/" ? "var(--text)" : "rgba(240,235,248,0.35)" }}>
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </Link>
+
+        {/* Search */}
+        <Link href="/search" className="flex flex-col items-center justify-center p-2" style={{ color: isActive("/search") ? "var(--text)" : "rgba(240,235,248,0.35)" }}>
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </Link>
+
+        {/* + New Post — gradient, larger */}
+        <Link href={username ? `/@${username}` : "/"} className="flex items-center justify-center w-11 h-11 rounded-xl" style={{ background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)" }}>
+          <svg width="20" height="20" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </Link>
+
+        {/* DMs */}
+        <Link href="/messages" className="relative flex flex-col items-center justify-center p-2" style={{ color: isActive("/messages") ? "var(--text)" : "rgba(240,235,248,0.35)" }}>
+          <div className="relative">
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            {dmUnread && dmUnread.count > 0 && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                {dmUnread.count > 9 ? "9+" : dmUnread.count}
+              </span>
+            )}
           </div>
-        </button>
+        </Link>
+
+        {/* Profile */}
+        <Link href={username ? `/@${username}` : "/"} className="flex flex-col items-center justify-center p-2" style={{ color: !!(username && isActive(`/@${username}`)) ? "var(--text)" : "rgba(240,235,248,0.35)" }}>
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </Link>
       </nav>
 
       {/* ── DESKTOP left sidebar — collapses to icons, expands on hover ─── */}

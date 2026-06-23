@@ -281,46 +281,48 @@ export default function FeedPage() {
                     </span>
                   </button>
                   <button
-                    onClick={() => {
-                      setFocusComment(true)
-                      setViewPost(post as FeedPost)
-                    }}
+                    onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }}
                     className="flex items-center gap-1.5 transition-opacity"
                     style={{ color: "rgba(240,235,248,0.6)" }}
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                     </svg>
-                    <span className="text-sm font-semibold">
-                      {post._count.comments}
-                    </span>
+                    <span className="text-sm font-semibold">{post._count.comments}</span>
+                  </button>
+                  {/* Bookmark — right side */}
+                  <button className="ml-auto" style={{ color: "rgba(240,235,248,0.35)" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                    </svg>
                   </button>
                 </div>
 
                 {/* Caption */}
                 {post.description && (
-                  <div className="px-4 py-1.5 pb-4">
+                  <div className="px-4 pt-1 pb-1.5">
                     <p className="text-sm leading-snug" style={{ color: "var(--muted)" }}>
-                      <Link
-                        href={`/@${post.user.username}`}
-                        className="font-bold font-playfair mr-1"
-                        style={{ color: "var(--text)" }}
-                      >
+                      <Link href={`/@${post.user.username}`} className="font-bold font-playfair mr-1" style={{ color: "var(--text)" }}>
                         {post.user.name ?? post.user.username}
                       </Link>
                       <MentionText text={post.description} />
                     </p>
                   </div>
                 )}
+
+                {/* Hashtag pills */}
+                {(() => {
+                  const tags = Array.from(new Set((post.description ?? "").match(/#[a-zA-Z0-9_]+/g) ?? [])).slice(0, 5)
+                  return tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 px-4 pb-3 pt-1">
+                      {tags.map(tag => (
+                        <span key={tag} className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "#9080B8" }}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : <div className="pb-3" />
+                })()}
               </article>
             ))}
           </div>

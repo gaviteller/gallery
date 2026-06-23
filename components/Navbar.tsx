@@ -1,13 +1,11 @@
 "use client"
 
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { trpc } from "@/components/providers"
 import Link from "next/link"
 import Avatar from "@/components/Avatar"
-import CartDrawer from "@/components/CartDrawer"
-import { useCart } from "@/lib/cart"
 
 function NotificationPanel({ onClose }: { onClose: () => void }) {
   const { data: notifications } = trpc.notification.getAll.useQuery()
@@ -119,11 +117,7 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
 export default function Navbar() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
-  const [cartOpen, setCartOpen] = useState(false)
-  const { count: cartCount } = useCart()
-  const menuRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
 
   const { data: unread } = trpc.notification.unreadCount.useQuery(undefined, {
@@ -133,7 +127,6 @@ export default function Navbar() {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
     }
     document.addEventListener("mousedown", handleClick)
@@ -142,128 +135,47 @@ export default function Navbar() {
 
   if (status === "loading" || status === "unauthenticated") return null
 
-  const username = session?.user?.username
-
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)" }}>
-      {cartOpen && <CartDrawer onClose={() => setCartOpen(false)} />}
       {/* Gallery wordmark */}
-      <span className="font-playfair text-lg font-bold tracking-wider" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+      <Link href="/" className="font-playfair text-lg font-bold tracking-wider" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
         Gallery
-      </span>
+      </Link>
+
       <div className="flex items-center gap-2">
-      {/* Search */}
-      <button
-        onClick={() => router.push("/search")}
-        className="flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
-        onMouseEnter={e => (e.currentTarget.style.color = "var(--text)")}
-        onMouseLeave={e => (e.currentTarget.style.color = "var(--muted)")}
-        aria-label="Search"
-      >
-        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </button>
+        {/* Bell */}
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => setNotifOpen(v => !v)}
+            className="relative flex items-center justify-center w-9 h-9 rounded-full transition-colors"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
+            aria-label="Notifications"
+          >
+            <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 01-3.46 0"/>
+            </svg>
+            {unread && unread.count > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                {unread.count > 9 ? "9+" : unread.count}
+              </span>
+            )}
+          </button>
+          {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
+        </div>
 
-      {/* Cart */}
-      <div className="relative">
+        {/* Search — gradient background */}
         <button
-          onClick={() => { setCartOpen(v => !v); setNotifOpen(false) }}
-          className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
-          aria-label="Cart"
+          onClick={() => router.push("/search")}
+          className="flex items-center justify-center w-9 h-9 rounded-full transition-opacity hover:opacity-80"
+          style={{ background: "linear-gradient(135deg, #FF3CAC, #2B86C5)" }}
+          aria-label="Search"
         >
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <circle cx="9" cy="21" r="1"/>
-            <circle cx="20" cy="21" r="1"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61H19a2 2 0 001.98-1.7L22 8H6"/>
+          <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
           </svg>
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {cartCount > 9 ? "9+" : cartCount}
-            </span>
-          )}
         </button>
-      </div>
-
-      {/* Notification bell */}
-      <div className="relative" ref={notifRef}>
-        <button
-          onClick={() => { setNotifOpen(v => !v); setMenuOpen(false); setCartOpen(false) }}
-          className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}
-          aria-label="Notifications"
-        >
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 01-3.46 0"/>
-          </svg>
-          {unread && unread.count > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {unread.count > 9 ? "9+" : unread.count}
-            </span>
-          )}
-        </button>
-        {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
-      </div>
-
-      {/* Hamburger */}
-      <div className="relative" ref={menuRef}>
-        <button
-          onClick={() => { setMenuOpen(v => !v); setNotifOpen(false) }}
-          className="flex flex-col justify-center items-center w-10 h-10 rounded-xl transition-colors gap-1.5"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
-          aria-label="Menu"
-        >
-          <span className="block w-5 h-0.5 rounded" style={{ background: "var(--muted)" }} />
-          <span className="block w-5 h-0.5 rounded" style={{ background: "var(--muted)" }} />
-          <span className="block w-5 h-0.5 rounded" style={{ background: "var(--muted)" }} />
-        </button>
-
-        {menuOpen && (
-          <div className="absolute top-12 right-0 w-52 rounded-2xl shadow-xl py-1 overflow-hidden z-50" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            {[
-              { label: "Account settings", path: "/settings?tab=account" },
-              { label: "Appeals", path: "/appeal" },
-              { label: "Artist Dashboard", path: "/professional-profile" },
-              { label: "Commission Chats", path: "/professional-dms" },
-              { label: "Shop", path: "/shop" },
-            ].map(({ label, path }) => (
-              <button
-                key={label}
-                onClick={() => { setMenuOpen(false); router.push(path) }}
-                className="w-full text-left px-4 py-3 text-sm transition-colors"
-                style={{ color: "var(--text)" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-              >
-                {label}
-              </button>
-            ))}
-            <div className="mx-3 my-1" style={{ borderTop: "1px solid var(--border)" }} />
-            <p className="px-4 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--muted)" }}>Site info</p>
-            <button
-              onClick={() => { setMenuOpen(false); router.push("/terms") }}
-              className="w-full text-left px-4 py-3 text-sm transition-colors"
-              style={{ color: "var(--text)" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-            >
-              Terms of Service
-            </button>
-            <div className="mx-3 my-1" style={{ borderTop: "1px solid var(--border)" }} />
-            <button
-              onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/signin" }) }}
-              className="w-full text-left px-4 py-3 text-sm transition-colors text-red-400"
-              onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-            >
-              Sign out
-            </button>
-          </div>
-        )}
-      </div>
       </div>
     </div>
   )
