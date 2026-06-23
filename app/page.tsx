@@ -142,16 +142,6 @@ export default function FeedPage() {
   return (
     <div className="feed-container mx-auto pb-24 max-w-lg">
       <FeaturedArtistsStrip />
-      <div className="px-4 py-3 flex justify-end">
-        <Link
-          href="/commissions"
-          aria-label="Browse all artists open for commissions"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white transition-opacity hover:opacity-80"
-          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
-        >
-          Browse Commissions →
-        </Link>
-      </div>
       {isLoading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
       ) : error ? (
@@ -292,26 +282,18 @@ export default function FeedPage() {
                   <button
                     onClick={() => toggleLike.mutate({ postId: post.id })}
                     disabled={toggleLike.isPending}
-                    className="flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 transition-opacity disabled:opacity-50"
                   >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill={post.likedByMe ? "#ef4444" : "none"}
-                      stroke={post.likedByMe ? "#ef4444" : "white"}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                    </svg>
                     <span
-                      className={`text-sm font-semibold ${
-                        post.likedByMe ? "text-red-500" : "text-white"
-                      }`}
+                      className="text-sm font-semibold"
+                      style={post.likedByMe ? {
+                        background: "linear-gradient(90deg, #FF3CAC, #784BA0)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                      } : { color: "rgba(240,235,248,0.6)" }}
                     >
-                      {post._count.likes}
+                      ♥ {post._count.likes}
                     </span>
                   </button>
                   <button
@@ -319,11 +301,12 @@ export default function FeedPage() {
                       setFocusComment(true)
                       setViewPost(post as FeedPost)
                     }}
-                    className="flex items-center gap-1.5 text-white transition-colors"
+                    className="flex items-center gap-1.5 transition-opacity"
+                    style={{ color: "rgba(240,235,248,0.6)" }}
                   >
                     <svg
-                      width="24"
-                      height="24"
+                      width="18"
+                      height="18"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -359,12 +342,13 @@ export default function FeedPage() {
                 {/* Caption */}
                 {post.description && (
                   <div className="px-4 py-1.5 pb-4">
-                    <p className="text-sm text-white/90 leading-snug">
+                    <p className="text-sm leading-snug" style={{ color: "var(--muted)" }}>
                       <Link
                         href={`/@${post.user.username}`}
-                        className="font-semibold mr-1"
+                        className="font-bold font-playfair mr-1"
+                        style={{ color: "var(--text)" }}
                       >
-                        @{post.user.username}
+                        {post.user.name ?? post.user.username}
                       </Link>
                       <MentionText text={post.description} />
                     </p>
