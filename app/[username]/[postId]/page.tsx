@@ -89,7 +89,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ username:
   }
 
   function handleFollow() {
-    if (!session || !post.user.username || following) return
+    if (!session || !post?.user.username || following) return
     followMutation.mutate({ username: post.user.username })
   }
 
