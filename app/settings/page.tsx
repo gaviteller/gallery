@@ -6,6 +6,8 @@ import React, { useEffect, useState, Suspense } from "react"
 import { trpc } from "@/components/providers"
 import { uploadImage } from "@/lib/upload"
 
+const GRADIENT = "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)"
+
 function SettingsForm() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
@@ -168,7 +170,6 @@ function SettingsForm() {
       let imageUrl = image
       let bannerUrl = bannerImage
 
-      // Only upload if the value is a new base64 data URL (user picked a new image)
       if (image && image.startsWith("data:")) {
         imageUrl = await uploadImage(image, "avatars")
       }
@@ -202,396 +203,386 @@ function SettingsForm() {
     .slice(0, 2)
 
   if (status === "loading" || isLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-white/40">Loading…</p></div>
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
-  const rowCls = "grid gap-4 py-3 border-b items-center" as const
-  const rowStyle = { gridTemplateColumns: "120px 1fr", borderColor: "var(--border)" }
-  const rowTopStyle = { ...rowStyle, alignItems: "flex-start", paddingTop: 14, paddingBottom: 14 }
-  const labelCls = "text-xs font-medium" as const
-  const inputStyle = {
-    width: "100%", background: "rgba(240,235,248,0.05)", border: "1px solid var(--border)",
-    borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "var(--text)", fontFamily: "inherit",
+  const rowStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "120px 1fr", gap: 14, padding: "12px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }
+  const rowTopStyle: React.CSSProperties = { ...rowStyle, alignItems: "flex-start", padding: "14px 0" }
+  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "var(--muted)", lineHeight: 1.4, fontFamily: "Inter,sans-serif" }
+  const hintStyle: React.CSSProperties = { fontSize: 10, color: "rgba(107,95,136,0.65)", marginTop: 3, fontFamily: "Inter,sans-serif" }
+  const sectionLabelStyle: React.CSSProperties = { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--muted)", padding: "14px 0 10px", fontFamily: "Inter,sans-serif" }
+  const inputStyle: React.CSSProperties = {
+    width: "100%", boxSizing: "border-box", background: "rgba(240,235,248,0.08)", border: "1px solid rgba(240,235,248,0.18)",
+    borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "var(--text)", fontFamily: "Inter,sans-serif", outline: "none",
   }
-  const ghostBtnStyle = {
-    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
+  const ghostBtnStyle: React.CSSProperties = {
+    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer", fontFamily: "Inter,sans-serif",
     background: "rgba(240,235,248,0.06)", border: "1px solid var(--border)", color: "var(--muted)",
   }
-  const gradBtnStyle = {
-    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7,
-    background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff",
+  const gradBtnStyle: React.CSSProperties = {
+    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer", fontFamily: "Inter,sans-serif",
+    background: GRADIENT, color: "#fff", border: "none", display: "inline-block",
   }
   const toggleStyle = (on: boolean): React.CSSProperties => ({
     width: 42, height: 24, borderRadius: 99, display: "flex", alignItems: "center",
-    padding: 2, flexShrink: 0, flexDirection: "row",
+    padding: 2, flexShrink: 0, flexDirection: "row", cursor: "pointer", border: on ? "none" : "1px solid var(--border)",
     background: on ? "linear-gradient(90deg,#FF3CAC,#784BA0)" : "rgba(240,235,248,0.1)",
-    border: on ? "none" : "1px solid var(--border)",
   })
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-12">
-      <button
-        onClick={() => router.push(username ? `/@${username}` : "/")}
-        className="flex items-center gap-1.5 text-sm transition-colors mb-6"
-        style={{ color: "var(--muted)" }}
-      >
-        ← Back to profile
-      </button>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: 80 }}>
+      {/* Sticky nav */}
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--nav)", borderBottom: "1px solid var(--border)", padding: "11px 14px", display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          onClick={() => router.push(username ? `/@${username}` : "/")}
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--muted)", display: "flex", flexShrink: 0 }}
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, background: GRADIENT, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          Settings
+        </div>
+      </div>
 
-      <h1 className="font-playfair text-2xl font-bold mb-6" style={{ color: "var(--text)" }}>Settings</h1>
+      <div style={{ maxWidth: 512, margin: "0 auto", padding: "20px 16px" }}>
 
-      {/* Tabs */}
-      <div className="mb-6" style={{ borderBottom: "1px solid var(--border)" }}>
-        <nav className="flex gap-6">
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 28, borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
           {(["profile", "account"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="pb-3 text-sm font-medium transition-colors capitalize"
               style={{
-                color: tab === t ? "var(--text)" : "var(--muted)",
-                borderBottom: tab === t ? "2px solid" : "2px solid transparent",
-                borderImage: tab === t ? "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5) 1" : undefined,
-                marginBottom: -1,
+                padding: "0 0 11px", marginBottom: -1, background: "none", border: "none", cursor: "pointer",
+                fontFamily: "Inter,sans-serif", fontWeight: 700, fontSize: 15, textTransform: "capitalize",
+                color: tab === t ? "var(--text)" : "var(--muted)", position: "relative",
               }}
             >
               {t}
+              {tab === t && (
+                <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, borderRadius: 99, background: GRADIENT }} />
+              )}
             </button>
           ))}
-        </nav>
-      </div>
-
-      {/* ── Profile tab ─────────────────────────────────────── */}
-      {tab === "profile" && (
-      <div className="flex flex-col mb-6">
-
-        {/* APPEARANCE section */}
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: "var(--muted)" }}>Appearance</p>
-
-        {/* Photo row */}
-        <div className={rowCls} style={rowStyle}>
-          <div>
-            <p className={labelCls} style={{ color: "var(--muted)" }}>Photo</p>
-            <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>Your public avatar</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {image ? (
-              <img src={image} alt="Profile" className="rounded-full object-cover flex-shrink-0" style={{ width: 44, height: 44, border: "2px solid var(--border)" }} />
-            ) : (
-              <div className="rounded-full flex items-center justify-center font-playfair font-bold flex-shrink-0 text-sm" style={{ width: 44, height: 44, background: "linear-gradient(135deg,#FF3CAC,#784BA0,#2B86C5)", padding: 2 }}>
-                <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: "#2A1838", color: "rgba(240,235,248,0.6)" }}>{initials}</div>
-              </div>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <label className="cursor-pointer" style={gradBtnStyle}>
-                {photoProcessing ? "Processing…" : "Upload photo"}
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} disabled={photoProcessing} />
-              </label>
-              {image && (
-                <button onClick={() => setImage(null)} style={ghostBtnStyle}>Remove</button>
-              )}
-            </div>
-          </div>
         </div>
 
-        {/* Banner row */}
-        <div className={rowCls} style={rowTopStyle}>
-          <div>
-            <p className={labelCls} style={{ color: "var(--muted)" }}>Banner</p>
-            <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>Top of your profile</p>
-          </div>
-          <div>
-            {bannerImage ? (
-              <div className="relative rounded-lg overflow-hidden mb-2" style={{ height: 52 }}>
-                <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
-              </div>
-            ) : (
-              <div className="rounded-lg mb-2 flex items-center justify-center text-[11px]" style={{ height: 52, border: "1px dashed var(--border)", color: "var(--muted)", background: "rgba(240,235,248,0.02)" }}>
-                No banner — gradient will be used
-              </div>
-            )}
-            <div className="flex gap-2">
-              <label className="cursor-pointer" style={gradBtnStyle}>
-                {bannerProcessing ? "Processing…" : "Upload banner"}
-                <input type="file" accept="image/*" className="hidden" onChange={handleBannerChange} disabled={bannerProcessing} />
-              </label>
-              {bannerImage && (
-                <button onClick={() => setBannerImage(null)} style={ghostBtnStyle}>Remove</button>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* ── Profile tab ─────────────────────────────────────── */}
+        {tab === "profile" && (
+        <div style={{ display: "flex", flexDirection: "column" }}>
 
-        {/* IDENTITY section */}
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Identity</p>
+          <p style={sectionLabelStyle}>Appearance</p>
 
-        {/* Display name row */}
-        <div className={rowCls} style={rowStyle}>
-          <p className={labelCls} style={{ color: "var(--muted)" }}>Display name</p>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={100}
-            style={inputStyle}
-            className="focus:outline-none"
-          />
-        </div>
-
-        {/* Show real name toggle */}
-        {user?.name && (
-          <div className={rowCls} style={rowStyle}>
+          {/* Photo row */}
+          <div style={rowStyle}>
             <div>
-              <p className={labelCls} style={{ color: "var(--muted)" }}>Show real name</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>On your public profile</p>
+              <p style={labelStyle}>Photo</p>
+              <p style={hintStyle}>Your public avatar</p>
             </div>
-            <button
-              onClick={() => { const next = !showRealName; setShowRealName(next); updateShowRealName.mutate({ showRealName: next }) }}
-              disabled={updateShowRealName.isPending}
-              style={toggleStyle(showRealName)}
-              role="switch" aria-checked={showRealName}
-            >
-              <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: showRealName ? "auto" : 0 }} />
-            </button>
-          </div>
-        )}
-
-        {/* Bio row */}
-        <div className={rowCls} style={rowTopStyle}>
-          <div>
-            <p className={labelCls} style={{ color: "var(--muted)" }}>Bio</p>
-            <p className="text-[10px] mt-0.5" style={{ color: "rgba(107,95,136,0.65)" }}>Up to 160 chars</p>
-          </div>
-          <div>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={160}
-              rows={3}
-              placeholder="Tell people about your work…"
-              style={{ ...inputStyle, height: 72, resize: "none" }}
-              className="focus:outline-none"
-            />
-            <p className="text-[10px] text-right mt-1" style={{ color: "var(--muted)" }}>{bio.length}/160</p>
-          </div>
-        </div>
-
-        {/* LINKS section */}
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Links</p>
-
-        {(
-          [
-            { icon: "🌐", label: "Website",    placeholder: "https://yoursite.com", value: websiteUrl,       set: setWebsiteUrl },
-            { icon: "𝕏",  label: "Twitter / X", placeholder: "@handle",             value: twitterHandle,   set: setTwitterHandle },
-            { icon: "📸", label: "Instagram",   placeholder: "@handle",             value: instagramHandle, set: setInstagramHandle },
-            { icon: "🎨", label: "ArtStation",  placeholder: "username",            value: artstationHandle, set: setArtstationHandle },
-          ] as const
-        ).map(({ icon, label, placeholder, value, set }) => (
-          <div key={label} className={rowCls} style={rowStyle}>
-            <p className={labelCls} style={{ color: "var(--muted)" }}>{label}</p>
-            <div className="flex items-center gap-2">
-              <span className="text-sm w-5 text-center flex-shrink-0">{icon}</span>
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => (set as (v: string) => void)(e.target.value)}
-                placeholder={placeholder}
-                style={{ ...inputStyle, fontSize: 12 }}
-                className="focus:outline-none flex-1"
-              />
-            </div>
-          </div>
-        ))}
-
-        {updateProfile.error && (
-          <p className="text-sm text-red-400 mt-4">{updateProfile.error.message}</p>
-        )}
-        {saveError && (
-          <p className="text-sm text-red-400 mt-4">{saveError}</p>
-        )}
-
-        <button
-          onClick={handleSave}
-          disabled={updateProfile.isPending || photoProcessing || bannerProcessing || isUploading}
-          className="w-full py-3 rounded-xl text-sm font-bold mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff" }}
-        >
-          {isUploading ? "Uploading…" : updateProfile.isPending ? "Saving…" : "Save changes"}
-        </button>
-      </div>
-      )}
-
-      {/* ── Account tab ─────────────────────────────────────── */}
-      {tab === "account" && (
-      <div className="flex flex-col">
-
-        {/* PREFERENCES */}
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: "var(--muted)" }}>Preferences</p>
-
-        {/* Commissions toggle */}
-        <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border)" }}>
-          <div>
-            <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Commissions</div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-              {user?.sellingEnabled ? "Visible on your profile" : "Not shown on your profile"}
-            </div>
-          </div>
-          <button
-            onClick={() => updateSelling.mutate({ enabled: !user?.sellingEnabled })}
-            disabled={updateSelling.isPending}
-            style={toggleStyle(!!user?.sellingEnabled)}
-            role="switch" aria-checked={user?.sellingEnabled}
-          >
-            <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: user?.sellingEnabled ? "auto" : 0 }} />
-          </button>
-        </div>
-
-        {/* Ad targeting toggle */}
-        <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border)" }}>
-          <div>
-            <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Location-based ad targeting</div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Opt out to stop location from personalising ads.</div>
-          </div>
-          <button
-            onClick={() => { const next = !adTargetingOptOut; setAdTargetingOptOut(next); updateAdTargeting.mutate({ optOut: next }) }}
-            disabled={updateAdTargeting.isPending}
-            style={toggleStyle(adTargetingOptOut)}
-            role="switch" aria-checked={adTargetingOptOut}
-          >
-            <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: adTargetingOptOut ? "auto" : 0 }} />
-          </button>
-        </div>
-
-        {/* ACCOUNT */}
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Account</p>
-
-        {/* Change username */}
-        <div className="border-b" style={{ borderColor: "var(--border)" }}>
-          {accountSection !== "username" ? (
-            <button
-              onClick={() => setAccountSection("username")}
-              className="w-full flex items-center justify-between py-3 transition-colors text-left"
-            >
-              <div>
-                <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Username</div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>@{user?.username}</div>
-              </div>
-              <span className="text-lg" style={{ color: "var(--muted)" }}>›</span>
-            </button>
-          ) : (
-            <div className="py-3 flex flex-col gap-3">
-              <button onClick={closeSection} className="text-xs text-left" style={{ color: "var(--muted)" }}>← Back</button>
-              <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Change username</div>
-              <input
-                type="text"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                placeholder={`Current: @${user?.username}`}
-                maxLength={30}
-                style={inputStyle}
-                className="focus:outline-none"
-              />
-              {changeUsername.error && <p className="text-xs text-red-400">{changeUsername.error.message}</p>}
-              {changeUsername.isSuccess && <p className="text-xs text-green-400">Username updated!</p>}
-              <button
-                onClick={() => changeUsername.mutate({ username: newUsername.trim() })}
-                disabled={changeUsername.isPending || !newUsername.trim()}
-                className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-                style={{ background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff" }}
-              >
-                {changeUsername.isPending ? "Saving…" : "Save username"}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Change password */}
-        <div className="border-b" style={{ borderColor: "var(--border)" }}>
-          {accountSection !== "password" ? (
-            <button
-              onClick={() => setAccountSection("password")}
-              className="w-full flex items-center justify-between py-3 transition-colors text-left"
-            >
-              <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Password</div>
-              <span className="text-lg" style={{ color: "var(--muted)" }}>›</span>
-            </button>
-          ) : (
-            <div className="py-3 flex flex-col gap-3">
-              <button onClick={closeSection} className="text-xs text-left" style={{ color: "var(--muted)" }}>← Back</button>
-              <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Change password</div>
-              {[
-                { value: currentPassword, set: setCurrentPassword, placeholder: "Current password", type: "password" },
-                { value: newPassword, set: setNewPassword, placeholder: "New password (min 8 characters)", type: "password" },
-                { value: confirmPassword, set: setConfirmPassword, placeholder: "Confirm new password", type: "password" },
-              ].map(({ value, set, placeholder, type }) => (
-                <input key={placeholder} type={type} value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
-                  style={inputStyle} className="focus:outline-none" />
-              ))}
-              {confirmPassword && newPassword !== confirmPassword && (
-                <p className="text-xs text-red-400">Passwords don&apos;t match.</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {image ? (
+                <img src={image} alt="Profile" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid var(--border)" }} />
+              ) : (
+                <div style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: GRADIENT, padding: 2 }}>
+                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "#2A1838", color: "rgba(240,235,248,0.6)", fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 16 }}>{initials}</div>
+                </div>
               )}
-              {changePassword.error && <p className="text-xs text-red-400">{changePassword.error.message}</p>}
-              {changePassword.isSuccess && <p className="text-xs text-green-400">Password updated!</p>}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={gradBtnStyle}>
+                  {photoProcessing ? "Processing…" : "Upload photo"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoChange} disabled={photoProcessing} />
+                </label>
+                {image && (
+                  <button onClick={() => setImage(null)} style={ghostBtnStyle}>Remove</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Banner row */}
+          <div style={rowTopStyle}>
+            <div>
+              <p style={labelStyle}>Banner</p>
+              <p style={hintStyle}>Top of your profile</p>
+            </div>
+            <div>
+              {bannerImage ? (
+                <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", marginBottom: 8, height: 52 }}>
+                  <img src={bannerImage} alt="Banner" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ) : (
+                <div style={{ borderRadius: 10, marginBottom: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, height: 56, border: "1px dashed var(--border)", color: "var(--muted)", background: "rgba(240,235,248,0.02)", fontFamily: "Inter,sans-serif" }}>
+                  No banner — gradient will be used
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                <label style={gradBtnStyle}>
+                  {bannerProcessing ? "Processing…" : "Upload banner"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleBannerChange} disabled={bannerProcessing} />
+                </label>
+                {bannerImage && (
+                  <button onClick={() => setBannerImage(null)} style={ghostBtnStyle}>Remove</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <p style={sectionLabelStyle}>Identity</p>
+
+          {/* Display name row */}
+          <div style={rowStyle}>
+            <p style={labelStyle}>Display name</p>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={100}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Show real name toggle */}
+          {user?.name && (
+            <div style={rowStyle}>
+              <div>
+                <p style={labelStyle}>Show real name</p>
+                <p style={hintStyle}>On your public profile</p>
+              </div>
               <button
-                onClick={() => changePassword.mutate({ currentPassword, newPassword })}
-                disabled={changePassword.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
-                className="w-full py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-                style={{ background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "#fff" }}
+                onClick={() => { const next = !showRealName; setShowRealName(next); updateShowRealName.mutate({ showRealName: next }) }}
+                disabled={updateShowRealName.isPending}
+                style={toggleStyle(showRealName)}
+                role="switch" aria-checked={showRealName}
               >
-                {changePassword.isPending ? "Saving…" : "Update password"}
+                <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: showRealName ? "auto" : 0 }} />
               </button>
             </div>
           )}
-        </div>
 
-        {/* Email */}
-        <div className="flex items-center justify-between py-3 border-b" style={{ borderColor: "var(--border)" }}>
-          <div className="text-sm font-medium" style={{ color: "var(--text)" }}>Email</div>
-          <div className="text-sm" style={{ color: "var(--muted)" }}>{user?.email}</div>
-        </div>
+          {/* Bio row */}
+          <div style={rowTopStyle}>
+            <div>
+              <p style={labelStyle}>Bio</p>
+              <p style={hintStyle}>Up to 160 chars</p>
+            </div>
+            <div>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={160}
+                rows={3}
+                placeholder="Tell people about your work…"
+                style={{ ...inputStyle, height: 72, resize: "none" }}
+              />
+              <p style={{ fontSize: 12, textAlign: "right", marginTop: 4, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>{bio.length}/160</p>
+            </div>
+          </div>
 
-        {/* Blocked accounts */}
-        <p className="text-[9px] font-bold uppercase tracking-[0.14em] mt-5 mb-2" style={{ color: "var(--muted)" }}>Blocked accounts</p>
-        {blockedUsers.length === 0 ? (
-          <p className="text-sm py-2" style={{ color: "var(--muted)" }}>You haven&apos;t blocked anyone.</p>
-        ) : (
-          <div>
-            {blockedUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
-                <div className="flex items-center gap-3">
-                  {user.image ? (
-                    <img src={user.image} alt="" className="w-8 h-8 rounded-full object-cover" />
+          <p style={sectionLabelStyle}>Links</p>
+
+          {(
+            [
+              { icon: "🌐", label: "Website",    placeholder: "https://yoursite.com", value: websiteUrl,       set: setWebsiteUrl },
+              { icon: "𝕏",  label: "Twitter / X", placeholder: "@handle",             value: twitterHandle,   set: setTwitterHandle },
+              { icon: "📸", label: "Instagram",   placeholder: "@handle",             value: instagramHandle, set: setInstagramHandle },
+              { icon: "🎨", label: "ArtStation",  placeholder: "username",            value: artstationHandle, set: setArtstationHandle },
+            ] as const
+          ).map(({ icon, label, placeholder, value, set }) => (
+            <div key={label} style={rowStyle}>
+              <p style={labelStyle}>{label}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ fontSize: 16, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => (set as (v: string) => void)(e.target.value)}
+                  placeholder={placeholder}
+                  style={{ ...inputStyle, fontSize: 14, flex: 1 }}
+                />
+              </div>
+            </div>
+          ))}
+
+          {updateProfile.error && (
+            <p style={{ fontSize: 13, color: "#f87171", marginTop: 14, fontFamily: "Inter,sans-serif" }}>{updateProfile.error.message}</p>
+          )}
+          {saveError && (
+            <p style={{ fontSize: 13, color: "#f87171", marginTop: 14, fontFamily: "Inter,sans-serif" }}>{saveError}</p>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={updateProfile.isPending || photoProcessing || bannerProcessing || isUploading}
+            style={{ width: "100%", padding: "11px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, marginTop: 20, border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", background: GRADIENT, color: "#fff", opacity: (updateProfile.isPending || photoProcessing || bannerProcessing || isUploading) ? 0.5 : 1 }}
+          >
+            {isUploading ? "Uploading…" : updateProfile.isPending ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+        )}
+
+        {/* ── Account tab ─────────────────────────────────────── */}
+        {tab === "account" && (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+
+          <p style={sectionLabelStyle}>Preferences</p>
+
+          {/* Commissions toggle */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Commissions</div>
+              <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>
+                {user?.sellingEnabled ? "Visible on your profile" : "Not shown on your profile"}
+              </div>
+            </div>
+            <button
+              onClick={() => updateSelling.mutate({ enabled: !user?.sellingEnabled })}
+              disabled={updateSelling.isPending}
+              style={toggleStyle(!!user?.sellingEnabled)}
+              role="switch" aria-checked={user?.sellingEnabled}
+            >
+              <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: user?.sellingEnabled ? "auto" : 0 }} />
+            </button>
+          </div>
+
+          {/* Ad targeting toggle */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Location-based ad targeting</div>
+              <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>Opt out to disable location ads</div>
+            </div>
+            <button
+              onClick={() => { const next = !adTargetingOptOut; setAdTargetingOptOut(next); updateAdTargeting.mutate({ optOut: next }) }}
+              disabled={updateAdTargeting.isPending}
+              style={toggleStyle(adTargetingOptOut)}
+              role="switch" aria-checked={adTargetingOptOut}
+            >
+              <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: adTargetingOptOut ? "auto" : 0 }} />
+            </button>
+          </div>
+
+          <p style={sectionLabelStyle}>Account</p>
+
+          {/* Change username */}
+          <div style={{ borderBottom: "1px solid var(--border)" }}>
+            {accountSection !== "username" ? (
+              <button
+                onClick={() => setAccountSection("username")}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Username</div>
+                  <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>@{user?.username}</div>
+                </div>
+                <span style={{ fontSize: 17, color: "var(--muted)" }}>›</span>
+              </button>
+            ) : (
+              <div style={{ padding: "14px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+                <button onClick={closeSection} style={{ fontSize: 11, textAlign: "left", color: "var(--muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", padding: 0 }}>← Back</button>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Change username</div>
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder={`Current: @${user?.username}`}
+                  maxLength={30}
+                  style={inputStyle}
+                />
+                {changeUsername.error && <p style={{ fontSize: 13, color: "#f87171", fontFamily: "Inter,sans-serif" }}>{changeUsername.error.message}</p>}
+                {changeUsername.isSuccess && <p style={{ fontSize: 13, color: "#4ade80", fontFamily: "Inter,sans-serif" }}>Username updated!</p>}
+                <button
+                  onClick={() => changeUsername.mutate({ username: newUsername.trim() })}
+                  disabled={changeUsername.isPending || !newUsername.trim()}
+                  style={{ width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", background: GRADIENT, color: "#fff", opacity: (changeUsername.isPending || !newUsername.trim()) ? 0.5 : 1 }}
+                >
+                  {changeUsername.isPending ? "Saving…" : "Save username"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Change password */}
+          <div style={{ borderBottom: "1px solid var(--border)" }}>
+            {accountSection !== "password" ? (
+              <button
+                onClick={() => setAccountSection("password")}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Password</div>
+                <span style={{ fontSize: 17, color: "var(--muted)" }}>›</span>
+              </button>
+            ) : (
+              <div style={{ padding: "14px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+                <button onClick={closeSection} style={{ fontSize: 11, textAlign: "left", color: "var(--muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", padding: 0 }}>← Back</button>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Change password</div>
+                {[
+                  { value: currentPassword, set: setCurrentPassword, placeholder: "Current password", type: "password" },
+                  { value: newPassword, set: setNewPassword, placeholder: "New password (min 8 characters)", type: "password" },
+                  { value: confirmPassword, set: setConfirmPassword, placeholder: "Confirm new password", type: "password" },
+                ].map(({ value, set, placeholder, type }) => (
+                  <input key={placeholder} type={type} value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
+                    style={inputStyle} />
+                ))}
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p style={{ fontSize: 13, color: "#f87171", fontFamily: "Inter,sans-serif" }}>Passwords don&apos;t match.</p>
+                )}
+                {changePassword.error && <p style={{ fontSize: 13, color: "#f87171", fontFamily: "Inter,sans-serif" }}>{changePassword.error.message}</p>}
+                {changePassword.isSuccess && <p style={{ fontSize: 13, color: "#4ade80", fontFamily: "Inter,sans-serif" }}>Password updated!</p>}
+                <button
+                  onClick={() => changePassword.mutate({ currentPassword, newPassword })}
+                  disabled={changePassword.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
+                  style={{ width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", background: GRADIENT, color: "#fff", opacity: (changePassword.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword) ? 0.5 : 1 }}
+                >
+                  {changePassword.isPending ? "Saving…" : "Update password"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Email */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Email</div>
+            <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>{user?.email}</div>
+          </div>
+
+          {/* Blocked accounts */}
+          <p style={sectionLabelStyle}>Blocked accounts</p>
+          {blockedUsers.length === 0 ? (
+            <p style={{ fontSize: 12, padding: "8px 0", color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>You haven&apos;t blocked anyone.</p>
+          ) : (
+            <div>
+              {blockedUsers.map((u) => (
+                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
+                  {u.image ? (
+                    <img src={u.image} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   ) : (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>
-                      {(user.name ?? user.username ?? "?")[0].toUpperCase()}
-                      </div>
-                    )}
-                    <span className="text-sm text-gray-700">@{user.username}</span>
-                  </div>
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>
+                      {(u.name ?? u.username ?? "?")[0].toUpperCase()}
+                    </div>
+                  )}
+                  <span style={{ flex: 1, fontSize: 12, color: "var(--text)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>@{u.username}</span>
                   <button
-                    onClick={() => unblockMutation.mutate({ username: user.username! })}
-                    disabled={unblockMutation.isPending && unblockMutation.variables?.username === user.username}
-                    className="text-xs transition disabled:opacity-30"
-                    style={{ color: "var(--muted)", padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "rgba(240,235,248,0.04)" }}
+                    onClick={() => unblockMutation.mutate({ username: u.username! })}
+                    disabled={unblockMutation.isPending && unblockMutation.variables?.username === u.username}
+                    style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "rgba(240,235,248,0.04)", color: "var(--muted)", cursor: "pointer", fontFamily: "Inter,sans-serif", opacity: (unblockMutation.isPending && unblockMutation.variables?.username === u.username) ? 0.3 : 1 }}
                   >
                     Unblock
                   </button>
                 </div>
               ))}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Sign out */}
-        <div className="pt-6">
-          <button
-            onClick={() => signOut({ callbackUrl: "/signin" })}
-            className="text-sm font-medium transition-colors text-red-400 hover:text-red-300"
-          >
-            Sign out
-          </button>
+          {/* Sign out */}
+          <div style={{ paddingTop: 24 }}>
+            <button
+              onClick={() => signOut({ callbackUrl: "/signin" })}
+              style={{ fontSize: 13, fontWeight: 600, color: "#f87171", background: "none", border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", padding: 0 }}
+            >
+              Sign out
+            </button>
+          </div>
         </div>
+        )}
       </div>
-      )}
     </div>
   )
 }

@@ -186,6 +186,20 @@ export const postRouter = router({
       })
     }),
 
+  getOne: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const post = await ctx.prisma.post.findUnique({
+        where: { id: input.id },
+        include: {
+          user: { select: { id: true, username: true, name: true, image: true } },
+          hashtags: { select: { tag: true } },
+        },
+      })
+      if (!post) throw new TRPCError({ code: "NOT_FOUND" })
+      return post
+    }),
+
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {

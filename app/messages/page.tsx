@@ -5,17 +5,18 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 import Avatar from "@/components/Avatar"
-import MessagesTabs from "@/components/MessagesTabs"
 
-function timeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+function timeShort(date: Date): string {
+  const d = new Date(date)
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000)
   if (seconds < 60) return "just now"
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-  return `${Math.floor(seconds / 86400)}d ago`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
+  const days = Math.floor(seconds / 86400)
+  if (days === 1) return "Yesterday"
+  return `${days}d`
 }
 
-// Modal for starting a new conversation — search users, pick one, open thread
 function NewMessageModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("")
   const router = useRouter()
@@ -31,55 +32,48 @@ function NewMessageModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-t-2xl pb-8"
-        style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}
+        style={{ width: "100%", maxWidth: 512, borderRadius: "18px 18px 0 0", paddingBottom: 32, background: "var(--nav)", border: "1px solid var(--border)" }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: "rgba(240,235,248,0.07)" }} />
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(240,235,248,0.07)" }} />
         </div>
-
-        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
-          <p className="flex-1 text-sm font-semibold text-white">New Message</p>
-          <button onClick={onClose} className="text-sm text-white/40 hover:text-white transition-colors">Cancel</button>
+        <div style={{ display: "flex", alignItems: "center", padding: "10px 16px", borderBottom: "1px solid var(--border)" }}>
+          <p style={{ flex: 1, fontSize: 15, fontWeight: 600, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>New Message</p>
+          <button onClick={onClose} style={{ fontSize: 13, color: "rgba(240,235,248,0.4)", background: "none", border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif" }}>Cancel</button>
         </div>
-
-        <div className="px-4 pt-3 pb-2">
+        <div style={{ padding: "12px 16px 8px" }}>
           <input
             autoFocus
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search people…"
-            className="w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
-            style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
+            style={{ width: "100%", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "var(--text)", background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)", outline: "none", fontFamily: "Inter,sans-serif", boxSizing: "border-box" }}
           />
         </div>
-
-        <div className="max-h-64 overflow-y-auto">
-          {users && users.length > 0 ? (
-            users.map(user => (
-              <button
-                key={user.id}
-                onClick={() => getOrCreate.mutate({ otherUserId: user.id })}
-                disabled={getOrCreate.isPending}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left"
-              >
-                <Avatar src={user.image} name={user.name} username={user.username} size={40} />
-                <div>
-                  <p className="text-sm font-semibold text-white">@{user.username}</p>
-                  {user.name && <p className="text-xs text-white/50">{user.name}</p>}
-                </div>
-              </button>
-            ))
-          ) : enabled ? (
-            <p className="text-sm text-white/40 text-center py-6">No results for &ldquo;{query}&rdquo;</p>
+        <div style={{ maxHeight: 256, overflowY: "auto" }}>
+          {users && users.length > 0 ? users.map(user => (
+            <button
+              key={user.id}
+              onClick={() => getOrCreate.mutate({ otherUserId: user.id })}
+              disabled={getOrCreate.isPending}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+            >
+              <Avatar src={user.image} name={user.name} username={user.username} size={40} />
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>@{user.username}</p>
+                {user.name && <p style={{ fontSize: 11, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>{user.name}</p>}
+              </div>
+            </button>
+          )) : enabled ? (
+            <p style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", padding: "24px 0", fontFamily: "Inter,sans-serif" }}>No results for &ldquo;{query}&rdquo;</p>
           ) : (
-            <p className="text-xs text-white/40 text-center py-6">Search for someone to message</p>
+            <p style={{ fontSize: 11, color: "rgba(107,95,136,0.6)", textAlign: "center", padding: "24px 0", fontFamily: "Inter,sans-serif" }}>Search for someone to message</p>
           )}
         </div>
       </div>
@@ -96,7 +90,11 @@ export default function MessagesPage() {
   }, [status, router])
 
   if (status === "loading" || status === "unauthenticated") {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-white/40">Loading…</p></div>
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+        <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
+      </div>
+    )
   }
 
   return <MessagesInner userId={session!.user.id} />
@@ -111,76 +109,97 @@ function MessagesInner({ userId }: { userId: string }) {
   const [composing, setComposing] = useState(false)
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-white/40">Loading…</p></div>
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+        <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
+      </div>
+    )
   }
 
   return (
     <>
       {composing && <NewMessageModal onClose={() => setComposing(false)} />}
 
-      <div className="max-w-lg mx-auto pb-24">
-        <MessagesTabs />
-        <div className="flex items-center justify-end px-4 pt-3 pb-2">
+      <div style={{ maxWidth: 512, margin: "0 auto", minHeight: "100vh", background: "var(--bg)", paddingBottom: 80 }}>
+
+        {/* Sticky nav */}
+        <div style={{ background: "var(--nav)", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 10 }}>
+          <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            Messages
+          </span>
           <button
             onClick={() => setComposing(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors text-white/60"
             aria-label="New message"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(240,235,248,0.5)", padding: 4, display: "flex", alignItems: "center" }}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
         </div>
 
+        {/* Empty state */}
         {!convos || convos.length === 0 ? (
-          <div className="text-center py-20 px-6">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(240,235,248,0.07)" }}>
-              <svg className="w-8 h-8 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          <div style={{ textAlign: "center", padding: "80px 24px", fontFamily: "Inter,sans-serif" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", background: "rgba(240,235,248,0.06)" }}>
+              <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="rgba(240,235,248,0.25)" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
             </div>
-            <p className="text-white font-semibold mb-1">Your messages</p>
-            <p className="text-sm text-white/40 mb-5">Send a message to start a conversation</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>No messages yet</p>
+            <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 20 }}>Start a conversation with an artist</p>
             <button
               onClick={() => setComposing(true)}
-              className="px-5 py-2.5 text-white rounded-xl text-sm font-semibold transition-colors"
-              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
+              style={{ padding: "10px 22px", borderRadius: 22, fontSize: 13, fontWeight: 600, color: "white", border: "none", cursor: "pointer", background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", fontFamily: "Inter,sans-serif" }}
             >
               Send message
             </button>
           </div>
         ) : (
-          <div style={{ borderTop: "1px solid var(--border)" }}>
-            {convos.map(c => (
-              <button
-                key={c.id}
-                onClick={() => router.push(`/messages/${c.id}`)}
-                className="w-full flex items-center gap-3 px-4 py-4 hover:bg-white/5 transition-colors text-left"
-                style={{ borderBottom: "1px solid #ffffff08" }}
-              >
-                <div className="relative flex-shrink-0">
-                  <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={48} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate font-bold font-playfair" style={{ color: "var(--text)" }}>
-                    {c.other.name ?? `@${c.other.username ?? "unknown"}`}
-                  </p>
-                  {c.other.name && (
-                    <p className="text-[11px] truncate" style={{ color: "var(--muted)" }}>@{c.other.username}</p>
+          <div>
+            {convos.map(c => {
+              const isUnread = !!(c.lastMsg && c.lastMsg.senderId !== userId)
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => router.push(`/messages/${c.id}`)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "none", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}
+                >
+                  {/* Gradient avatar ring */}
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <div style={{ background: "linear-gradient(135deg,#FF3CAC,#784BA0,#2B86C5)", borderRadius: "50%", padding: 2, display: "inline-flex" }}>
+                      <div style={{ background: "var(--bg)", borderRadius: "50%", overflow: "hidden", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Avatar src={c.other.image} name={c.other.name} username={c.other.username} size={38} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 3 }}>
+                      <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0, marginRight: 8 }}>
+                        {c.other.name ?? `@${c.other.username ?? "unknown"}`}
+                      </span>
+                      {c.lastMsg && (
+                        <span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0, fontFamily: "Inter,sans-serif" }}>
+                          {timeShort(c.lastMsg.createdAt)}
+                        </span>
+                      )}
+                    </div>
+                    {c.lastMsg && (
+                      <p style={{ fontSize: 10, color: isUnread ? "rgba(240,235,248,0.65)" : "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "Inter,sans-serif", margin: 0 }}>
+                        {c.lastMsg.senderId === userId ? "You: " : ""}{c.lastMsg.text}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Unread dot */}
+                  {isUnread && (
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "linear-gradient(135deg,#FF3CAC,#2B86C5)", flexShrink: 0 }} />
                   )}
-                  {c.lastMsg && (
-                    <p className="text-xs truncate mt-0.5" style={{ color: "rgba(107,95,136,0.7)" }}>
-                      {c.lastMsg.senderId === userId ? "You: " : ""}{c.lastMsg.text}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                  {c.lastMsg && (
-                    <p className="text-[10px] text-white/30">{timeAgo(c.lastMsg.createdAt)}</p>
-                  )}
-                </div>
-              </button>
-            ))}
+                </button>
+              )
+            })}
           </div>
         )}
       </div>

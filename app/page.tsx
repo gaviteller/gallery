@@ -141,7 +141,7 @@ export default function FeedPage() {
   const posts = data?.pages.flatMap((p) => p.posts) ?? []
 
   return (
-    <div className="feed-container pb-24 max-w-lg mx-auto md:mx-0 md:max-w-2xl">
+    <div>
       <FeaturedArtistsStrip />
       {isLoading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
@@ -169,24 +169,20 @@ export default function FeedPage() {
                 {/* Post header */}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px" }}>
                   <Link href={`/@${post.user.username}`} style={{ flexShrink: 0 }}>
-                    <div style={{ padding: 2, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: "50%" }}>
-                      <div style={{ padding: 2, background: "var(--bg)", borderRadius: "50%" }}>
-                        {post.user.image ? (
-                          <img src={post.user.image} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", display: "block" }} />
-                        ) : (
-                          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 14, fontWeight: 700 }}>
-                            {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
-                          </div>
-                        )}
+                    {post.user.image ? (
+                      <img src={post.user.image} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+                    ) : (
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #784BA0)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700 }}>
+                        {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
                       </div>
-                    </div>
+                    )}
                   </Link>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "var(--text)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}>
+                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: "var(--text)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}>
                       {post.user.name ?? post.user.username}
                     </Link>
-                    <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 1 }}>
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>
                       @{post.user.username} · {timeAgo(post.createdAt)}
                     </div>
                   </div>
@@ -197,9 +193,9 @@ export default function FeedPage() {
                       onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
                       style={{ width: 28, height: 28, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "none", border: "none", cursor: "pointer", padding: 0 }}
                     >
-                      <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
-                      <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
-                      <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
                     </button>
                     {openMenuId === post.id && (
                       <>
@@ -227,23 +223,23 @@ export default function FeedPage() {
                 </div>
 
                 {/* Image — natural height, NO aspect ratio forcing, 0px radius */}
-                <button style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", cursor: "pointer" }} onClick={() => setViewPost(post as FeedPost)}>
+                <Link href={`/@${post.user.username}/${post.id}`} style={{ display: "block" }}>
                   <img src={post.image} alt={post.description ?? ""} style={{ display: "block", width: "100%", borderRadius: 0 }} />
-                </button>
+                </Link>
 
                 {/* Actions row */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <button onClick={() => toggleLike.mutate({ postId: post.id })} disabled={toggleLike.isPending} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, opacity: toggleLike.isPending ? 0.5 : 1 }}>
                       <span style={post.likedByMe ? {
-                        fontSize: 13, fontWeight: 600,
+                        fontSize: 12, fontWeight: 600,
                         background: "linear-gradient(90deg, #FF3CAC, #784BA0)",
                         WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-                      } : { fontSize: 13, color: "var(--muted)" }}>
+                      } : { fontSize: 12, color: "var(--muted)" }}>
                         ♥ {post._count.likes}
                       </span>
                     </button>
-                    <button onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }} style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--muted)", fontSize: 13 }}>
+                    <button onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--muted)", fontSize: 12 }}>
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                       </svg>
@@ -259,8 +255,8 @@ export default function FeedPage() {
 
                 {/* Caption */}
                 {post.description && (
-                  <div style={{ padding: "0 14px 10px", fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
-                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, fontWeight: 700, color: "var(--text)", marginRight: 5, textDecoration: "none" }}>
+                  <div style={{ padding: "0 14px 9px", fontSize: 11, color: "var(--muted)", lineHeight: 1.45 }}>
+                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 12, fontWeight: 700, color: "var(--text)", marginRight: 5, textDecoration: "none" }}>
                       {post.user.name ?? post.user.username}
                     </Link>
                     <MentionText text={post.description} />
@@ -272,9 +268,9 @@ export default function FeedPage() {
                   const tags = Array.from(new Set((post.description ?? "").match(/#[a-zA-Z0-9_]+/g) ?? [])).slice(0, 5)
                   if (!tags.length) return null
                   return (
-                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, padding: "0 14px 12px" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 5, padding: "0 14px 10px" }}>
                       {tags.map(tag => (
-                        <span key={tag} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: "var(--surface)", color: "#9080B8", border: "1px solid var(--border)" }}>
+                        <span key={tag} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 99, background: "var(--surface)", color: "#9080B8", border: "1px solid var(--border)" }}>
                           {tag}
                         </span>
                       ))}

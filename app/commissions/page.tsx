@@ -33,31 +33,30 @@ type DiscoveryUser = {
 
 type SortBy = "default" | "top" | "new" | "affordable"
 
-const statusBadge = {
-  OPEN: "bg-green-500/20 text-green-400 border border-green-500/30",
-  LIMITED: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
-  CLOSED: "bg-gray-500/20 text-gray-400 border border-gray-500/30",
+const STATUS_STYLE: Record<string, React.CSSProperties> = {
+  OPEN:    { background: "rgba(72,200,120,0.13)", color: "#48C878", border: "1px solid rgba(72,200,120,0.3)" },
+  LIMITED: { background: "rgba(255,180,60,0.12)",  color: "#FFB43C", border: "1px solid rgba(255,180,60,0.28)" },
+  CLOSED:  { background: "rgba(200,60,60,0.1)",   color: "#E06060", border: "1px solid rgba(200,60,60,0.22)" },
 }
 
-function avgPrice(ranges: { label: string; price: number }[] | null): string {
+function statusLabel(s: "OPEN" | "LIMITED" | "CLOSED") {
+  return s === "LIMITED" ? "Limited" : s === "OPEN" ? "Open" : "Closed"
+}
+
+function startingPrice(ranges: { label: string; price: number }[] | null): string {
   if (!ranges || ranges.length === 0) return "Price TBD"
-  const avg = ranges.reduce((s, r) => s + r.price, 0) / ranges.length
-  return `avg $${Math.round(avg)}`
+  const min = Math.min(...ranges.map(r => r.price))
+  return `from $${min}`
 }
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
-function Lightbox({
-  images,
-  startIndex,
-  artist,
-  onClose,
-  onRequest,
-}: {
+
+function Lightbox({ images, startIndex, artist, onClose, onRequest }: {
   images: string[]
   startIndex: number
   artist: DiscoveryUser
   onClose: () => void
-  onRequest: (artist: DiscoveryUser) => void
+  onRequest: (a: DiscoveryUser) => void
 }) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -66,9 +65,7 @@ function Lightbox({
 
   const containerRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return
-    requestAnimationFrame(() => {
-      el.scrollLeft = startIndex * el.offsetWidth
-    })
+    requestAnimationFrame(() => { el.scrollLeft = startIndex * el.offsetWidth })
   }, [startIndex])
 
   const handleScroll = useCallback(() => {
@@ -84,78 +81,77 @@ function Lightbox({
 
   function prev(e: React.MouseEvent) {
     e.stopPropagation()
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTo({ left: (idx - 1) * el.offsetWidth, behavior: "smooth" })
+    scrollRef.current?.scrollTo({ left: (idx - 1) * scrollRef.current.offsetWidth, behavior: "smooth" })
   }
-
   function next(e: React.MouseEvent) {
     e.stopPropagation()
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTo({ left: (idx + 1) * el.offsetWidth, behavior: "smooth" })
+    scrollRef.current?.scrollTo({ left: (idx + 1) * scrollRef.current.offsetWidth, behavior: "smooth" })
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={onClose}>
-      <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-2">
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "#000", display: "flex", flexDirection: "column" }} onClick={onClose}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 12px", flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Avatar src={artist.image} name={artist.name} username={artist.username} size={28} />
-          <button onClick={() => { onClose(); router.push(`/@${artist.username}?tab=Commissions`) }} className="text-white text-sm font-semibold">
+          <button
+            onClick={() => { onClose(); router.push(`/@${artist.username}?tab=Commissions`) }}
+            style={{ fontFamily: "Inter,sans-serif", fontWeight: 700, fontSize: 13, color: "white", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
             @{artist.username}
           </button>
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${statusBadge[artist.commissionStatus]}`}>
-            {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
+          <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 99, ...STATUS_STYLE[artist.commissionStatus] }}>
+            {statusLabel(artist.commissionStatus)}
           </span>
         </div>
-        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+        <button onClick={onClose} style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.6)", background: "none", border: "none", cursor: "pointer" }}>
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
 
-      <div className="flex-1 relative min-h-0" onClick={e => e.stopPropagation()}>
-        <div ref={setRefs} onScroll={handleScroll} className="absolute inset-0 flex overflow-x-scroll snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
+      {/* Images */}
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }} onClick={e => e.stopPropagation()}>
+        <div ref={setRefs} onScroll={handleScroll} style={{ position: "absolute", inset: 0, display: "flex", overflowX: "scroll", scrollSnapType: "x mandatory", scrollbarWidth: "none" } as React.CSSProperties}>
           {images.map((img, i) => (
-            <div key={i} className="relative flex-shrink-0 snap-center" style={{ width: "100%", height: "100%" }}>
-              <img src={img} alt="" className="absolute inset-0 w-full h-full object-contain" draggable={false} />
+            <div key={i} style={{ flexShrink: 0, width: "100%", height: "100%", position: "relative", scrollSnapAlign: "center" }}>
+              <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} draggable={false} />
             </div>
           ))}
         </div>
         {idx > 0 && (
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center z-10">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+          <button onClick={prev} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", color: "white", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 2 }}>
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
           </button>
         )}
         {idx < images.length - 1 && (
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center z-10">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+          <button onClick={next} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 36, height: 36, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", color: "white", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 2 }}>
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
           </button>
         )}
         {images.length > 1 && (
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 pointer-events-none">
-            {images.map((_, i) => (
-              <span key={i} className={`block w-1.5 h-1.5 rounded-full transition-colors ${i === idx ? "bg-white" : "bg-white/30"}`} />
-            ))}
+          <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5, pointerEvents: "none" }}>
+            {images.map((_, i) => <span key={i} style={{ display: "block", width: 6, height: 6, borderRadius: "50%", background: i === idx ? "white" : "rgba(255,255,255,0.3)", transition: "background 0.2s" }} />)}
           </div>
         )}
       </div>
 
-      <div className="flex-shrink-0 px-4 py-3 bg-black/80" onClick={e => e.stopPropagation()}>
-        <p className="text-white/60 text-xs mb-2">
-          {avgPrice(artist.priceRanges)}{artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
-          {images.length > 1 ? `  ·  ${idx + 1} / ${images.length}` : ""}
-        </p>
+      {/* Footer */}
+      <div style={{ flexShrink: 0, padding: "12px 16px 16px", background: "rgba(0,0,0,0.85)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 10, color: "rgba(240,235,248,0.45)", marginBottom: 8, fontFamily: "Inter,sans-serif" }}>
+          {startingPrice(artist.priceRanges)}
+          {artist.commissionTurnaround ? ` · ${artist.commissionTurnaround}` : ""}
+          {images.length > 1 ? ` · ${idx + 1}/${images.length}` : ""}
+        </div>
         {artist.artStyles.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {artist.artStyles.map(s => <span key={s} className="text-[9px] bg-white/10 text-white/70 px-2 py-0.5 rounded-full">{s}</span>)}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
+            {artist.artStyles.map(s => (
+              <span key={s} style={{ fontSize: 8, background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.65)", padding: "2px 8px", borderRadius: 99, fontFamily: "Inter,sans-serif" }}>{s}</span>
+            ))}
           </div>
         )}
         <button
           onClick={e => { e.stopPropagation(); if (!session) { onClose(); router.push("/signin"); return } onRequest(artist) }}
-          className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-          style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
+          style={{ width: "100%", padding: "11px 0", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "white", fontWeight: 700, fontSize: 13, fontFamily: "Inter,sans-serif" }}
         >
           Request commission
         </button>
@@ -164,22 +160,17 @@ function Lightbox({
   )
 }
 
-// ── For You card (full-screen TikTok style) ───────────────────────────────────
-function ForYouCard({
-  artist,
-  onRequest,
-  onLightbox,
-  isActive,
-}: {
+// ── For You card ──────────────────────────────────────────────────────────────
+
+function ForYouCard({ artist, onRequest, onLightbox, isActive }: {
   artist: DiscoveryUser
-  onRequest: (artist: DiscoveryUser) => void
-  onLightbox: (artist: DiscoveryUser, index: number) => void
+  onRequest: (a: DiscoveryUser) => void
+  onLightbox: (a: DiscoveryUser, i: number) => void
   isActive: boolean
 }) {
   const router = useRouter()
   const { data: session } = useSession()
   const utils = trpc.useUtils()
-
   const [imgIdx, setImgIdx] = useState(0)
   const [favorited, setFavorited] = useState(artist.isFavorited ?? false)
   const [followed, setFollowed] = useState(artist.isFollowed ?? false)
@@ -189,7 +180,6 @@ function ForYouCard({
     onMutate: () => setFavorited(f => !f),
     onError: () => setFavorited(f => !f),
   })
-
   const followMut = trpc.follow.follow.useMutation({
     onMutate: () => setFollowed(true),
     onError: () => setFollowed(false),
@@ -218,13 +208,11 @@ function ForYouCard({
     if (followed) unfollowMut.mutate({ username: artist.username })
     else followMut.mutate({ username: artist.username })
   }
-
   function handleFav(e: React.MouseEvent) {
     e.stopPropagation()
     if (!session) { router.push("/signin"); return }
     toggleFav.mutate({ artistId: artist.id })
   }
-
   function handleRequest(e: React.MouseEvent) {
     e.stopPropagation()
     if (!session) { router.push("/signin"); return }
@@ -232,108 +220,107 @@ function ForYouCard({
   }
 
   return (
-    <div className="relative flex-shrink-0 snap-start" style={{ width: "100%", height: "100svh" }}>
-      {/* Background image */}
+    <div style={{ position: "relative", flexShrink: 0, width: "100%", height: "100svh", scrollSnapAlign: "start" }}>
+      {/* Background art */}
       {images.length > 0 ? (
-        <div
-          ref={imgScrollRef}
-          onScroll={handleImgScroll}
-          className="absolute inset-0 flex overflow-x-scroll snap-x snap-mandatory"
-          style={{ scrollbarWidth: "none" }}
-        >
+        <div ref={imgScrollRef} onScroll={handleImgScroll} style={{ position: "absolute", inset: 0, display: "flex", overflowX: "scroll", scrollSnapType: "x mandatory", scrollbarWidth: "none" } as React.CSSProperties}>
           {images.map((img, i) => (
-            <div
-              key={i}
-              className="relative flex-shrink-0 snap-center cursor-zoom-in"
-              style={{ width: "100%", height: "100%" }}
-              onClick={() => onLightbox(artist, i)}
-            >
-              <img src={img} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+            <div key={i} style={{ flexShrink: 0, width: "100%", height: "100%", position: "relative", scrollSnapAlign: "center", cursor: "zoom-in" }} onClick={() => onLightbox(artist, i)}>
+              <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} draggable={false} />
             </div>
           ))}
         </div>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ background: "var(--surface)" }}>
-          <p className="text-white/30 text-sm">No examples yet</p>
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface)" }}>
+          <span style={{ color: "rgba(240,235,248,0.25)", fontSize: 13, fontFamily: "Inter,sans-serif" }}>No examples yet</span>
         </div>
       )}
 
-      {/* Gradient overlays */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 25%, transparent 60%, rgba(0,0,0,0.85) 100%)" }} />
+      {/* Dark gradient overlays */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 28%, transparent 58%, rgba(0,0,0,0.88) 100%)" }} />
 
-      {/* Top: artist info */}
-      <div className="absolute top-0 left-0 right-0 px-4 pt-4 flex items-center gap-3 z-10">
-        <button onClick={e => { e.stopPropagation(); router.push(`/@${artist.username}?tab=Commissions`) }} className="flex items-center gap-2">
-          <Avatar src={artist.image} name={artist.name} username={artist.username} size={36} />
-          <div>
-            <p className="text-white font-bold text-sm leading-tight font-playfair">{artist.name ?? artist.username}</p>
-            <p className="text-white/60 text-xs">@{artist.username}</p>
+      {/* Top: artist */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "14px 16px 0", display: "flex", alignItems: "center", gap: 10, zIndex: 10 }}>
+        <button onClick={e => { e.stopPropagation(); router.push(`/@${artist.username}?tab=Commissions`) }} style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg,#FF3CAC,#784BA0,#2B86C5)", padding: 2, flexShrink: 0 }}>
+            <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden" }}>
+              <Avatar src={artist.image} name={artist.name} username={artist.username} size={36} />
+            </div>
+          </div>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: "white", lineHeight: 1.2 }}>{artist.name ?? artist.username}</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", fontFamily: "Inter,sans-serif" }}>@{artist.username}</div>
           </div>
         </button>
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${statusBadge[artist.commissionStatus]}`}>
-          {artist.commissionStatus === "LIMITED" ? "Limited" : "Open"}
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 99, ...STATUS_STYLE[artist.commissionStatus] }}>
+          {statusLabel(artist.commissionStatus)}
         </span>
       </div>
 
       {/* Right: action buttons */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-5 z-10">
+      <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 18, zIndex: 10 }}>
         {/* Follow */}
-        <button onClick={handleFollow} className="flex flex-col items-center gap-1">
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${followed ? "bg-blue-500" : "bg-white/20 backdrop-blur-sm"}`}>
-            {followed ? (
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            )}
+        <button onClick={handleFollow} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: followed ? "#2B86C5" : "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", transition: "background 0.2s" }}>
+            {followed
+              ? <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" /></svg>
+              : <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            }
           </div>
-          <span className="text-white text-[10px] font-medium drop-shadow">{followed ? "Following" : "Follow"}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "white", fontFamily: "Inter,sans-serif", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>{followed ? "Following" : "Follow"}</span>
         </button>
 
-        {/* Favorite */}
-        <button onClick={handleFav} className="flex flex-col items-center gap-1">
-          <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${favorited ? "bg-pink-500" : "bg-white/20 backdrop-blur-sm"}`}>
-            <svg className="w-6 h-6 text-white" fill={favorited ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        {/* Save */}
+        <button onClick={handleFav} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: favorited ? "#FF3CAC" : "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", transition: "background 0.2s" }}>
+            <svg width="22" height="22" fill={favorited ? "white" : "none"} viewBox="0 0 24 24" stroke="white" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </div>
-          <span className="text-white text-[10px] font-medium drop-shadow">{favorited ? "Saved" : "Save"}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "white", fontFamily: "Inter,sans-serif", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>{favorited ? "Saved" : "Save"}</span>
         </button>
 
-        {/* Image counter (if multiple) */}
+        {/* Image dots */}
         {images.length > 1 && (
-          <div className="flex flex-col items-center gap-1.5">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
             {images.map((_, i) => (
-              <span key={i} className={`block w-1 rounded-full transition-all ${i === imgIdx ? "h-4 bg-white" : "h-1 bg-white/40"}`} />
+              <span key={i} style={{ display: "block", width: 4, borderRadius: 99, transition: "all 0.2s", height: i === imgIdx ? 16 : 4, background: i === imgIdx ? "white" : "rgba(255,255,255,0.35)" }} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Bottom: info + request */}
-      <div className="absolute bottom-0 left-0 right-14 px-4 pb-6 z-10">
+      {/* Bottom-center swipe dots */}
+      {images.length > 1 && (
+        <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5, zIndex: 10, pointerEvents: "none" }}>
+          {images.map((_, i) => (
+            <span key={i} style={{ display: "block", borderRadius: 99, transition: "all 0.2s", width: i === imgIdx ? 16 : 6, height: 6, background: i === imgIdx ? "#FF3CAC" : "rgba(255,255,255,0.3)" }} />
+          ))}
+        </div>
+      )}
+
+      {/* Bottom: info + CTA */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 56, padding: "0 16px 28px", zIndex: 10 }}>
         {artist.artStyles.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
             {artist.artStyles.slice(0, 4).map(s => (
-              <span key={s} className="text-[10px] bg-white/15 backdrop-blur-sm text-white/80 px-2 py-0.5 rounded-full">{s}</span>
+              <span key={s} style={{ fontSize: 11, background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)", color: "rgba(255,255,255,0.85)", padding: "3px 10px", borderRadius: 99, fontFamily: "Inter,sans-serif" }}>{s}</span>
             ))}
           </div>
         )}
         {artist.commissionDescription && (
-          <p className="text-white/70 text-xs mb-2 line-clamp-2">{artist.commissionDescription}</p>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 10, fontFamily: "Inter,sans-serif", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+            {artist.commissionDescription}
+          </p>
         )}
-        <div className="flex items-center gap-3">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div>
-            <p className="font-playfair text-white text-base font-bold leading-tight">{avgPrice(artist.priceRanges)}</p>
-            {artist.commissionTurnaround && <p className="text-white/50 text-[11px] mt-0.5">{artist.commissionTurnaround}</p>}
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: "white" }}>{startingPrice(artist.priceRanges)}</div>
+            {artist.commissionTurnaround && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "Inter,sans-serif", marginTop: 1 }}>{artist.commissionTurnaround}</div>}
           </div>
           <button
             onClick={handleRequest}
-            className="ml-auto px-5 py-2 rounded-full text-xs font-bold text-white transition-all active:scale-95"
-            style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
+            style={{ marginLeft: "auto", padding: "10px 24px", borderRadius: 99, border: "none", cursor: "pointer", background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", color: "white", fontWeight: 700, fontSize: 14, fontFamily: "Inter,sans-serif" }}
           >
             Request
           </button>
@@ -343,123 +330,9 @@ function ForYouCard({
   )
 }
 
-// ── Studio card (Explore list) ────────────────────────────────────────────────
-const studioStatusStyle: Record<string, React.CSSProperties> = {
-  OPEN:    { background: "rgba(72,200,120,0.12)", color: "#48C878", border: "1px solid rgba(72,200,120,0.28)" },
-  LIMITED: { background: "rgba(255,180,60,0.1)",  color: "#FFB43C", border: "1px solid rgba(255,180,60,0.22)" },
-  CLOSED:  { background: "rgba(240,60,60,0.08)",  color: "#F06060", border: "1px solid rgba(240,60,60,0.18)" },
-}
-
-function ExploreCard({
-  artist,
-  onRequest,
-}: {
-  artist: DiscoveryUser
-  onRequest: (artist: DiscoveryUser) => void
-  onImageClick: (artist: DiscoveryUser, index: number) => void
-}) {
-  const router = useRouter()
-  const { data: session } = useSession()
-
-  const coverImage: string | null = (
-    artist.commissionCardImages.length > 0 ? artist.commissionCardImages[0] :
-    artist.posts.length > 0 ? artist.posts[0].image : null
-  )
-
-  const startingPrice: number | null = artist.priceRanges && artist.priceRanges.length > 0
-    ? Math.min(...artist.priceRanges.map(r => r.price))
-    : null
-
-  function handleRequest(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!session) { router.push("/signin"); return }
-    onRequest(artist)
-  }
-
-  return (
-    <div style={{ borderBottom: "1px solid var(--border)" }}>
-      {/* Art header — 105px */}
-      <div
-        className="relative cursor-pointer"
-        style={{ height: 105, overflow: "hidden" }}
-        onClick={() => router.push(`/@${artist.username}?tab=Commissions`)}
-      >
-        {coverImage ? (
-          <img src={coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-        ) : (
-          <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 60% 40%, rgba(120,75,160,0.5), transparent 65%), linear-gradient(135deg,#2A1838,#1E1430)" }} />
-        )}
-        {/* fade overlay */}
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 65, background: "linear-gradient(transparent, rgba(8,6,15,0.95))" }} />
-        {/* artist ident */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-end gap-2 px-3 pb-2">
-          <Avatar src={artist.image} name={artist.name} username={artist.username} size={28} />
-          <div className="flex-1 min-w-0">
-            <p className="font-playfair font-bold text-white leading-tight truncate" style={{ fontSize: 12 }}>
-              {artist.name ?? artist.username}
-            </p>
-            {artist.artStyles.length > 0 && (
-              <p style={{ fontSize: 7, color: "rgba(240,235,248,0.45)", marginTop: 1 }}>
-                {artist.artStyles.slice(0, 3).join(" · ")}
-              </p>
-            )}
-          </div>
-          <span className="text-[6.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded flex-shrink-0"
-            style={studioStatusStyle[artist.commissionStatus] ?? studioStatusStyle.CLOSED}>
-            {artist.commissionStatus === "LIMITED" ? "Limited" : artist.commissionStatus === "OPEN" ? "Open" : "Closed"}
-          </span>
-        </div>
-      </div>
-
-      {/* Card body */}
-      <div className="px-3 pt-2.5 pb-3" style={{ background: "var(--surface)" }}>
-        {/* Price row */}
-        <div className="flex items-baseline gap-1.5 mb-2">
-          <span className="font-playfair font-bold" style={{ fontSize: 16, color: "var(--text)" }}>
-            {startingPrice !== null ? `from $${startingPrice}` : "Price TBD"}
-          </span>
-          {artist.commissionTurnaround && (
-            <span style={{ fontSize: 7.5, color: "var(--muted)" }}>· {artist.commissionTurnaround}</span>
-          )}
-        </div>
-
-        {/* Tier pills */}
-        {artist.priceRanges && artist.priceRanges.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {artist.priceRanges.map(r => (
-              <span key={r.label} style={{ fontSize: 7, padding: "3px 8px", borderRadius: 4, background: "var(--bg)", color: "var(--muted)", border: "1px solid var(--border)" }}>
-                {r.label} <span style={{ color: "var(--text)", fontWeight: 600 }}>${r.price}</span>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* CTA */}
-        <button
-          onClick={handleRequest}
-          className="w-full rounded-lg text-white font-semibold"
-          style={{
-            padding: "9px 0",
-            fontSize: 9.5,
-            background: artist.commissionStatus === "CLOSED"
-              ? "var(--bg)"
-              : "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)",
-            border: artist.commissionStatus === "CLOSED" ? "1px solid var(--border)" : undefined,
-            color: artist.commissionStatus === "CLOSED" ? "var(--muted)" : "white",
-          }}
-        >
-          {artist.commissionStatus === "CLOSED" ? "Closed" : "Request commission"}
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── For You feed ──────────────────────────────────────────────────────────────
-function ForYouFeed({
-  onRequest,
-  onLightbox,
-}: {
+
+function ForYouFeed({ onRequest, onLightbox }: {
   onRequest: (a: DiscoveryUser) => void
   onLightbox: (a: DiscoveryUser, i: number) => void
 }) {
@@ -480,31 +353,23 @@ function ForYouFeed({
     if (!data) return
     setAllArtists(prev => {
       const ids = new Set(prev.map(a => a.id))
-      const newOnes = (data.artists as DiscoveryUser[]).filter(a => !ids.has(a.id))
-      return [...prev, ...newOnes]
+      return [...prev, ...(data.artists as DiscoveryUser[]).filter(a => !ids.has(a.id))]
     })
     if (data.nextCursor === null) setHasMore(false)
   }, [data])
 
-  // Track active card via scroll
   useEffect(() => {
     const el = feedRef.current
     if (!el) return
-    const handleScroll = () => {
-      const idx = Math.round(el.scrollTop / window.innerHeight)
-      setActiveIdx(idx)
-    }
-    el.addEventListener("scroll", handleScroll, { passive: true })
-    return () => el.removeEventListener("scroll", handleScroll)
+    const onScroll = () => setActiveIdx(Math.round(el.scrollTop / window.innerHeight))
+    el.addEventListener("scroll", onScroll, { passive: true })
+    return () => el.removeEventListener("scroll", onScroll)
   }, [])
 
-  // Load more when approaching end
   useEffect(() => {
     if (!sentinelRef.current || !hasMore || isFetching) return
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && hasMore && !isFetching && data?.nextCursor != null) {
-        setCursor(data.nextCursor)
-      }
+      if (entry.isIntersecting && hasMore && !isFetching && data?.nextCursor != null) setCursor(data.nextCursor)
     }, { rootMargin: "200px" })
     obs.observe(sentinelRef.current)
     return () => obs.disconnect()
@@ -512,70 +377,136 @@ function ForYouFeed({
 
   if (allArtists.length === 0 && isFetching) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.15)", borderTopColor: "white", animation: "spin 0.7s linear infinite" }} />
       </div>
     )
   }
 
   if (allArtists.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3 px-8 text-center">
-        <div className="text-4xl">🎨</div>
-        <p className="text-white font-semibold">No artists open right now</p>
-        <p className="text-white/40 text-sm">Check back soon — new artists open regularly</p>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10, padding: "0 32px", textAlign: "center" }}>
+        <div style={{ fontSize: 40 }}>🎨</div>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: "var(--text)" }}>No artists open right now</div>
+        <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>Check back soon — new artists open regularly</div>
       </div>
     )
   }
 
   return (
-    <div
-      ref={feedRef}
-      className="h-full overflow-y-scroll snap-y snap-mandatory"
-      style={{ scrollbarWidth: "none" }}
-    >
+    <div ref={feedRef} style={{ height: "100%", overflowY: "scroll", scrollSnapType: "y mandatory", scrollbarWidth: "none" } as React.CSSProperties}>
       {allArtists.map((artist, i) => (
-        <ForYouCard
-          key={artist.id}
-          artist={artist}
-          onRequest={onRequest}
-          onLightbox={onLightbox}
-          isActive={i === activeIdx}
-        />
+        <ForYouCard key={artist.id} artist={artist} onRequest={onRequest} onLightbox={onLightbox} isActive={i === activeIdx} />
       ))}
       {hasMore && (
-        <div ref={sentinelRef} className="flex items-center justify-center py-8">
-          {isFetching && <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white animate-spin" />}
+        <div ref={sentinelRef} style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 0" }}>
+          {isFetching && <div style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.15)", borderTopColor: "white", animation: "spin 0.7s linear infinite" }} />}
         </div>
       )}
       {!hasMore && allArtists.length > 0 && (
-        <div className="flex flex-col items-center justify-center py-12 gap-2" style={{ minHeight: "30svh" }}>
-          <p className="text-white/40 text-sm">You&apos;ve seen everyone</p>
-          <p className="text-white/20 text-xs">Follow artists to refine your feed</p>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 0", gap: 6, minHeight: "30svh" }}>
+          <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>You&apos;ve seen everyone</div>
+          <div style={{ fontSize: 10, color: "rgba(107,95,136,0.6)", fontFamily: "Inter,sans-serif" }}>Follow artists to refine your feed</div>
         </div>
       )}
     </div>
   )
 }
 
+// ── Explore card ──────────────────────────────────────────────────────────────
+
+function ExploreCard({ artist, onRequest }: {
+  artist: DiscoveryUser
+  onRequest: (a: DiscoveryUser) => void
+}) {
+  const router = useRouter()
+  const { data: session } = useSession()
+
+  const cover: string | null = artist.commissionCardImages[0] ?? artist.posts[0]?.image ?? null
+
+  function handleRequest(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!session) { router.push("/signin"); return }
+    onRequest(artist)
+  }
+
+  return (
+    <div style={{ borderBottom: "1px solid var(--border)" }}>
+      {/* Art banner */}
+      <div style={{ height: 108, overflow: "hidden", position: "relative", cursor: "pointer" }} onClick={() => router.push(`/@${artist.username}?tab=Commissions`)}>
+        {cover
+          ? <img src={cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} draggable={false} />
+          : <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 60% 40%, rgba(120,75,160,0.5), transparent 65%), linear-gradient(135deg,#2A1838,#1E1430)" }} />
+        }
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 65, background: "linear-gradient(transparent,rgba(8,6,15,0.96))", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", alignItems: "flex-end", gap: 8, padding: "0 12px 9px" }}>
+          <Avatar src={artist.image} name={artist.name} username={artist.username} size={26} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 12, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {artist.name ?? artist.username}
+            </div>
+            {artist.artStyles.length > 0 && (
+              <div style={{ fontSize: 7, color: "rgba(240,235,248,0.4)", marginTop: 1 }}>
+                {artist.artStyles.slice(0, 3).join(" · ")}
+              </div>
+            )}
+          </div>
+          <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 4, flexShrink: 0, ...STATUS_STYLE[artist.commissionStatus] }}>
+            {statusLabel(artist.commissionStatus)}
+          </span>
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div style={{ padding: "10px 12px 12px", background: "var(--surface)" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 7 }}>
+          <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 16, color: "var(--text)" }}>
+            {startingPrice(artist.priceRanges)}
+          </span>
+          {artist.commissionTurnaround && (
+            <span style={{ fontSize: 8, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>· {artist.commissionTurnaround}</span>
+          )}
+        </div>
+
+        {artist.priceRanges && artist.priceRanges.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 9 }}>
+            {artist.priceRanges.map(r => (
+              <span key={r.label} style={{ fontSize: 7.5, padding: "2px 8px", borderRadius: 4, background: "var(--bg)", color: "var(--muted)", border: "1px solid var(--border)", fontFamily: "Inter,sans-serif" }}>
+                {r.label} <span style={{ color: "var(--text)", fontWeight: 600 }}>${r.price}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={handleRequest}
+          style={{
+            width: "100%", padding: "9px 0", borderRadius: 8, border: artist.commissionStatus === "CLOSED" ? "1px solid var(--border)" : "none",
+            cursor: artist.commissionStatus === "CLOSED" ? "default" : "pointer",
+            background: artist.commissionStatus === "CLOSED" ? "var(--bg)" : "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)",
+            color: artist.commissionStatus === "CLOSED" ? "var(--muted)" : "white",
+            fontWeight: 700, fontSize: 10, fontFamily: "Inter,sans-serif",
+          }}
+        >
+          {artist.commissionStatus === "CLOSED" ? "Closed" : "Request commission"}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Explore tab ───────────────────────────────────────────────────────────────
+
 const SORT_CHIPS: { label: string; value: SortBy }[] = [
   { label: "🌟 Rising Stars", value: "new" },
-  { label: "🔥 Top Rated", value: "top" },
-  { label: "💰 Affordable", value: "affordable" },
+  { label: "🔥 Top Rated",    value: "top" },
+  { label: "💰 Affordable",   value: "affordable" },
 ]
 
-function ExploreTabInner({
-  onRequest,
-  onLightbox,
-}: {
-  onRequest: (a: DiscoveryUser) => void
-  onLightbox: (a: DiscoveryUser, i: number) => void
-}) {
+function ExploreTabInner({ onRequest }: { onRequest: (a: DiscoveryUser) => void }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Parse URL state once (only used as useState initialisers — ignored after mount)
   const styleParam = searchParams.get("style")
   const initialStyles = styleParam
     ? (styleParam.split(",").filter(s => (ART_STYLE_CHIPS as readonly string[]).includes(s)) as ArtStyleChip[])
@@ -583,8 +514,7 @@ function ExploreTabInner({
   const initialPrice = searchParams.get("price") ?? null
   const sortRaw = searchParams.get("sort")
   const initialSort: SortBy = (["top", "new", "affordable"] as string[]).includes(sortRaw ?? "")
-    ? (sortRaw as SortBy)
-    : "default"
+    ? (sortRaw as SortBy) : "default"
 
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState<SortBy>(initialSort)
@@ -596,7 +526,6 @@ function ExploreTabInner({
     sortBy: sortBy === "default" ? undefined : sortBy,
   })
 
-  // Write filters to URL (no page reload)
   function updateUrl(styles: ArtStyleChip[], price: string | null, sort: SortBy) {
     const params = new URLSearchParams()
     if (styles.length > 0) params.set("style", styles.join(","))
@@ -607,39 +536,25 @@ function ExploreTabInner({
   }
 
   function toggleStyle(chip: ArtStyleChip) {
-    const next = selectedStyles.includes(chip)
-      ? selectedStyles.filter(s => s !== chip)
-      : [...selectedStyles, chip]
-    setSelectedStyles(next)
-    updateUrl(next, selectedPrice, sortBy)
+    const next = selectedStyles.includes(chip) ? selectedStyles.filter(s => s !== chip) : [...selectedStyles, chip]
+    setSelectedStyles(next); updateUrl(next, selectedPrice, sortBy)
   }
-
   function togglePrice(label: string) {
     const next = selectedPrice === label ? null : label
-    setSelectedPrice(next)
-    updateUrl(selectedStyles, next, sortBy)
+    setSelectedPrice(next); updateUrl(selectedStyles, next, sortBy)
   }
-
   function toggleSort(val: SortBy) {
     const next = sortBy === val ? "default" : val
-    setSortBy(next)
-    updateUrl(selectedStyles, selectedPrice, next)
+    setSortBy(next); updateUrl(selectedStyles, selectedPrice, next)
   }
 
-  // Client-side filter on top of server results
   const filtered = (artists ?? []).filter(artist => {
-    // Style filter
-    if (selectedStyles.length > 0) {
-      const matches = selectedStyles.some(chip => matchesStyleChip(artist.artStyles, chip))
-      if (!matches) return false
-    }
-    // Price filter
+    if (selectedStyles.length > 0 && !selectedStyles.some(chip => matchesStyleChip(artist.artStyles, chip))) return false
     if (selectedPrice) {
       const bucket = PRICE_BUCKETS.find(b => b.label === selectedPrice)
       if (bucket) {
-        const startPrice = getStartingPrice(artist.priceRanges)
-        if (startPrice === null) return false
-        if (startPrice < bucket.min || startPrice > bucket.max) return false
+        const sp = getStartingPrice(artist.priceRanges)
+        if (sp === null || sp < bucket.min || sp > bucket.max) return false
       }
     }
     return true
@@ -647,116 +562,72 @@ function ExploreTabInner({
 
   const activeFilterCount = selectedStyles.length + (selectedPrice ? 1 : 0)
 
+  const chipActive: React.CSSProperties = {
+    background: "linear-gradient(var(--bg),var(--bg)) padding-box, linear-gradient(90deg,#FF3CAC,#2B86C5) border-box",
+    borderColor: "transparent", color: "var(--text)",
+  }
+  const chipIdle: React.CSSProperties = {
+    background: "var(--surface)", borderColor: "var(--border)", color: "var(--muted)",
+  }
+
   return (
-    <div className="h-full overflow-y-auto pb-24">
+    <div style={{ height: "100%", overflowY: "auto", paddingBottom: 96 }}>
       {/* Sticky filter bar */}
-      <div className="px-3 pt-4 pb-3 sticky top-0 z-10" style={{ background: "var(--bg)" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", padding: "12px 14px 10px" }}>
         {/* Search */}
-        <div className="relative mb-3">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <svg style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search artists, styles…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-white/30 outline-none focus:ring-2 focus:ring-purple-500 transition"
-            style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
+            style={{ width: "100%", boxSizing: "border-box", paddingLeft: 32, paddingRight: 14, paddingTop: 9, paddingBottom: 9, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontFamily: "Inter,sans-serif", outline: "none" }}
           />
         </div>
 
         {/* Sort chips */}
-        <div className="flex gap-2 mb-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 7, overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
           {SORT_CHIPS.map(chip => (
-            <button
-              key={chip.value}
-              aria-pressed={sortBy === chip.value}
-              onClick={() => toggleSort(chip.value)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                sortBy === chip.value ? "text-white" : "text-white/50 hover:text-white/80"
-              }`}
-              style={sortBy === chip.value
-                ? { background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }
-                : { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
-              }
-            >
+            <button key={chip.value} onClick={() => toggleSort(chip.value)}
+              style={{ flexShrink: 0, fontSize: 10, padding: "4px 11px", borderRadius: 99, border: "1px solid", cursor: "pointer", fontFamily: "Inter,sans-serif", ...(sortBy === chip.value ? chipActive : chipIdle) }}>
               {chip.label}
             </button>
           ))}
         </div>
 
         {/* Style chips */}
-        <div className="flex gap-2 mb-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {ART_STYLE_CHIPS.map(chip => {
-            const active = selectedStyles.includes(chip)
-            return (
-              <button
-                key={chip}
-                aria-pressed={active}
-                onClick={() => toggleStyle(chip)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  active ? "text-white" : "text-white/50 hover:text-white/80"
-                }`}
-                style={active
-                  ? { background: "rgba(120,75,160,0.6)", border: "1px solid rgba(120,75,160,0.8)" }
-                  : { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
-                }
-              >
-                {chip}
-              </button>
-            )
-          })}
+        <div style={{ display: "flex", gap: 6, marginBottom: 7, overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
+          {ART_STYLE_CHIPS.map(chip => (
+            <button key={chip} onClick={() => toggleStyle(chip)}
+              style={{ flexShrink: 0, fontSize: 10, padding: "4px 11px", borderRadius: 99, border: "1px solid", cursor: "pointer", fontFamily: "Inter,sans-serif", ...(selectedStyles.includes(chip) ? chipActive : chipIdle) }}>
+              {chip}
+            </button>
+          ))}
         </div>
 
         {/* Price chips */}
-        <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {PRICE_BUCKETS.map(bucket => {
-            const active = selectedPrice === bucket.label
-            return (
-              <button
-                key={bucket.label}
-                aria-pressed={active}
-                onClick={() => togglePrice(bucket.label)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  active ? "text-white" : "text-white/50 hover:text-white/80"
-                }`}
-                style={active
-                  ? { background: "rgba(43,134,197,0.5)", border: "1px solid rgba(43,134,197,0.8)" }
-                  : { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
-                }
-              >
-                {bucket.label}
-              </button>
-            )
-          })}
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none" } as React.CSSProperties}>
+          {PRICE_BUCKETS.map(bucket => (
+            <button key={bucket.label} onClick={() => togglePrice(bucket.label)}
+              style={{ flexShrink: 0, fontSize: 10, padding: "4px 11px", borderRadius: 99, border: "1px solid", cursor: "pointer", fontFamily: "Inter,sans-serif", ...(selectedPrice === bucket.label ? chipActive : chipIdle) }}>
+              {bucket.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0" }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.12)", borderTopColor: "white", animation: "spin 0.7s linear infinite" }} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-2">
-          <p className="text-white/50 font-medium">No artists found</p>
-          <p className="text-xs text-white/30">
-            {activeFilterCount > 0
-              ? "Try removing some filters"
-              : search
-              ? "Try a different search term"
-              : "No artists are currently open for commissions"}
-          </p>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 0", gap: 6 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>No artists found</div>
+          <div style={{ fontSize: 11, color: "rgba(107,95,136,0.55)", fontFamily: "Inter,sans-serif" }}>
+            {activeFilterCount > 0 ? "Try removing some filters" : search ? "Try a different search" : "No artists open right now"}
+          </div>
           {activeFilterCount > 0 && (
-            <button
-              onClick={() => {
-                setSelectedStyles([])
-                setSelectedPrice(null)
-                updateUrl([], null, sortBy)
-              }}
-              className="mt-2 px-4 py-1.5 rounded-full text-xs font-semibold text-white/70 hover:text-white transition"
-              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }}
-            >
+            <button onClick={() => { setSelectedStyles([]); setSelectedPrice(null); updateUrl([], null, sortBy) }}
+              style={{ marginTop: 6, padding: "5px 14px", borderRadius: 99, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--muted)", fontSize: 10, cursor: "pointer", fontFamily: "Inter,sans-serif" }}>
               Clear filters
             </button>
           )}
@@ -764,12 +635,7 @@ function ExploreTabInner({
       ) : (
         <div>
           {filtered.map(artist => (
-            <ExploreCard
-              key={artist.id}
-              artist={artist as DiscoveryUser}
-              onRequest={onRequest}
-              onImageClick={(a, i) => onLightbox(a, i)}
-            />
+            <ExploreCard key={artist.id} artist={artist as DiscoveryUser} onRequest={onRequest} />
           ))}
         </div>
       )}
@@ -777,21 +643,20 @@ function ExploreTabInner({
   )
 }
 
-function ExploreTab({
-  onRequest,
-  onLightbox,
-}: {
-  onRequest: (a: DiscoveryUser) => void
-  onLightbox: (a: DiscoveryUser, i: number) => void
-}) {
+function ExploreTab({ onRequest }: { onRequest: (a: DiscoveryUser) => void }) {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white animate-spin" /></div>}>
-      <ExploreTabInner onRequest={onRequest} onLightbox={onLightbox} />
+    <Suspense fallback={
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 0" }}>
+        <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.12)", borderTopColor: "white", animation: "spin 0.7s linear infinite" }} />
+      </div>
+    }>
+      <ExploreTabInner onRequest={onRequest} />
     </Suspense>
   )
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function CommissionsPage() {
   const [tab, setTab] = useState<"foryou" | "explore">("foryou")
   const [requestTarget, setRequestTarget] = useState<DiscoveryUser | null>(null)
@@ -799,6 +664,8 @@ export default function CommissionsPage() {
 
   return (
     <>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
       {requestTarget && (
         <CommissionRequestModal
           artistId={requestTarget.id}
@@ -818,45 +685,39 @@ export default function CommissionsPage() {
             startIndex={lightbox.index}
             artist={lightbox.artist}
             onClose={() => setLightbox(null)}
-            onRequest={(a) => { setLightbox(null); setRequestTarget(a) }}
+            onRequest={a => { setLightbox(null); setRequestTarget(a) }}
           />
         )
       })()}
 
-      {/* Full-viewport container — starts below the mobile Navbar */}
-      <div className="flex flex-col fixed top-14 md:top-0 left-0 right-0 bottom-0 md:left-16" style={{ zIndex: 10 }}>
-        {/* Narrow column on desktop */}
-        <div className="flex flex-col h-full w-full md:max-w-lg md:mx-auto">
+      {/* Full-viewport container */}
+      <div style={{ position: "fixed", top: 56, left: 0, right: 0, bottom: 0, zIndex: 10, display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", maxWidth: 512, margin: "0 auto" }}>
+
           {/* Tab bar */}
-          <div className="flex-shrink-0 flex items-center justify-center gap-8 py-3 relative z-20" style={{ background: "rgba(13,13,15,0.95)", backdropFilter: "blur(12px)" }}>
-            <button
-              onClick={() => setTab("foryou")}
-              className={`text-sm font-bold transition-all ${tab === "foryou" ? "text-white" : "text-white/40"}`}
-            >
-              For You
-              {tab === "foryou" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />}
-            </button>
-            <button
-              onClick={() => setTab("explore")}
-              className={`text-sm font-bold transition-all ${tab === "explore" ? "text-white" : "text-white/40"}`}
-            >
-              Explore
-              {tab === "explore" && <div className="mt-1 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />}
-            </button>
+          <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 36, padding: "11px 0", background: "rgba(15,13,20,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)", position: "relative", zIndex: 20 }}>
+            {(["foryou", "explore"] as const).map(t => {
+              const active = tab === t
+              const label = t === "foryou" ? "For You" : "Explore"
+              return (
+                <button key={t} onClick={() => setTab(t)}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: "0 0 4px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <span style={{ fontFamily: "Inter,sans-serif", fontWeight: 700, fontSize: 13, color: active ? "var(--text)" : "var(--muted)", transition: "color 0.15s" }}>{label}</span>
+                  <div style={{ height: 2, width: active ? "100%" : 0, borderRadius: 99, background: "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)", transition: "width 0.2s" }} />
+                </button>
+              )
+            })}
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-h-0">
+          <div style={{ flex: 1, minHeight: 0 }}>
             {tab === "foryou" ? (
               <ForYouFeed
                 onRequest={setRequestTarget}
                 onLightbox={(a, i) => setLightbox({ artist: a, index: i })}
               />
             ) : (
-              <ExploreTab
-                onRequest={setRequestTarget}
-                onLightbox={(a, i) => setLightbox({ artist: a, index: i })}
-              />
+              <ExploreTab onRequest={setRequestTarget} />
             )}
           </div>
         </div>

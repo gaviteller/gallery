@@ -42,8 +42,8 @@ export const dmRouter = router({
       where: { OR: [{ participantA: me }, { participantB: me }] },
       orderBy: { updatedAt: "desc" },
       include: {
-        userA: { select: { id: true, username: true, name: true, image: true } },
-        userB: { select: { id: true, username: true, name: true, image: true } },
+        userA: { select: { id: true, username: true, name: true, image: true, bannerImage: true } },
+        userB: { select: { id: true, username: true, name: true, image: true, bannerImage: true } },
         messages: {
           orderBy: { createdAt: "desc" },
           take: 1,

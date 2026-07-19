@@ -39,116 +39,44 @@ export default function FeaturedArtistsStrip() {
   return (
     <>
       <div
-        className="flex gap-3 px-3 py-3 overflow-x-auto"
-        style={{ borderBottom: "1px solid #ffffff08", scrollbarWidth: "none" }}
+        style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: "1px solid var(--border)", overflowX: "auto", scrollbarWidth: "none" }}
       >
-        {groups.map((group) => {
-          const isMe = group.userId === me
-          const hasStory = group.stories.length > 0
-          const hasUnviewed = group.hasUnviewed
-          // Preview: first story image if they have a story, otherwise avatar
-          const previewSrc = hasStory ? group.stories[0].image : group.image
+        {/* Always-visible "Your story" add card */}
+        <button
+          onClick={() => setUploading(true)}
+          style={{ flexShrink: 0, width: 64, height: 80, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer" }}
+        >
+          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 18, fontWeight: 300, lineHeight: 1 }}>+</div>
+          <span style={{ fontSize: 8, color: "var(--muted)" }}>Your story</span>
+        </button>
 
-          // Gradient ring wrapper for active story
-          const wrapperStyle: React.CSSProperties = hasUnviewed
-            ? {
-                padding: 2,
-                background:
-                  "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                borderRadius: 12,
-              }
-            : hasStory
-            ? {
-                padding: 1.5,
-                background: "rgba(255,255,255,0.25)",
-                borderRadius: 12,
-              }
-            : {}
+        {groups.filter(g => g.userId !== me).map((group) => {
+          const hasUnviewed = group.hasUnviewed
+          const previewSrc = group.stories.length > 0 ? group.stories[0].image : group.image
+
+          const ringStyle: React.CSSProperties = hasUnviewed
+            ? { padding: 2, background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: 12, flexShrink: 0 }
+            : group.stories.length > 0
+            ? { padding: 1.5, background: "var(--border)", borderRadius: 12, flexShrink: 0 }
+            : { flexShrink: 0 }
 
           return (
             <button
               key={group.userId}
               onClick={() => handleCardClick(group)}
-              className="flex-shrink-0 focus:outline-none"
+              style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
-              <div style={wrapperStyle}>
-                {/* Card: 64×80, image top 56px, label bottom 24px */}
-                <div
-                  className="relative overflow-hidden"
-                  style={{
-                    width: 64,
-                    height: 80,
-                    borderRadius: 10,
-                    background: "#141414",
-                    border:
-                      !hasStory
-                        ? "1px solid rgba(255,255,255,0.08)"
-                        : "none",
-                  }}
-                >
-                  {/* Top 56px: preview image or gradient initial */}
-                  <div
-                    className="absolute top-0 left-0 w-full overflow-hidden"
-                    style={{ height: 56 }}
-                  >
-                    {previewSrc ? (
-                      <img
-                        src={previewSrc}
-                        className="w-full h-full object-cover"
-                        alt=""
-                      />
-                    ) : (
-                      <div
-                        className="w-full h-full flex items-center justify-center text-white font-bold text-xl"
-                        style={{
-                          background:
-                            "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                        }}
-                      >
-                        {(group.name ?? group.username ?? "?")[0].toUpperCase()}
-                      </div>
-                    )}
-                    {/* + overlay for own card with no story */}
-                    {isMe && !hasStory && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div
-                          className="rounded-full flex items-center justify-center"
-                          style={{
-                            width: 22,
-                            height: 22,
-                            background:
-                              "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                          }}
-                        >
-                          <svg
-                            className="w-3 h-3 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bottom 24px: username label */}
-                  <div
-                    className="absolute bottom-0 left-0 w-full flex items-center justify-center"
-                    style={{ height: 24, background: "rgba(0,0,0,0.55)" }}
-                  >
-                    <span
-                      className="text-[9px] text-white/80 truncate px-1"
-                      style={{ maxWidth: 60 }}
-                    >
-                      {isMe ? "You" : (group.username ?? "")}
-                    </span>
+              <div style={ringStyle}>
+                <div style={{ width: 64, height: 80, borderRadius: 10, background: "#141414", overflow: "hidden", position: "relative" }}>
+                  {previewSrc ? (
+                    <img src={previewSrc} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="" />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: 18 }}>
+                      {(group.name ?? group.username ?? "?")[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.55)", padding: "3px 2px", fontSize: 7, color: "rgba(255,255,255,0.8)", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {group.username ?? ""}
                   </div>
                 </div>
               </div>

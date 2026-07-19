@@ -12,31 +12,28 @@ export default function MessagesTabs() {
   return (
     <div
       role="tablist"
-      className="flex px-4 pt-5"
-      style={{ borderBottom: "1px solid #ffffff10" }}
+      style={{ display: "flex", position: "sticky", top: 0, zIndex: 20, background: "var(--nav)", borderBottom: "1px solid var(--border)" }}
     >
       <Link
         href="/messages"
         role="tab"
         aria-selected={isMessages}
-        className="flex-1 pb-3 text-sm font-semibold text-center transition-colors relative"
-        style={{ color: isMessages ? "var(--text)" : "var(--muted)" }}
+        style={{ flex: 1, padding: "13px 0 11px", textAlign: "center", position: "relative", fontFamily: "Inter,sans-serif", fontWeight: 700, fontSize: 13, color: isMessages ? "var(--text)" : "var(--muted)", textDecoration: "none" }}
       >
         Messages
         {isMessages && (
-          <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />
+          <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, borderRadius: 99, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />
         )}
       </Link>
       <Link
         href="/professional-dms"
         role="tab"
         aria-selected={isCommissions}
-        className="flex-1 pb-3 text-sm font-semibold text-center transition-colors relative"
-        style={{ color: isCommissions ? "var(--text)" : "var(--muted)" }}
+        style={{ flex: 1, padding: "13px 0 11px", textAlign: "center", position: "relative", fontFamily: "Inter,sans-serif", fontWeight: 700, fontSize: 13, color: isCommissions ? "var(--text)" : "var(--muted)", textDecoration: "none" }}
       >
         Commissions
         {isCommissions && (
-          <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />
+          <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, borderRadius: 99, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }} />
         )}
       </Link>
     </div>

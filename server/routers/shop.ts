@@ -49,7 +49,7 @@ export const shopRouter = router({
           purchaseCount: true,
           createdAt: true,
           updatedAt: true,
-          user: { select: { username: true, image: true, name: true } },
+          user: { select: { username: true, image: true, name: true, bannerImage: true } },
         },
         orderBy: { createdAt: "desc" },
         take: PAGE_SIZE + 1,

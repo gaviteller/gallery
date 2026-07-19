@@ -16,18 +16,6 @@ import { TIER_LABELS, TIER_COLORS } from "@/server/lib/trustScore"
 import { applyWatermark } from "@/lib/watermark"
 import { uploadImage as uploadToCloudinary } from "@/lib/upload"
 
-const statusColors = {
-  OPEN: "bg-green-500/20 text-green-400",
-  LIMITED: "bg-yellow-500/20 text-yellow-400",
-  CLOSED: "bg-white/10 text-white/30",
-}
-
-const statusLabels = {
-  OPEN: "Open for commissions",
-  LIMITED: "Limited slots",
-  CLOSED: "Closed for commissions",
-}
-
 const CANCEL_RATE_WARNING_THRESHOLD = 20
 
 type PostItem = {
@@ -66,6 +54,11 @@ function processImage(file: File, maxSize: number): Promise<string> {
   })
 }
 
+function formatCount(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k"
+  return String(n)
+}
+
 export default function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username: rawUsername } = use(params)
   const decoded = decodeURIComponent(rawUsername)
@@ -98,10 +91,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const blockToggle = trpc.block.toggle.useMutation({
     onSuccess: (data) => {
       refetchBlock()
-      if (data.blocked) {
-        // Just blocked this user — navigate away
-        router.push("/")
-      }
+      if (data.blocked) router.push("/")
     },
   })
   const utils = trpc.useUtils()
@@ -120,10 +110,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [showNewMenu, setShowNewMenu] = useState(false)
   const [showShopModal, setShowShopModal] = useState(false)
 
-  // ── New post modal state ──────────────────────────────────────
   const [showUpload, setShowUpload] = useState(false)
-  const [rawImage, setRawImage] = useState<string | null>(null)   // before crop
-  const [uploadImage, setUploadImage] = useState<string | null>(null) // after crop
+  const [rawImage, setRawImage] = useState<string | null>(null)
+  const [uploadImage, setUploadImage] = useState<string | null>(null)
   const [uploadDesc, setUploadDesc] = useState("")
   const [uploadIsAi, setUploadIsAi] = useState(false)
   const [uploadIsCommission, setUploadIsCommission] = useState(false)
@@ -155,12 +144,10 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     if (!file) return
     setImgProcessing(true)
     const result = await processImage(file, 1200)
-    setRawImage(result)   // show crop editor
+    setRawImage(result)
     setImgProcessing(false)
   }
 
-
-  // Reset breakdown panel when navigating to a different profile
   useEffect(() => { setShowScoreBreakdown(false) }, [username])
   useEffect(() => {
     function handleClick() { setMoreMenuOpen(false) }
@@ -173,11 +160,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   })
 
   if (userLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="text-white/40">Loading…</div></div>
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading…</div>
   }
 
   if (!profileUser) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="text-white/40">User not found</div></div>
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>User not found</div>
   }
 
   const isOwn = session?.user?.id === profileUser.id
@@ -190,8 +177,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const initials = (profileUser.name ?? profileUser.username ?? "?")
     .split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
 
-  const inputClass = "w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-  const inputStyle = { background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }
+  const pu = profileUser as any
 
   return (
     <>
@@ -204,326 +190,234 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         />
       )}
 
-      {/* Mutual followers modal */}
       {showMutuals && !isOwn && mutualData && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center" onClick={() => setShowMutuals(false)}>
-          <div className="w-full max-w-lg rounded-t-2xl pb-8" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }} onClick={e => e.stopPropagation()}>
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full" style={{ background: "rgba(240,235,248,0.07)" }} />
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowMutuals(false)}>
+          <div style={{ width: "100%", maxWidth: 480, borderRadius: "16px 16px 0 0", paddingBottom: 32, background: "var(--surface)", border: "1px solid var(--border)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(240,235,248,0.07)" }} />
             </div>
-            <p className="text-sm font-semibold text-white px-4 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", padding: "0 16px 12px", borderBottom: "1px solid var(--border)" }}>
               Mutual followers
             </p>
-            <div className="max-h-72 overflow-y-auto">
+            <div style={{ maxHeight: 288, overflowY: "auto" }}>
               {mutualData.users.map(u => (
                 <button key={u.id} onClick={() => { setShowMutuals(false); router.push(`/@${u.username}`) }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left">
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
                   {u.image
-                    ? <img src={u.image} className="w-10 h-10 rounded-full object-cover flex-shrink-0" alt="" />
-                    : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-sm" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>{(u.name ?? u.username ?? "?")[0].toUpperCase()}</div>
+                    ? <img src={u.image} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} alt="" />
+                    : <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, flexShrink: 0 }}>{(u.name ?? u.username ?? "?")[0].toUpperCase()}</div>
                   }
                   <div>
-                    <p className="text-sm font-semibold text-white">@{u.username}</p>
-                    {u.name && <p className="text-xs text-white/40">{u.name}</p>}
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>@{u.username}</p>
+                    {u.name && <p style={{ fontSize: 11, color: "var(--muted)" }}>{u.name}</p>}
                   </div>
                 </button>
               ))}
               {mutualData.users.length === 0 && (
-                <p className="text-sm text-white/40 text-center py-6">No mutual followers</p>
+                <p style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "24px 0" }}>No mutual followers</p>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Profile card ───────────────────────────────────────── */}
+      {/* ── Profile ─────────────────────────────────────────────── */}
       <div style={{ width: "100%", paddingBottom: "5rem" }}>
 
-        {/* Banner */}
-        <div style={{
-          width: "100%", height: 160, position: "relative",
-          background: (profileUser as { bannerImage?: string | null }).bannerImage
-            ? undefined : "linear-gradient(135deg, #1a0535 0%, #0d1a35 50%, #0a1a20 100%)",
-        }}>
-          {(profileUser as { bannerImage?: string | null }).bannerImage && (
-            <img src={(profileUser as { bannerImage?: string | null }).bannerImage!}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="" />
-          )}
-        </div>
-
-      {/* ── Profile identity block ─────────────────────────────── */}
-      <div style={{ paddingLeft: "1rem", paddingRight: "1rem" }}>
-        {/* Avatar — overlapping banner by 40px */}
-        <div style={{ marginTop: -44, marginBottom: 12, position: "relative", zIndex: 2 }}>
-          <button
-            onClick={() => {
-              if (isOwn) setAddingStory(true)
-              else if (userStories.length > 0) setViewingStory(true)
-            }}
-            className="focus:outline-none"
-            style={{ cursor: isOwn || userStories.length > 0 ? "pointer" : "default" }}
-          >
-            {/* Gradient ring — always on, brighter if has story */}
-            <div
-              style={{
-                padding: userStories.length > 0 ? 2.5 : 1.5,
-                background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                borderRadius: "50%",
-                opacity: userStories.length > 0 ? 1 : 0.4,
-              }}
-            >
-              <div
-                style={{ padding: 2, background: "var(--bg)", borderRadius: "50%" }}
-              >
-                {profileUser.image ? (
-                  <img
-                    src={profileUser.image}
-                    alt={profileUser.name ?? profileUser.username ?? "Profile"}
-                    className="rounded-full object-cover"
-                    style={{ width: 80, height: 80 }}
-                  />
-                ) : (
-                  <div
-                    className="rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                    style={{
-                      width: 80,
-                      height: 80,
-                      background:
-                        "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                    }}
-                  >
-                    {initials}
-                  </div>
-                )}
-              </div>
-            </div>
-          </button>
-        </div>
-
-        {/* Name */}
-        <h1 className="font-playfair" style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>
-          {profileUser.name ?? `@${profileUser.username}`}
-        </h1>
-        <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>@{profileUser.username}</p>
-
-        {/* Commission badge */}
-        {commissionProfile && (commissionProfile.commissionStatus === "OPEN" || commissionProfile.commissionStatus === "LIMITED") && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(120,75,160,0.15)", border: "1px solid rgba(120,75,160,0.3)", borderRadius: 20, padding: "3px 10px", marginTop: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "linear-gradient(90deg, #FF3CAC, #784BA0)" }} />
-            <span style={{ fontSize: 12, fontWeight: 600, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Commission open</span>
-          </div>
-        )}
-
-
-        {/* Stats */}
-        <div style={{ display: "flex", gap: 20, marginTop: 10, flexWrap: "wrap" }}>
-          <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <strong className="font-playfair" style={{ fontSize: 16, color: "var(--text)" }}>{posts?.length ?? 0}</strong>
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>posts</span>
-          </span>
-          <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <strong className="font-playfair" style={{ fontSize: 16, color: "var(--text)" }}>{followStatus?.followerCount ?? 0}</strong>
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>followers</span>
-          </span>
-          <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-            <strong className="font-playfair" style={{ fontSize: 16, color: "var(--text)" }}>{followStatus?.followingCount ?? 0}</strong>
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>following</span>
-          </span>
-          {!isOwn && mutualData && mutualData.count > 0 && (
-            <button onClick={() => setShowMutuals(true)} style={{ fontSize: 13, color: "#2B86C5" }}>{mutualData.count} mutual</button>
-          )}
-        </div>
-
-        {/* Trust Score */}
-        {trustScore && (commissionProfile?.commissionStatus === "OPEN" || commissionProfile?.commissionStatus === "LIMITED" || (isOwn && commissionProfile)) && (
-          <div style={{ marginTop: 10 }}>
-            <button
-              onClick={() => setShowScoreBreakdown(prev => !prev)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "5px 12px", cursor: "pointer" }}
-            >
-              {/* Tier colour dot */}
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: TIER_COLORS[trustScore.tier], flexShrink: 0 }} />
-              {/* Tier label */}
-              <span style={{ color: TIER_COLORS[trustScore.tier], fontSize: 13, fontWeight: 700 }}>
-                {TIER_LABELS[trustScore.tier]}
-              </span>
-              {/* Numeric score — only shown when there is a score */}
-              {trustScore.finalScore !== null && (
-                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
-                  {trustScore.finalScore.toFixed(1)}
-                </span>
-              )}
-              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
-                {showScoreBreakdown ? "▲" : "▼"}
-              </span>
-            </button>
-
-            {/* Breakdown panel */}
-            {showScoreBreakdown && (
-              <div style={{ marginTop: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-                {/* Label + score header */}
-                <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 6, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                  <span style={{ color: TIER_COLORS[trustScore.tier], fontSize: 13, fontWeight: 700 }}>{TIER_LABELS[trustScore.tier]}</span>
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
-                    {trustScore.finalScore !== null ? `${trustScore.finalScore.toFixed(1)} / 5.0` : "—"}
-                  </span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Average buyer rating</span>
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
-                    {trustScore.avgRating !== null ? `${trustScore.avgRating.toFixed(1)} / 5.0` : "—"}
-                    {trustScore.ratingCount > 0 && <span style={{ color: "rgba(255,255,255,0.35)", fontWeight: 400 }}> ({trustScore.ratingCount})</span>}
-                  </span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Completed commissions</span>
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.completedCount}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Artist cancel rate</span>
-                  <span style={{ color: trustScore.cancelRate > CANCEL_RATE_WARNING_THRESHOLD ? "#f87171" : "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>{trustScore.cancelRate}%</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Selling strikes</span>
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: 600 }}>
-                    {trustScore.sellingStrikeCount === 0
-                      ? "None"
-                      : `−${trustScore.strikeDeduction.toFixed(1)} from ${trustScore.sellingStrikeCount} strike${trustScore.sellingStrikeCount === 1 ? "" : "s"}`}
-                  </span>
-                </div>
-              </div>
+        {/* Banner + overlapping avatar/buttons row */}
+        <div style={{ position: "relative", overflow: "visible" }}>
+          <div style={{
+            width: "100%", height: 120,
+            background: pu.bannerImage ? undefined : "linear-gradient(135deg, #241E30, #1E2838)",
+          }}>
+            {pu.bannerImage && (
+              <img src={pu.bannerImage} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="" />
             )}
           </div>
-        )}
 
-        {/* Action buttons */}
-        <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 20 }}>
-          {isOwn ? (
-            <>
-              <Link href="/settings" style={{ fontSize: 13, padding: "7px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)" }}>
-                Edit profile
-              </Link>
-              <div style={{ padding: 1.5, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: 20 }}>
-                <button onClick={() => setAddingStory(true)} style={{ fontSize: 12, fontWeight: 600, color: "white", padding: "6px 14px", borderRadius: 20, background: "var(--bg)" }}>
-                  + Story
-                </button>
+          {/* Avatar + action row overlapping bottom of banner */}
+          <div style={{ position: "absolute", bottom: -32, left: 16, right: 16, display: "flex", alignItems: "flex-end", justifyContent: "space-between", zIndex: 2 }}>
+            {/* Avatar */}
+            <button
+              onClick={() => {
+                if (isOwn) setAddingStory(true)
+                else if (userStories.length > 0) setViewingStory(true)
+              }}
+              style={{ cursor: isOwn || userStories.length > 0 ? "pointer" : "default", background: "none", border: "none", padding: 0 }}
+            >
+              <div style={{
+                padding: 3,
+                background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)",
+                borderRadius: "50%",
+                opacity: userStories.length > 0 || isOwn ? 1 : 0.5,
+              }}>
+                <div style={{ padding: 2.5, background: "var(--bg)", borderRadius: "50%" }}>
+                  {profileUser.image ? (
+                    <img src={profileUser.image} alt={profileUser.name ?? profileUser.username ?? ""}
+                      style={{ width: 68, height: 68, borderRadius: "50%", objectFit: "cover", display: "block" }} />
+                  ) : (
+                    <div style={{ width: 68, height: 68, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 24, fontWeight: 700 }}>
+                      {initials}
+                    </div>
+                  )}
+                </div>
               </div>
-            </>
-          ) : session && (
-            <>
-              <button
-                onClick={() => followStatus?.following ? unfollowMutation.mutate({ username }) : followMutation.mutate({ username })}
-                disabled={followMutation.isPending || unfollowMutation.isPending}
-                style={{ padding: "8px 24px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: followStatus?.following ? "rgba(255,255,255,0.1)" : "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", border: followStatus?.following ? "1px solid rgba(255,255,255,0.2)" : "none" }}
-              >
-                {followMutation.isPending || unfollowMutation.isPending ? "…" : followStatus?.following ? "Following" : "Follow"}
-              </button>
-              <button
-                onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
-                disabled={getOrCreateDM.isPending}
-                style={{ padding: "8px 18px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
-              >
-                {getOrCreateDM.isPending ? "…" : "Message"}
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setMoreMenuOpen((v) => !v)}
-                  style={{ padding: "8px 12px", borderRadius: 12, fontWeight: 600, fontSize: 14, color: "white", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
-                  aria-label="More options"
-                >
-                  ···
-                </button>
-                {moreMenuOpen && (
-                  <div
-                    className="absolute right-0 top-10 z-50 rounded-xl border border-white/10 py-1 shadow-xl"
-                    style={{ background: "var(--surface)", minWidth: 180 }}
+            </button>
+
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: 8, paddingBottom: 6 }}>
+              {isOwn ? (
+                <>
+                  <Link href="/settings" style={{ fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 10, border: "1px solid var(--border)", color: "var(--muted)", background: "var(--surface)", textDecoration: "none" }}>
+                    Edit profile
+                  </Link>
+                  <button onClick={() => setAddingStory(true)} style={{ fontSize: 12, fontWeight: 700, padding: "8px 12px", borderRadius: 10, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", color: "white", border: "none", cursor: "pointer" }}>
+                    + Story
+                  </button>
+                </>
+              ) : session && (
+                <>
+                  <button
+                    onClick={() => followStatus?.following ? unfollowMutation.mutate({ username }) : followMutation.mutate({ username })}
+                    disabled={followMutation.isPending || unfollowMutation.isPending}
+                    style={{ padding: "8px 20px", borderRadius: 10, fontWeight: 600, fontSize: 12, color: "white", background: followStatus?.following ? "rgba(240,235,248,0.08)" : "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", border: followStatus?.following ? "1px solid var(--border)" : "none", cursor: "pointer" }}
                   >
+                    {followMutation.isPending || unfollowMutation.isPending ? "…" : followStatus?.following ? "Following" : "Follow"}
+                  </button>
+                  <button
+                    onClick={() => getOrCreateDM.mutate({ otherUserId: profileUser.id })}
+                    disabled={getOrCreateDM.isPending}
+                    style={{ padding: "8px 14px", borderRadius: 10, fontWeight: 500, fontSize: 12, color: "var(--text)", background: "var(--surface)", border: "1px solid var(--border)", cursor: "pointer" }}
+                  >
+                    {getOrCreateDM.isPending ? "…" : "Message"}
+                  </button>
+                  <div style={{ position: "relative" }}>
                     <button
-                      onClick={() => {
-                        setMoreMenuOpen(false)
-                        if (confirm(blockStatus?.blocked
-                          ? `Unblock @${username}?`
-                          : `Block @${username}? They won't be able to see your profile or posts.`
-                        )) {
-                          blockToggle.mutate({ username })
-                        }
-                      }}
-                      disabled={blockToggle.isPending}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-white/5 transition-colors disabled:opacity-50"
-                      style={{ color: blockStatus?.blocked ? "rgba(255,255,255,0.7)" : "#ef4444" }}
+                      onClick={() => setMoreMenuOpen(v => !v)}
+                      style={{ padding: "8px 10px", borderRadius: 10, fontWeight: 600, fontSize: 13, color: "var(--muted)", background: "var(--surface)", border: "1px solid var(--border)", cursor: "pointer", lineHeight: 1 }}
+                      aria-label="More options"
                     >
-                      {blockStatus?.blocked ? `Unblock @${username}` : `Block @${username}`}
+                      ···
                     </button>
+                    {moreMenuOpen && (
+                      <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", minWidth: 180, zIndex: 50 }}>
+                        <button
+                          onClick={() => {
+                            setMoreMenuOpen(false)
+                            if (confirm(blockStatus?.blocked ? `Unblock @${username}?` : `Block @${username}? They won't be able to see your profile or posts.`)) {
+                              blockToggle.mutate({ username })
+                            }
+                          }}
+                          disabled={blockToggle.isPending}
+                          style={{ width: "100%", textAlign: "left", padding: "10px 16px", fontSize: 13, color: blockStatus?.blocked ? "var(--muted)" : "#ef4444", background: "none", border: "none", cursor: "pointer", display: "block" }}
+                        >
+                          {blockStatus?.blocked ? `Unblock @${username}` : `Block @${username}`}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </>
-          )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-      {/* ── Pill tabs + New post button ───────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 24 }}>
-        {(["Posts", "Shop", "Commissions", "About"] as const)
-          .filter((t) => {
-            if (isOwn) return true
-            if (t === "Shop" && (!shopItems || shopItems.length === 0))
-              return false
-            if (
-              t === "Commissions" &&
-              commissionProfile?.commissionStatus === "CLOSED"
-            )
-              return false
-            return true
-          })
-          .map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="text-sm font-medium px-4 py-1.5 rounded-full transition-all"
-              style={
-                tab === t
-                  ? {
-                      background:
-                        "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-                      color: "white",
-                    }
-                  : {
-                      background: "transparent",
-                      color: "rgba(255,255,255,0.4)",
-                    }
-              }
-            >
-              {t}
+        {/* Profile header */}
+        <div style={{ padding: "48px 16px 16px", borderBottom: "1px solid var(--border)" }}>
+          {/* Name + PRO badge */}
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>
+            {profileUser.name ?? `@${profileUser.username}`}
+            {pu.sellingEnabled && (
+              <span style={{ display: "inline-block", fontFamily: "Inter, sans-serif", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 5, marginLeft: 7, letterSpacing: "0.05em", background: "linear-gradient(90deg, #FF3CAC, #784BA0)", color: "white", verticalAlign: "middle" }}>
+                PRO
+              </span>
+            )}
+          </div>
+          {/* Handle */}
+          <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "var(--muted)", marginTop: 3 }}>
+            @{profileUser.username}
+            {commissionProfile && commissionProfile.commissionStatus !== "CLOSED" && " · Artist"}
+          </div>
+          {/* Bio */}
+          {profileUser.bio && (
+            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 13, color: "#9080B8", marginTop: 8, lineHeight: 1.5 }}>
+              {profileUser.bio}
+            </div>
+          )}
+          {/* Website */}
+          {pu.websiteUrl && (
+            <div style={{ marginTop: 6, fontFamily: "Inter, sans-serif", fontSize: 12, color: "#784BA0" }}>
+              🔗 {pu.websiteUrl}
+            </div>
+          )}
+          {/* Mutual followers link */}
+          {!isOwn && mutualData && mutualData.count > 0 && (
+            <button onClick={() => setShowMutuals(true)} style={{ marginTop: 6, fontSize: 12, color: "#2B86C5", background: "none", border: "none", cursor: "pointer", padding: 0, display: "block" }}>
+              {mutualData.count} mutual follower{mutualData.count !== 1 ? "s" : ""}
             </button>
-          ))}
+          )}
+
+          {/* Stats bar */}
+          <div style={{ display: "flex", marginTop: 14 }}>
+            {[
+              { n: formatCount(followStatus?.followerCount ?? 0), label: "Followers" },
+              { n: formatCount(followStatus?.followingCount ?? 0), label: "Following" },
+              { n: String(posts?.length ?? 0), label: "Posts" },
+              ...(trustScore && trustScore.finalScore !== null ? [{ n: trustScore.finalScore.toFixed(1), label: "Rating" }] : []),
+            ].map((stat, i, arr) => (
+              <div key={stat.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", borderRight: i < arr.length - 1 ? "1px solid var(--border)" : "none", padding: "6px 0" }}>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: "var(--text)" }}>{stat.n}</div>
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10, color: "var(--muted)", marginTop: 2, letterSpacing: "0.05em", textTransform: "uppercase" }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabs — gradient underline on active */}
+        <div style={{ display: "flex", borderBottom: "1px solid var(--border)" }}>
+          {(["Posts", "Shop", "Commissions", "About"] as const)
+            .filter(t => {
+              if (isOwn) return true
+              if (t === "Shop" && (!shopItems || shopItems.length === 0)) return false
+              if (t === "Commissions" && commissionProfile?.commissionStatus === "CLOSED") return false
+              return true
+            })
+            .map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{ flex: 1, padding: "12px 4px 14px", textAlign: "center", fontFamily: "Inter, sans-serif", fontSize: 11, fontWeight: 500, color: tab === t ? "var(--text)" : "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", background: "none", border: "none", cursor: "pointer", position: "relative" }}
+              >
+                {t}
+                {tab === t && <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #FF3CAC, #2B86C5)" }} />}
+              </button>
+            ))}
+        </div>
+
+        {/* + New dropdown for own profile */}
         {isOwn && (
-          <div style={{ position: "relative" }}>
+          <div style={{ padding: "10px 14px 0", display: "flex", justifyContent: "flex-end", position: "relative" }}>
             {showNewMenu && (
-              <div
-                style={{ position: "fixed", inset: 0, zIndex: 40 }}
-                onClick={() => setShowNewMenu(false)}
-              />
+              <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setShowNewMenu(false)} />
             )}
             <button
               onClick={() => setShowNewMenu(v => !v)}
-              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", color: "white", fontSize: 13, fontWeight: 500, padding: "6px 14px", borderRadius: 10, position: "relative", zIndex: 41 }}
+              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", color: "white", fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer", position: "relative", zIndex: 41 }}
             >
               + New
             </button>
             {showNewMenu && (
-              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", minWidth: 160, zIndex: 50 }}>
-                {(
-                  [
-                    { label: "Post", action: () => { setShowUpload(true); setShowNewMenu(false) } },
-                    { label: "Story", action: () => { setAddingStory(true); setShowNewMenu(false) } },
-                    { label: "Commission", action: () => { setUploadIsCommission(true); setShowUpload(true); setShowNewMenu(false) } },
-                    { label: "Shop listing", action: () => { setShowShopModal(true); setShowNewMenu(false) } },
-                  ] as { label: string; action: () => void }[]
-                ).map(item => (
+              <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", minWidth: 160, zIndex: 50 }}>
+                {([
+                  { label: "Post", action: () => { setShowUpload(true); setShowNewMenu(false) } },
+                  { label: "Story", action: () => { setAddingStory(true); setShowNewMenu(false) } },
+                  { label: "Commission", action: () => { setUploadIsCommission(true); setShowUpload(true); setShowNewMenu(false) } },
+                  { label: "Shop listing", action: () => { setShowShopModal(true); setShowNewMenu(false) } },
+                ] as { label: string; action: () => void }[]).map(item => (
                   <button
                     key={item.label}
                     onClick={item.action}
-                    className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 transition-colors"
+                    style={{ width: "100%", textAlign: "left", padding: "10px 16px", fontSize: 12, color: "var(--text)", background: "none", border: "none", cursor: "pointer", display: "block" }}
                   >
                     {item.label}
                   </button>
@@ -532,344 +426,254 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             )}
           </div>
         )}
-      </div>
 
-      {/* ── Posts tab ─────────────────────────────────────────── */}
-      {tab === "Posts" && (
-        <>
+        {/* Tab content */}
+        <div style={{ padding: "14px 14px 0" }}>
 
-          {postsLoading ? (
-            <div className="text-center py-16 text-white/40">Loading…</div>
-          ) : posts && posts.length > 0 ? (
-            <div className="grid grid-cols-3" style={{ gap: 2 }}>
-              {posts.map((post) => (
-                <div key={post.id} className="relative" style={{ background: "#ffffff08", borderRadius: 4 }}>
-                  <button
-                    onClick={() => {
-                      if ((post as PostItem).status === "REMOVED") return
-                      setViewPost(post as PostItem)
-                    }}
-                    className="relative aspect-square overflow-hidden group w-full" style={{ borderRadius: 4 }}>
-                    <img src={post.image} alt={post.description ?? ""} className="w-full h-full object-cover" />
-                    <div className="absolute top-1.5 left-1.5 flex gap-1">
-                      {post.isAiGenerated && (
-                        <span className="text-xs font-medium bg-purple-600/80 text-white px-1.5 py-0.5 rounded-md">AI</span>
-                      )}
-                      {(post as PostItem).isCommission && (
-                        <span className="text-xs font-medium bg-blue-600/80 text-white px-1.5 py-0.5 rounded-md">Comm</span>
-                      )}
-                    </div>
-                    {isOwn && (post as PostItem).pinned && (
-                      <div className="absolute top-1.5 right-1.5">
-                        <svg className="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M16 12V4h1a1 1 0 000-2H7a1 1 0 000 2h1v8l-2 2v2h5v5l1 1 1-1v-5h5v-2l-2-2z"/>
-                        </svg>
-                      </div>
-                    )}
-                    {post.description && (
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <span className="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity px-2 text-center line-clamp-2">
-                          {post.description}
-                        </span>
-                      </div>
-                    )}
-                    {(post as PostItem).status === "PENDING_REVIEW" && (
-                      <div style={{
-                        position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "rgba(0,0,0,0.55)", borderRadius: "inherit",
-                      }}>
-                        <span style={{
-                          background: "#854d0e", color: "#fef08a", fontSize: 11, fontWeight: 700,
-                          padding: "4px 10px", borderRadius: 20, border: "1px solid #a16207",
-                        }}>
-                          Under Review
-                        </span>
-                      </div>
-                    )}
-                    {isOwn && (post as PostItem).status === "REMOVED" && (
-                      <div style={{
-                        position: "absolute", inset: 0,
-                        background: "rgba(0,0,0,0.72)",
-                        borderRadius: 4,
-                        display: "flex", flexDirection: "column",
-                        alignItems: "center", justifyContent: "center",
-                        padding: "6px 4px",
-                        gap: 4,
-                      }}>
-                        <span style={{ color: "#f87171", fontSize: 10, fontWeight: 700, textAlign: "center" }}>Removed</span>
-                        {(post as PostItem).removalReason && (
-                          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 8, textAlign: "center", lineHeight: 1.3, wordBreak: "break-word", maxWidth: "90%" }}>
-                            {(post as PostItem).removalReason}
-                          </span>
-                        )}
-                        <a
-                          href={`/appeal?postId=${post.id}`}
-                          onClick={e => e.stopPropagation()}
-                          style={{
-                            marginTop: 2,
-                            color: "#a78bfa", fontSize: 9, fontWeight: 600,
-                            textDecoration: "underline",
-                          }}
-                        >
-                          Appeal →
-                        </a>
-                      </div>
-                    )}
-                  </button>
-                  {session && !isOwn && (
-                    localReported.has(post.id) ? (
-                      <span style={{ display: "block", textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.3)", padding: "2px 0" }}>
-                        Reported
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setReportingPostId(post.id)}
-                        style={{
-                          display: "block", width: "100%", background: "none", border: "none",
-                          color: "rgba(255,255,255,0.3)", fontSize: 10, cursor: "pointer", padding: "2px 0",
-                        }}
-                      >
-                        ⚑ Report
-                      </button>
-                    )
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="text-4xl mb-3">🖼️</div>
-              <p className="font-medium text-white/50">No posts yet</p>
-              {isOwn && <p className="text-sm mt-1 text-white/30">Share your first piece of art</p>}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── Shop tab ──────────────────────────────────────────── */}
-      {tab === "Shop" && (
-        <>
-          <div className="mb-4 flex items-center justify-between">
-            <Link
-              href={`/@${profileUser.username}/shop`}
-              className="text-sm transition-colors"
-              style={{ color: "rgba(255,255,255,0.4)" }}
-            >
-              Browse all →
-            </Link>
-            {isOwn && (
-              <Link
-                href={`/@${profileUser.username}/shop/new`}
-                className="text-sm font-medium px-3 py-2 rounded-xl transition-colors"
-                style={{ background: "rgba(120,75,160,0.15)", color: "#784BA0", border: "1px solid rgba(120,75,160,0.3)" }}
-              >
-                + Add listing
-              </Link>
-            )}
-          </div>
-
-          {shopLoading ? (
-            <div className="text-center py-16 text-white/40">Loading…</div>
-          ) : shopItems && shopItems.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4">
-              {shopItems.map((item) => (
-                <div key={item.id} className="rounded-2xl overflow-hidden" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}>
-                  <div className="aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
-                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="p-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-white/40">@{profileUser.username}</p>
-                      <span className="text-sm font-bold text-white">${item.price.toFixed(2)}</span>
-                    </div>
-                    {isOwn ? (
-                      <button
-                        onClick={() => deleteShopItem.mutate({ id: item.id })}
-                        disabled={deleteShopItem.isPending}
-                        className="flex-shrink-0 text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
-                    ) : (
-                      <Link
-                        href={`/@${profileUser.username}/shop/${item.id}`}
-                        className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                        style={{ background: "rgba(120,75,160,0.15)", color: "#784BA0", border: "1px solid rgba(120,75,160,0.3)" }}
-                      >
-                        View
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="text-4xl mb-3">🛍️</div>
-              <p className="font-medium text-white/50">No items for sale yet</p>
-              {isOwn && <p className="text-sm mt-1 text-white/30">Add prints, stickers, or other work</p>}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── Commissions tab ───────────────────────────────────── */}
-      {tab === "Commissions" && (
-        <>
-          {!commissionProfile ? (
-            <div className="text-center py-12">
-              <p className="text-white/30 text-sm">Loading…</p>
-            </div>
-          ) : (
+          {/* ── Posts tab ─────────────────────────────────────────── */}
+          {tab === "Posts" && (
             <>
-              {/* Info card */}
-              <div className="rounded-2xl p-5 mb-6" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}>
-                {/* Trust score */}
-                {trustScore && (
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">Trust Score</span>
-                    <span className="text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5" style={{ background: "rgba(240,235,248,0.07)" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: TIER_COLORS[trustScore.tier], display: "inline-block", flexShrink: 0 }} />
-                      <span style={{ color: TIER_COLORS[trustScore.tier], fontWeight: 700 }}>{TIER_LABELS[trustScore.tier]}</span>
-                      {trustScore.finalScore !== null && (
-                        <span style={{ color: "rgba(255,255,255,0.5)" }}>{trustScore.finalScore.toFixed(1)}</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-
-                {commissionProfile.commissionDescription && (
-                  <p className="text-sm text-white/70 mb-4">{commissionProfile.commissionDescription}</p>
-                )}
-
-                <div className="flex flex-wrap gap-4 mb-4">
-                  {commissionProfile.commissionTurnaround && (
-                    <div>
-                      <p className="text-xs text-white/40 mb-0.5">Turnaround</p>
-                      <p className="text-sm font-medium text-white">{commissionProfile.commissionTurnaround}</p>
-                    </div>
-                  )}
-                  {commissionProfile.priceRanges && (() => {
-                    const ranges = commissionProfile.priceRanges as { label: string; price: number }[]
-                    return ranges.length > 0 && (
-                      <div>
-                        <p className="text-xs text-white/40 mb-0.5">Price ranges</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {ranges.map((r) => (
-                            <span key={r.label + '-' + r.price} className="text-xs px-2 py-0.5 rounded-full text-white/70" style={{ background: "rgba(240,235,248,0.07)" }}>
-                              {r.label} — ${r.price}
-                            </span>
-                          ))}
+              {postsLoading ? (
+                <div style={{ textAlign: "center", padding: "64px 0", color: "var(--muted)" }}>Loading…</div>
+              ) : posts && posts.length > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 2, margin: "0 -14px" }}>
+                  {posts.map((post) => (
+                    <div key={post.id} style={{ position: "relative" }}>
+                      <Link
+                        href={(post as PostItem).status === "REMOVED" ? "#" : `/@${username}/${post.id}`}
+                        style={{ position: "relative", aspectRatio: "1", overflow: "hidden", width: "100%", borderRadius: 0, display: "block", background: "var(--border)" }}
+                        onClick={(e) => { if ((post as PostItem).status === "REMOVED") e.preventDefault() }}
+                      >
+                        <img src={post.image} alt={post.description ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        <div style={{ position: "absolute", top: 5, left: 5, display: "flex", gap: 3 }}>
+                          {post.isAiGenerated && (
+                            <span style={{ fontSize: 9, fontWeight: 600, background: "rgba(120,75,160,0.8)", color: "white", padding: "1px 5px", borderRadius: 4 }}>AI</span>
+                          )}
+                          {(post as PostItem).isCommission && (
+                            <span style={{ fontSize: 9, fontWeight: 600, background: "rgba(43,134,197,0.8)", color: "white", padding: "1px 5px", borderRadius: 4 }}>Comm</span>
+                          )}
                         </div>
-                      </div>
-                    )
-                  })()}
+                        {isOwn && (post as PostItem).pinned && (
+                          <div style={{ position: "absolute", top: 5, right: 5 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" }}>
+                              <path d="M16 12V4h1a1 1 0 000-2H7a1 1 0 000 2h1v8l-2 2v2h5v5l1 1 1-1v-5h5v-2l-2-2z"/>
+                            </svg>
+                          </div>
+                        )}
+                        {(post as PostItem).status === "PENDING_REVIEW" && (
+                          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)" }}>
+                            <span style={{ background: "#854d0e", color: "#fef08a", fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20, border: "1px solid #a16207" }}>Under Review</span>
+                          </div>
+                        )}
+                        {isOwn && (post as PostItem).status === "REMOVED" && (
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.72)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "6px 4px", gap: 4 }}>
+                            <span style={{ color: "#f87171", fontSize: 9, fontWeight: 700, textAlign: "center" }}>Removed</span>
+                            {(post as PostItem).removalReason && (
+                              <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 7, textAlign: "center", lineHeight: 1.3, wordBreak: "break-word", maxWidth: "90%" }}>{(post as PostItem).removalReason}</span>
+                            )}
+                            <a href={`/appeal?postId=${post.id}`} onClick={e => e.stopPropagation()} style={{ color: "#a78bfa", fontSize: 8, fontWeight: 600, textDecoration: "underline" }}>Appeal →</a>
+                          </div>
+                        )}
+                      </Link>
+                    </div>
+                  ))}
                 </div>
-
-                {!isOwn && commissionProfile.commissionStatus !== "CLOSED" && (
-                  <button
-                    onClick={() => setShowCommissionRequest(true)}
-                    className="w-full py-3 text-white rounded-xl text-sm font-semibold hover:opacity-80 transition-opacity"
-                    style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
-                  >
-                    Request Commission
-                  </button>
-                )}
-              </div>
-
-              {/* Example work gallery */}
-              {galleryImages.length > 0 ? (
-                <>
-                  <p className="text-xs text-white/40 mb-3 uppercase tracking-wide font-semibold">Example work</p>
-                  <div className="grid grid-cols-3 gap-0.5">
-                    {galleryImages.map(({ src, key }) => (
-                      <div key={key} className="relative aspect-square overflow-hidden" style={{ background: "#ffffff08" }}>
-                        <img src={src} alt="Example work" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                </>
               ) : (
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-3">🎨</div>
-                  <p className="font-medium text-white/50">No example work yet</p>
-                  {isOwn && (
-                    <p className="text-sm mt-1 text-white/30">Add images in your Artist Dashboard</p>
-                  )}
+                <div style={{ textAlign: "center", padding: "64px 0" }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>🖼️</div>
+                  <p style={{ fontWeight: 500, color: "var(--muted)" }}>No posts yet</p>
+                  {isOwn && <p style={{ fontSize: 11, marginTop: 4, color: "var(--muted)" }}>Share your first piece of art</p>}
                 </div>
               )}
             </>
           )}
-        </>
-      )}
 
-      {/* ── About tab ─────────────────────────────────────────── */}
-      {tab === "About" && (
-        <div className="flex flex-col gap-5 max-w-sm">
-          {/* Commission status badge */}
-          {commissionProfile && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-2">Commission status</p>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusColors[commissionProfile.commissionStatus as keyof typeof statusColors] ?? "bg-white/10 text-white/30"}`}>
-                {statusLabels[commissionProfile.commissionStatus as keyof typeof statusLabels] ?? "Closed for commissions"}
-              </span>
-            </div>
-          )}
-
-          {profileUser.bio && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-1">Bio</p>
-              <p className="text-sm text-white/70">{profileUser.bio}</p>
-            </div>
-          )}
-
-          {(profileUser.websiteUrl || profileUser.twitterHandle || profileUser.instagramHandle || profileUser.artstationHandle) && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/40 mb-2">Links</p>
-              <div className="flex flex-col gap-2">
-                {profileUser.websiteUrl && (
-                  <a href={profileUser.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
-                    <span>🌐</span> {profileUser.websiteUrl}
-                  </a>
-                )}
-                {profileUser.twitterHandle && (
-                  <a href={`https://x.com/${profileUser.twitterHandle.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
-                    <span>𝕏</span> {profileUser.twitterHandle}
-                  </a>
-                )}
-                {profileUser.instagramHandle && (
-                  <a href={`https://instagram.com/${profileUser.instagramHandle.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
-                    <span>📸</span> {profileUser.instagramHandle}
-                  </a>
-                )}
-                {profileUser.artstationHandle && (
-                  <a href={`https://artstation.com/${profileUser.artstationHandle}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-cyan-400 hover:underline">
-                    <span>🎨</span> ArtStation — {profileUser.artstationHandle}
-                  </a>
+          {/* ── Shop tab ──────────────────────────────────────────── */}
+          {tab === "Shop" && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <Link href={`/@${profileUser.username}/shop`} style={{ fontSize: 11, color: "var(--muted)", textDecoration: "none" }}>
+                  Browse all →
+                </Link>
+                {isOwn && (
+                  <Link href={`/@${profileUser.username}/shop/new`} style={{ fontSize: 11, fontWeight: 500, padding: "6px 12px", borderRadius: 10, background: "rgba(120,75,160,0.15)", color: "#784BA0", border: "1px solid rgba(120,75,160,0.3)", textDecoration: "none" }}>
+                    + Add listing
+                  </Link>
                 )}
               </div>
+              {shopLoading ? (
+                <div style={{ textAlign: "center", padding: "64px 0", color: "var(--muted)" }}>Loading…</div>
+              ) : shopItems && shopItems.length > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  {shopItems.map(item => (
+                    <div key={item.id} style={{ borderRadius: 16, overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)" }}>
+                      <div style={{ aspectRatio: "1", overflow: "hidden" }}>
+                        <img src={item.image} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                      <div style={{ padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <div>
+                          <p style={{ fontSize: 10, color: "var(--muted)" }}>@{profileUser.username}</p>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>${item.price.toFixed(2)}</span>
+                        </div>
+                        {isOwn ? (
+                          <button onClick={() => deleteShopItem.mutate({ id: item.id })} disabled={deleteShopItem.isPending} style={{ fontSize: 10, color: "#f87171", background: "none", border: "none", cursor: "pointer" }}>
+                            Remove
+                          </button>
+                        ) : (
+                          <Link href={`/@${profileUser.username}/shop/${item.id}`} style={{ fontSize: 10, fontWeight: 500, padding: "5px 10px", borderRadius: 8, background: "rgba(120,75,160,0.15)", color: "#784BA0", border: "1px solid rgba(120,75,160,0.3)", textDecoration: "none" }}>
+                            View
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", padding: "64px 0" }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>🛍️</div>
+                  <p style={{ fontWeight: 500, color: "var(--muted)" }}>No items for sale yet</p>
+                  {isOwn && <p style={{ fontSize: 11, marginTop: 4, color: "var(--muted)" }}>Add prints, stickers, or other work</p>}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Commissions tab ───────────────────────────────────── */}
+          {tab === "Commissions" && (
+            <>
+              {!commissionProfile ? (
+                <div style={{ textAlign: "center", padding: "48px 0", color: "var(--muted)" }}>Loading…</div>
+              ) : (
+                <>
+                  <div style={{ borderRadius: 16, padding: 16, marginBottom: 20, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    {trustScore && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted)" }}>Trust Score</span>
+                        <span style={{ fontSize: 10, padding: "3px 10px", borderRadius: 20, background: "rgba(240,235,248,0.06)", display: "flex", alignItems: "center", gap: 5 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: TIER_COLORS[trustScore.tier], display: "inline-block" }} />
+                          <span style={{ color: TIER_COLORS[trustScore.tier], fontWeight: 700 }}>{TIER_LABELS[trustScore.tier]}</span>
+                          {trustScore.finalScore !== null && <span style={{ color: "var(--muted)" }}>{trustScore.finalScore.toFixed(1)}</span>}
+                        </span>
+                      </div>
+                    )}
+                    {commissionProfile.commissionDescription && (
+                      <p style={{ fontSize: 12, color: "rgba(240,235,248,0.7)", marginBottom: 14, lineHeight: 1.6 }}>{commissionProfile.commissionDescription}</p>
+                    )}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 14 }}>
+                      {commissionProfile.commissionTurnaround && (
+                        <div>
+                          <p style={{ fontSize: 10, color: "var(--muted)", marginBottom: 2 }}>Turnaround</p>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text)" }}>{commissionProfile.commissionTurnaround}</p>
+                        </div>
+                      )}
+                      {commissionProfile.priceRanges && (() => {
+                        const ranges = commissionProfile.priceRanges as { label: string; price: number }[]
+                        return ranges.length > 0 && (
+                          <div>
+                            <p style={{ fontSize: 10, color: "var(--muted)", marginBottom: 4 }}>Price ranges</p>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                              {ranges.map(r => (
+                                <span key={r.label + r.price} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, color: "rgba(240,235,248,0.7)", background: "rgba(240,235,248,0.06)" }}>
+                                  {r.label} — ${r.price}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                    {!isOwn && commissionProfile.commissionStatus !== "CLOSED" && (
+                      <button
+                        onClick={() => setShowCommissionRequest(true)}
+                        style={{ width: "100%", padding: "10px 0", color: "white", borderRadius: 12, fontSize: 12, fontWeight: 600, background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", border: "none", cursor: "pointer" }}
+                      >
+                        Request Commission
+                      </button>
+                    )}
+                  </div>
+                  {galleryImages.length > 0 ? (
+                    <>
+                      <p style={{ fontSize: 10, color: "var(--muted)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Example work</p>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 2 }}>
+                        {galleryImages.map(({ src, key }) => (
+                          <div key={key} style={{ aspectRatio: "1", overflow: "hidden", background: "rgba(240,235,248,0.04)" }}>
+                            <img src={src} alt="Example work" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "48px 0" }}>
+                      <div style={{ fontSize: 36, marginBottom: 12 }}>🎨</div>
+                      <p style={{ fontWeight: 500, color: "var(--muted)" }}>No example work yet</p>
+                      {isOwn && <p style={{ fontSize: 11, marginTop: 4, color: "var(--muted)" }}>Add images in your Artist Dashboard</p>}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* ── About tab ─────────────────────────────────────────── */}
+          {tab === "About" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18, paddingBottom: 20 }}>
+              {commissionProfile && (
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted)", marginBottom: 7 }}>Commission status</p>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 500,
+                    ...(commissionProfile.commissionStatus === "OPEN"
+                      ? { background: "rgba(72,200,120,0.15)", color: "#48C878" }
+                      : commissionProfile.commissionStatus === "LIMITED"
+                        ? { background: "rgba(251,191,36,0.15)", color: "#FBBF24" }
+                        : { background: "rgba(240,235,248,0.06)", color: "var(--muted)" })
+                  }}>
+                    {({ OPEN: "Open for commissions", LIMITED: "Limited slots", CLOSED: "Closed for commissions" } as Record<string, string>)[commissionProfile.commissionStatus] ?? "Closed for commissions"}
+                  </span>
+                </div>
+              )}
+              {profileUser.bio && (
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted)", marginBottom: 5 }}>Bio</p>
+                  <p style={{ fontSize: 12, color: "rgba(240,235,248,0.7)", lineHeight: 1.6 }}>{profileUser.bio}</p>
+                </div>
+              )}
+              {(pu.websiteUrl || pu.twitterHandle || pu.instagramHandle || pu.artstationHandle) && (
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--muted)", marginBottom: 7 }}>Links</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {pu.websiteUrl && (
+                      <a href={pu.websiteUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#2B86C5", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>🌐 {pu.websiteUrl}</a>
+                    )}
+                    {pu.twitterHandle && (
+                      <a href={`https://x.com/${pu.twitterHandle.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#2B86C5", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>𝕏 {pu.twitterHandle}</a>
+                    )}
+                    {pu.instagramHandle && (
+                      <a href={`https://instagram.com/${pu.instagramHandle.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#2B86C5", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>📸 {pu.instagramHandle}</a>
+                    )}
+                    {pu.artstationHandle && (
+                      <a href={`https://artstation.com/${pu.artstationHandle}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#2B86C5", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>🎨 ArtStation — {pu.artstationHandle}</a>
+                    )}
+                  </div>
+                </div>
+              )}
+              {isOwn && (
+                <Link href="/settings" style={{ fontSize: 12, color: "#2B86C5", textDecoration: "none" }}>Edit profile →</Link>
+              )}
             </div>
           )}
 
-          {isOwn && (
-            <Link href="/settings" className="mt-2 text-sm text-cyan-400 hover:underline">
-              Edit profile →
-            </Link>
-          )}
         </div>
-      )}
-
-      </div> {/* end profile identity block */}
-      </div> {/* end profile card */}
+      </div>
 
       {/* ── New post modal ────────────────────────────────────── */}
       {showUpload && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="rounded-2xl w-full max-w-md flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#1e0d3f", border: "1px solid var(--border)" }}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">{uploadIsCommission ? "New commission post" : "New post"}</h2>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ borderRadius: 16, width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 14, padding: 24, maxHeight: "90vh", overflowY: "auto", background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>{uploadIsCommission ? "New commission post" : "New post"}</h2>
               <button onClick={() => { setShowUpload(false); setRawImage(null); setUploadImage(null); setUploadDesc(""); setUploadIsAi(false); setUploadIsCommission(false); setPostUploadError(null) }}
-                className="text-white/40 hover:text-white text-xl leading-none transition-colors">✕</button>
+                style={{ color: "var(--muted)", fontSize: 20, lineHeight: 1, background: "none", border: "none", cursor: "pointer" }}>✕</button>
             </div>
 
             {rawImage && !uploadImage ? (
@@ -879,47 +683,46 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 onCancel={() => setRawImage(null)}
               />
             ) : uploadImage ? (
-              <div className="relative">
-                <img src={uploadImage} alt="Preview" className="w-full rounded-xl" style={{ aspectRatio: "1/1", objectFit: "cover" }} />
-                <button onClick={() => { setUploadImage(null) }}
-                  className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70">
+              <div style={{ position: "relative" }}>
+                <img src={uploadImage} alt="Preview" style={{ width: "100%", borderRadius: 12, aspectRatio: "1/1", objectFit: "cover" }} />
+                <button onClick={() => setUploadImage(null)}
+                  style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.5)", color: "white", fontSize: 10, padding: "4px 8px", borderRadius: 8, border: "none", cursor: "pointer" }}>
                   Change
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center rounded-xl h-48 cursor-pointer hover:bg-white/5 transition-colors" style={{ border: "2px dashed var(--border)" }}>
-                <span className="text-3xl mb-2">🖼️</span>
-                <span className="text-sm text-white/40">{imgProcessing ? "Processing…" : "Click to choose image"}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageFile} disabled={imgProcessing} />
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderRadius: 12, height: 192, cursor: "pointer", border: "2px dashed var(--border)" }}>
+                <span style={{ fontSize: 32, marginBottom: 8 }}>🖼️</span>
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>{imgProcessing ? "Processing…" : "Click to choose image"}</span>
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageFile} disabled={imgProcessing} />
               </label>
             )}
 
             {!rawImage && <textarea value={uploadDesc} onChange={(e) => setUploadDesc(e.target.value)}
               placeholder="Write a caption…" maxLength={500} rows={3}
-              className="w-full rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-              style={{ background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)" }} />}
+              style={{ width: "100%", borderRadius: 12, padding: "8px 12px", fontSize: 13, color: "var(--text)", background: "rgba(240,235,248,0.07)", border: "1px solid var(--border)", resize: "none", outline: "none" }} />}
 
             {!rawImage && [
               { label: "AI generated", sub: "Let others know this was made with AI", value: uploadIsAi, set: setUploadIsAi },
               { label: "This is a commission", sub: "Show in your Commissions tab", value: uploadIsCommission, set: setUploadIsCommission },
             ].map(({ label, sub, value, set }) => (
-              <div key={label} className="flex items-center justify-between py-1">
+              <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0" }}>
                 <div>
-                  <p className="text-sm font-medium text-white">{label}</p>
-                  <p className="text-xs text-white/40">{sub}</p>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>{label}</p>
+                  <p style={{ fontSize: 11, color: "var(--muted)" }}>{sub}</p>
                 </div>
                 <button
                   onClick={() => set((v: boolean) => !v)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${value ? "bg-purple-600" : "bg-white/20"}`}
+                  style={{ position: "relative", display: "inline-flex", height: 24, width: 44, alignItems: "center", borderRadius: 12, background: value ? "#7C3AED" : "rgba(240,235,248,0.2)", border: "none", cursor: "pointer", flexShrink: 0 }}
                   role="switch" aria-checked={value}
                 >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${value ? "translate-x-6" : "translate-x-1"}`} />
+                  <span style={{ position: "absolute", width: 16, height: 16, borderRadius: "50%", background: "white", transition: "transform 0.2s", transform: value ? "translateX(24px)" : "translateX(4px)" }} />
                 </button>
               </div>
             ))}
 
-            {!rawImage && createPost.error && <p className="text-sm text-red-400">{createPost.error.message}</p>}
-            {!rawImage && postUploadError && <p className="text-sm text-red-400">{postUploadError}</p>}
+            {!rawImage && createPost.error && <p style={{ fontSize: 12, color: "#f87171" }}>{createPost.error.message}</p>}
+            {!rawImage && postUploadError && <p style={{ fontSize: 12, color: "#f87171" }}>{postUploadError}</p>}
 
             {!rawImage && <button
               onClick={async () => {
@@ -932,22 +735,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                   try {
                     const watermarked = await applyWatermark(imageToPost, session?.user?.username ?? "gallery")
                     const url = await uploadToCloudinary(watermarked, "posts")
-                    createPost.mutate({
-                      image: url,
-                      description: uploadDesc.trim() || undefined,
-                      isAiGenerated: uploadIsAi,
-                      isCommission: uploadIsCommission,
-                    })
+                    createPost.mutate({ image: url, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi, isCommission: uploadIsCommission })
                   } catch (err) {
                     console.warn("[watermark/upload] failed, posting without watermark/cloudinary", err)
                     try {
                       const url = await uploadToCloudinary(imageToPost, "posts")
-                      createPost.mutate({
-                        image: url,
-                        description: uploadDesc.trim() || undefined,
-                        isAiGenerated: uploadIsAi,
-                        isCommission: uploadIsCommission,
-                      })
+                      createPost.mutate({ image: url, description: uploadDesc.trim() || undefined, isAiGenerated: uploadIsAi, isCommission: uploadIsCommission })
                     } catch (uploadErr) {
                       console.error("[post] cloudinary upload failed:", uploadErr)
                       setPostUploadError("Failed to upload image. Please try again.")
@@ -963,8 +756,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                 }
               }}
               disabled={createPost.isPending || !uploadImage || imgProcessing || isWatermarking || isUploadingPost}
-              className="w-full text-white py-2.5 rounded-xl text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
+              style={{ width: "100%", padding: "10px 0", borderRadius: 12, fontSize: 13, fontWeight: 600, color: "white", background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", border: "none", cursor: "pointer", opacity: createPost.isPending || !uploadImage || imgProcessing || isWatermarking || isUploadingPost ? 0.5 : 1 }}
+            >
               {createPost.isPending || isWatermarking || isUploadingPost ? (isUploadingPost ? "Uploading…" : "Posting…") : "Share"}
             </button>}
           </div>
@@ -1026,6 +819,6 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           } : undefined}
         />
       )}
-  </>
+    </>
   )
 }

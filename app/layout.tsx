@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import Navbar from "@/components/Navbar"
@@ -12,6 +12,7 @@ import CookieConsent from "@/components/CookieConsent"
 import Link from "next/link"
 
 const inter = Inter({ subsets: ["latin"] })
+const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-playfair" })
 
 export const metadata: Metadata = {
   title: "Gallery",
@@ -25,16 +26,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${playfair.variable}`}>
         <Providers>
           <BanBanner />
           <CookieConsent />
           <PushInit />
-          {/* Navbar: visible on mobile only — desktop uses the sidebar in BottomNav */}
-          <div className="md:hidden">
-            <Navbar />
-          </div>
-          <div className="pb-20 pt-14 md:pb-0 md:pt-0 md:pl-16 min-h-screen">
+          <Navbar />
+          <div className="main-layout" style={{ maxWidth: 470, margin: "0 auto", paddingTop: 56, paddingBottom: 80, minHeight: "100vh" }}>
             {children}
             <footer style={{ padding: "16px 24px", textAlign: "center" }}>
               <Link href="/dmca" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>

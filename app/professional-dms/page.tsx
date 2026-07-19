@@ -17,14 +17,14 @@ const statusLabel: Record<string, string> = {
   CANCELLED: "Cancelled",
 }
 
-const statusColor: Record<string, string> = {
-  PENDING: "bg-yellow-500/20 text-yellow-400",
-  ACCEPTED: "bg-blue-500/20 text-blue-400",
-  IN_PROGRESS: "bg-blue-500/20 text-blue-400",
-  DELIVERED: "bg-purple-500/20 text-purple-400",
-  COMPLETE: "bg-green-500/20 text-green-400",
-  DECLINED: "bg-white/10 text-white/40",
-  CANCELLED: "bg-white/10 text-white/40",
+const STATUS_STYLE: Record<string, React.CSSProperties> = {
+  PENDING:     { background: "rgba(255,180,60,0.15)",  color: "#FFB43C" },
+  ACCEPTED:    { background: "rgba(43,134,197,0.15)",  color: "#5BAEE0" },
+  IN_PROGRESS: { background: "rgba(43,134,197,0.15)",  color: "#5BAEE0" },
+  DELIVERED:   { background: "rgba(120,75,160,0.18)",  color: "#B090D8" },
+  COMPLETE:    { background: "rgba(72,200,120,0.15)",  color: "#48C878" },
+  DECLINED:    { background: "rgba(255,255,255,0.08)", color: "rgba(240,235,248,0.4)" },
+  CANCELLED:   { background: "rgba(255,255,255,0.08)", color: "rgba(240,235,248,0.4)" },
 }
 
 function timeAgo(date: Date): string {
@@ -53,26 +53,24 @@ function CommissionRow({ commission, otherParty, role }: {
   return (
     <button
       onClick={() => router.push(`/professional-dms/${commission.id}`)}
-      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/5 transition-colors text-left"
-      style={{ borderBottom: "1px solid #ffffff08" }}
+      style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "13px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer", textAlign: "left" }}
     >
-      <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={40} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p className="text-sm font-bold truncate font-playfair" style={{ color: "var(--text)" }}>
+      <Avatar src={otherParty?.image} name={otherParty?.name} username={otherParty?.username} size={42} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <p style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 13.5, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {otherParty?.name ?? `@${otherParty?.username ?? "unknown"}`}
           </p>
-          <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0"
-            style={{ background: role === "artist" ? "rgba(120,75,160,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#B090D8" : "rgba(255,255,255,0.4)" }}>
+          <span style={{ flexShrink: 0, fontSize: 8, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 99, fontFamily: "Inter,sans-serif", background: role === "artist" ? "rgba(120,75,160,0.2)" : "rgba(255,255,255,0.08)", color: role === "artist" ? "#B090D8" : "rgba(255,255,255,0.4)" }}>
             {role === "artist" ? "client" : "commissioned"}
           </span>
         </div>
         {otherParty?.name && (
-          <p className="text-[11px]" style={{ color: "var(--muted)" }}>@{otherParty.username}</p>
+          <p style={{ fontSize: 11, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>@{otherParty.username}</p>
         )}
-        <p className="text-[11px] mt-0.5" style={{ color: "rgba(107,95,136,0.6)" }}>{timeAgo(commission.updatedAt)}</p>
+        <p style={{ fontSize: 10, color: "rgba(107,95,136,0.6)", marginTop: 1, fontFamily: "Inter,sans-serif" }}>{timeAgo(commission.updatedAt)}</p>
       </div>
-      <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${statusColor[commission.status] ?? "bg-white/10 text-white/40"}`}>
+      <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: "4px 10px", borderRadius: 99, fontFamily: "Inter,sans-serif", ...(STATUS_STYLE[commission.status] ?? { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }) }}>
         {statusLabel[commission.status] ?? commission.status}
       </span>
     </button>
@@ -88,7 +86,7 @@ export default function ProfessionalDMsPage() {
   }, [status, router])
 
   if (status === "unauthenticated" || status === "loading") {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-white/40">Loading…</p></div>
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
   return <ProfessionalDMsInner />
@@ -98,7 +96,7 @@ function ProfessionalDMsInner() {
   const { data, isLoading } = trpc.commission.getMine.useQuery()
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><p className="text-white/40">Loading…</p></div>
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
   const asBuyer = data?.asBuyer ?? []
@@ -111,22 +109,20 @@ function ProfessionalDMsInner() {
   ].sort((a, b) => new Date(b.commission.updatedAt).getTime() - new Date(a.commission.updatedAt).getTime())
 
   return (
-    <div className="max-w-lg mx-auto pb-24">
+    <div style={{ maxWidth: 512, margin: "0 auto", paddingBottom: 96, background: "var(--bg)", minHeight: "100vh" }}>
       <MessagesTabs />
-      <div className="px-4 py-6">
-        {threads.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-white/50 font-medium">No commission threads yet</p>
-            <p className="text-xs text-white/30 mt-1">Request a commission from the Commissions tab to get started</p>
-          </div>
-        ) : (
-          <div className="rounded-2xl overflow-hidden" style={{ background: "#160b30", border: "1px solid var(--border)" }}>
-            {threads.map(({ commission, otherParty, role }) => (
-              <CommissionRow key={commission.id} commission={commission} otherParty={otherParty} role={role} />
-            ))}
-          </div>
-        )}
-      </div>
+      {threads.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "80px 32px" }}>
+          <p style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 15, color: "var(--text)" }}>No commission threads yet</p>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 5, fontFamily: "Inter,sans-serif" }}>Request a commission from the Commissions tab to get started</p>
+        </div>
+      ) : (
+        <div>
+          {threads.map(({ commission, otherParty, role }) => (
+            <CommissionRow key={commission.id} commission={commission} otherParty={otherParty} role={role} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

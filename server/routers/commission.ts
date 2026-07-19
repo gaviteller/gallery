@@ -259,8 +259,8 @@ export const commissionRouter = router({
       const commission = await ctx.prisma.commission.findUnique({
         where: { id: input.id },
         include: {
-          buyer: { select: { id: true, username: true, name: true, image: true, buyerCancellationCount: true } },
-          artist: { select: { id: true, username: true, name: true, image: true } },
+          buyer: { select: { id: true, username: true, name: true, image: true, bannerImage: true, buyerCancellationCount: true } },
+          artist: { select: { id: true, username: true, name: true, image: true, bannerImage: true } },
           messages: {
             include: {
               sender: { select: { id: true, username: true, image: true } },
