@@ -3,6 +3,7 @@ import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { Prisma } from "@prisma/client"
 import { computeTier } from "@/server/lib/trustScore"
+import { sendPushToUser } from "@/lib/sendPush"
 import { checkNotBanned } from "@/server/lib/ban"
 import {
   sendCommissionRequestEmail,
@@ -355,6 +356,12 @@ export const commissionRouter = router({
           deadline: formatted,
         })
       }
+      sendPushToUser(ctx.prisma, commission.buyerId, {
+        title: "Commission accepted!",
+        body: `@${artist?.username} accepted your commission for $${input.price}`,
+        url: `/professional-dms/${input.id}`,
+        tag: `commission-${input.id}`,
+      }).catch(() => {})
       return updated
     }),
 
@@ -512,6 +519,12 @@ export const commissionRouter = router({
           artistUsername: artist?.username ?? "the artist",
         })
       }
+      sendPushToUser(ctx.prisma, commission.buyerId, {
+        title: "Work delivered!",
+        body: `@${artist?.username} delivered your commission — please review`,
+        url: `/professional-dms/${input.id}`,
+        tag: `commission-${input.id}`,
+      }).catch(() => {})
       return updatedCommission
     }),
 
@@ -542,6 +555,12 @@ export const commissionRouter = router({
           buyerUsername: buyer?.username ?? "the buyer",
         })
       }
+      sendPushToUser(ctx.prisma, commission.artistId, {
+        title: "Commission complete!",
+        body: `@${buyer?.username} approved your delivery — payment released`,
+        url: `/professional-dms/${input.id}`,
+        tag: `commission-${input.id}`,
+      }).catch(() => {})
       return updated
     }),
 

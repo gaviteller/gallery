@@ -42,6 +42,8 @@ function SettingsForm() {
   const [artstationHandle, setArtstationHandle] = useState("")
   const [showRealName, setShowRealName] = useState(false)
   const [adTargetingOptOut, setAdTargetingOptOut] = useState(false)
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("default")
+  const [notifLoading, setNotifLoading] = useState(false)
   const [photoProcessing, setPhotoProcessing] = useState(false)
   const [bannerImage, setBannerImage] = useState<string | null>(null)
   const [bannerProcessing, setBannerProcessing] = useState(false)
@@ -91,6 +93,18 @@ function SettingsForm() {
   const updateAdTargeting = trpc.user.updateAdTargetingOptOut.useMutation({
     onError: () => setAdTargetingOptOut(prev => !prev),
   })
+
+  const pushSubscribe = trpc.push.subscribe.useMutation()
+  const pushUnsubscribe = trpc.push.unsubscribe.useMutation()
+  const { data: vapidData } = trpc.push.getPublicKey.useQuery()
+
+  useEffect(() => {
+    if (typeof Notification === "undefined" || !("serviceWorker" in navigator)) {
+      setNotifPermission("unsupported")
+    } else {
+      setNotifPermission(Notification.permission)
+    }
+  }, [])
 
   const changeUsername = trpc.user.changeUsername.useMutation({
     onSuccess: async () => {
@@ -195,12 +209,55 @@ function SettingsForm() {
     }
   }
 
+  async function handleNotifToggle() {
+    if (notifPermission === "unsupported") return
+    setNotifLoading(true)
+    try {
+      if (notifPermission === "granted") {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) {
+          await sub.unsubscribe()
+          await pushUnsubscribe.mutateAsync({ endpoint: sub.endpoint })
+        }
+        setNotifPermission("default")
+      } else {
+        const permission = await Notification.requestPermission()
+        setNotifPermission(permission)
+        if (permission !== "granted") return
+        const reg = await navigator.serviceWorker.register("/sw.js")
+        const publicKey = vapidData?.publicKey ?? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        })
+        const json = sub.toJSON()
+        await pushSubscribe.mutateAsync({
+          endpoint: sub.endpoint,
+          p256dh: json.keys?.p256dh ?? "",
+          auth: json.keys?.auth ?? "",
+        })
+      }
+    } catch (err) {
+      console.error("[push]", err)
+    } finally {
+      setNotifLoading(false)
+    }
+  }
+
   const initials = (name || user?.username || "?")
     .split(" ")
     .map((w) => w[0])
     .join("")
     .toUpperCase()
     .slice(0, 2)
+
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
+    const raw = atob(base64)
+    return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
+  }
 
   if (status === "loading" || isLoading) {
     return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
@@ -458,6 +515,28 @@ function SettingsForm() {
               <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: adTargetingOptOut ? "auto" : 0 }} />
             </button>
           </div>
+
+          {/* Push notifications toggle */}
+          {notifPermission !== "unsupported" && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Push notifications</div>
+                <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>
+                  {notifPermission === "denied" ? "Blocked by browser — allow in browser settings" : notifPermission === "granted" ? "Enabled for likes, comments, follows, DMs" : "Get notified for likes, comments, follows, DMs"}
+                </div>
+              </div>
+              {notifPermission !== "denied" && (
+                <button
+                  onClick={handleNotifToggle}
+                  disabled={notifLoading}
+                  style={{ ...toggleStyle(notifPermission === "granted"), opacity: notifLoading ? 0.5 : 1 }}
+                  role="switch" aria-checked={notifPermission === "granted"}
+                >
+                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: notifPermission === "granted" ? "auto" : 0 }} />
+                </button>
+              )}
+            </div>
+          )}
 
           <p style={sectionLabelStyle}>Account</p>
 

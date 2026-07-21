@@ -2,6 +2,7 @@ import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { checkNotBanned } from "@/server/lib/ban"
 import { scanComment } from "@/lib/ai-scan"
+import { sendPushToUser } from "@/lib/sendPush"
 
 const commentSelect = {
   id: true,
@@ -26,6 +27,17 @@ export const interactionRouter = router({
         return { liked: false }
       } else {
         await ctx.prisma.like.create({ data: { userId: ctx.session.user.id, postId: input.postId } })
+        const post = await ctx.prisma.post.findUnique({ where: { id: input.postId }, select: { userId: true } })
+        const liker = await ctx.prisma.user.findUnique({ where: { id: ctx.session.user.id }, select: { username: true, name: true } })
+        if (post && post.userId !== ctx.session.user.id) {
+          const name = liker?.name ?? liker?.username ?? "Someone"
+          sendPushToUser(ctx.prisma, post.userId, {
+            title: "New like",
+            body: `${name} liked your post`,
+            url: `/`,
+            tag: `like-${input.postId}`,
+          }).catch(() => {})
+        }
         return { liked: true }
       }
     }),
@@ -104,6 +116,17 @@ export const interactionRouter = router({
         },
       })
       await scanComment(ctx.prisma, comment.id)
+      const post = await ctx.prisma.post.findUnique({ where: { id: input.postId }, select: { userId: true } })
+      const commenter = await ctx.prisma.user.findUnique({ where: { id: ctx.session.user.id }, select: { username: true, name: true } })
+      if (post && post.userId !== ctx.session.user.id) {
+        const name = commenter?.name ?? commenter?.username ?? "Someone"
+        sendPushToUser(ctx.prisma, post.userId, {
+          title: "New comment",
+          body: `${name}: ${input.text.slice(0, 80)}`,
+          url: `/`,
+          tag: `comment-${input.postId}`,
+        }).catch(() => {})
+      }
     }),
 
   deleteComment: protectedProcedure

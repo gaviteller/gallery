@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
+import { sendPushToUser } from "@/lib/sendPush"
 
 export const followRouter = router({
   follow: protectedProcedure
@@ -23,6 +24,15 @@ export const followRouter = router({
       await ctx.prisma.notification.create({
         data: { userId: target.id, fromUserId: ctx.session.user.id, type: "follow" },
       })
+
+      const follower = await ctx.prisma.user.findUnique({ where: { id: ctx.session.user.id }, select: { name: true, username: true } })
+      const name = follower?.name ?? follower?.username ?? "Someone"
+      sendPushToUser(ctx.prisma, target.id, {
+        title: "New follower",
+        body: `${name} started following you`,
+        url: `/@${input.username}`,
+        tag: `follow-${ctx.session.user.id}`,
+      }).catch(() => {})
 
       return { following: true }
     }),
