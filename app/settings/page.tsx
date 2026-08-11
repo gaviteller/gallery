@@ -650,6 +650,18 @@ function SettingsForm() {
             </div>
           )}
 
+          {/* Legal */}
+          <p style={sectionLabelStyle}>Legal</p>
+          <div style={{ borderBottom: "1px solid var(--border)" }}>
+            <button
+              onClick={() => router.push("/privacy")}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Privacy Policy</div>
+              <span style={{ fontSize: 17, color: "var(--muted)" }}>›</span>
+            </button>
+          </div>
+
           {/* Sign out */}
           <div style={{ paddingTop: 24 }}>
             <button
