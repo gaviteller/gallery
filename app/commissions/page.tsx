@@ -114,7 +114,7 @@ function Lightbox({ images, startIndex, artist, onClose, onRequest }: {
         <div ref={setRefs} onScroll={handleScroll} style={{ position: "absolute", inset: 0, display: "flex", overflowX: "scroll", scrollSnapType: "x mandatory", scrollbarWidth: "none" } as React.CSSProperties}>
           {images.map((img, i) => (
             <div key={i} style={{ flexShrink: 0, width: "100%", height: "100%", position: "relative", scrollSnapAlign: "center" }}>
-              <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} draggable={false} />
+              <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }} draggable={false} onContextMenu={(e) => e.preventDefault()} />
             </div>
           ))}
         </div>
@@ -226,7 +226,7 @@ function ForYouCard({ artist, onRequest, onLightbox, isActive }: {
         <div ref={imgScrollRef} onScroll={handleImgScroll} style={{ position: "absolute", inset: 0, display: "flex", overflowX: "scroll", scrollSnapType: "x mandatory", scrollbarWidth: "none" } as React.CSSProperties}>
           {images.map((img, i) => (
             <div key={i} style={{ flexShrink: 0, width: "100%", height: "100%", position: "relative", scrollSnapAlign: "center", cursor: "zoom-in" }} onClick={() => onLightbox(artist, i)}>
-              <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} draggable={false} />
+              <img src={img} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} draggable={false} onContextMenu={(e) => e.preventDefault()} />
             </div>
           ))}
         </div>
@@ -435,7 +435,7 @@ function ExploreCard({ artist, onRequest }: {
       {/* Art banner */}
       <div style={{ height: 108, overflow: "hidden", position: "relative", cursor: "pointer" }} onClick={() => router.push(`/@${artist.username}?tab=Commissions`)}>
         {cover
-          ? <img src={cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} draggable={false} />
+          ? <img src={cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} draggable={false} onContextMenu={(e) => e.preventDefault()} />
           : <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 60% 40%, rgba(120,75,160,0.5), transparent 65%), linear-gradient(135deg,#2A1838,#1E1430)" }} />
         }
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 65, background: "linear-gradient(transparent,rgba(8,6,15,0.96))", pointerEvents: "none" }} />

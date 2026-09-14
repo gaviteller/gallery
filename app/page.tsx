@@ -9,6 +9,7 @@ import MentionText from "@/components/MentionText"
 import PostModal from "@/components/PostModal"
 import FeaturedArtistsStrip from "@/components/FeaturedArtistsStrip"
 import ReportModal from "@/components/ReportModal"
+import ProtectedArtwork from "@/components/ProtectedArtwork"
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
@@ -224,7 +225,7 @@ export default function FeedPage() {
 
                 {/* Image — natural height, NO aspect ratio forcing, 0px radius */}
                 <Link href={`/@${post.user.username}/${post.id}`} style={{ display: "block" }}>
-                  <img src={post.image} alt={post.description ?? ""} style={{ display: "block", width: "100%", borderRadius: 0 }} />
+                  <ProtectedArtwork src={post.image} alt={post.description ?? ""} style={{ width: "100%", borderRadius: 0 }} />
                 </Link>
 
                 {/* Actions row */}

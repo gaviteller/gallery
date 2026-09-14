@@ -99,7 +99,7 @@ async function callOpenRouter(imageDataUrl: string): Promise<ScanScores> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.2-11b-vision-instruct",
+        model: "meta-llama/llama-4-scout",
         messages: [
           {
             role: "user",
@@ -193,7 +193,7 @@ async function callOpenRouterText(text: string): Promise<CommentScores> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.2-11b-vision-instruct",
+        model: "meta-llama/llama-4-scout",
         messages: [{ role: "user", content: `${COMMENT_PROMPT}\n\nComment: "${text}"` }],
       }),
     })

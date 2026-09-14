@@ -2,7 +2,6 @@
 
 import { useCart } from "@/lib/cart"
 import { trpc } from "@/components/providers"
-import Image from "next/image"
 import Link from "next/link"
 
 export default function CartDrawer({ onClose }: { onClose: () => void }) {
@@ -70,12 +69,12 @@ export default function CartDrawer({ onClose }: { onClose: () => void }) {
                   onClick={onClose}
                   className="flex-shrink-0"
                 >
-                  <Image
+                  <img
                     src={item.image}
                     alt={item.title}
-                    width={56}
-                    height={56}
-                    className="rounded-lg object-cover"
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                    style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", display: "block" }}
                   />
                 </Link>
                 <div className="flex-1 min-w-0">

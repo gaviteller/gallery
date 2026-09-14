@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { trpc } from "@/components/providers"
 import MentionText from "@/components/MentionText"
+import ProtectedArtwork from "@/components/ProtectedArtwork"
 
 type Post = {
   id: string
@@ -174,7 +175,7 @@ export default function PostModal({
 
         <div className="bg-white rounded-2xl overflow-hidden flex flex-col max-h-[90vh]">
           {/* Image */}
-          <img src={post.image} alt={post.description ?? ""} className="w-full object-contain max-h-[50vh] bg-black flex-shrink-0" />
+          <ProtectedArtwork src={post.image} alt={post.description ?? ""} className="w-full object-contain max-h-[50vh] bg-black flex-shrink-0" />
 
           <div className="flex flex-col flex-1 min-h-0">
             {/* Header */}

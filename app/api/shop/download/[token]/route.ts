@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { v2 as cloudinary } from "cloudinary"
 
@@ -14,6 +16,11 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Sign in to download your purchase" }, { status: 401 })
+  }
+
   const { token } = await params
 
   const order = await prisma.shopOrder.findUnique({
@@ -25,8 +32,16 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
+  if (order.buyerId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
   if (order.status !== "PURCHASED") {
     return NextResponse.json({ error: "Order not eligible for download" }, { status: 403 })
+  }
+
+  if (order.downloadTokenExpiresAt < new Date()) {
+    return NextResponse.json({ error: "Download link has expired. Contact support." }, { status: 410 })
   }
 
   if (!order.item.fileUrl) {

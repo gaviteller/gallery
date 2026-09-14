@@ -1,10 +1,9 @@
 "use client"
 
-import { use } from "react"
+import { use, useState } from "react"
 import { trpc } from "@/components/providers"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
-import Image from "next/image"
 import { useCart } from "@/lib/cart"
 
 export default function ShopItemPage({
@@ -16,6 +15,7 @@ export default function ShopItemPage({
   const displayUsername = username.startsWith("@") ? username.slice(1) : username
   const { data: session } = useSession()
   const { items: cartItems, dispatch } = useCart()
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   const { data: item, isLoading } = trpc.shop.getById.useQuery({ id: itemId })
 
@@ -24,7 +24,9 @@ export default function ShopItemPage({
       window.location.href = url
     },
     onError: (err) => {
-      alert(err.message)
+      setCheckoutError(err.message.includes("STRIPE") || err.message.includes("not set")
+        ? "Payments are not yet available — check back soon."
+        : err.message)
     },
   })
 
@@ -68,14 +70,12 @@ export default function ShopItemPage({
         </Link>
 
         {/* Preview image */}
-        <div className="rounded-2xl overflow-hidden aspect-square w-full relative mb-6">
-          <Image
+        <div className="rounded-2xl overflow-hidden aspect-square w-full relative mb-6" onContextMenu={(e) => e.preventDefault()}>
+          <img
             src={item.image}
             alt={item.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 672px) 100vw, 672px"
-            priority
+            draggable={false}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
           {item.status === "PAUSED" && (
             <div
@@ -101,12 +101,10 @@ export default function ShopItemPage({
           {/* Artist */}
           <Link href={`/@${item.user.username ?? displayUsername}`} className="flex items-center gap-2">
             {item.user.image && (
-              <Image
+              <img
                 src={item.user.image}
                 alt=""
-                width={28}
-                height={28}
-                className="rounded-full"
+                style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }}
               />
             )}
             <span
@@ -146,6 +144,12 @@ export default function ShopItemPage({
           <p className="text-xs italic" style={{ color: "rgba(255,255,255,0.3)" }}>
             All sales are final. Once a download link is sent, no refunds are issued.
           </p>
+
+          {checkoutError && (
+            <p className="text-sm text-center py-2 px-3 rounded-lg" style={{ background: "rgba(255,60,172,0.1)", color: "#FF3CAC" }}>
+              {checkoutError}
+            </p>
+          )}
 
           {/* Buyer actions */}
           {!isOwner && item.status === "ACTIVE" && (
