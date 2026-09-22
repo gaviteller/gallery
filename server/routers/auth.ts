@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 import { router, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { sendPasswordResetEmail } from "@/lib/email"
+import { normalizeEmail } from "@/lib/normalizeEmail"
 
 function sha256(input: string) {
   return crypto.createHash("sha256").update(input).digest("hex")
@@ -14,7 +15,12 @@ export const authRouter = router({
     .input(z.object({ email: z.string().email() }))
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.prisma.user.findFirst({
-        where: { normalizedEmail: input.email.toLowerCase().trim() },
+        where: {
+          OR: [
+            { email: { equals: input.email.trim(), mode: "insensitive" } },
+            { normalizedEmail: normalizeEmail(input.email) },
+          ],
+        },
         select: { id: true, email: true, username: true },
       })
 

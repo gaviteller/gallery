@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { trpc } from "@/components/providers"
 import Link from "next/link"
 import Avatar from "@/components/Avatar"
+import GalleryDesktopSidebar from "@/components/GalleryDesktopSidebar"
 
 // ── Desktop notification panel ─────────────────────────────────────────────
 
@@ -64,7 +65,7 @@ function DesktopNotifPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div style={{
+    <div className="sidenav-notif-panel" style={{
       position: "fixed", left: 62, top: 0, bottom: 0, width: 288,
       background: "var(--surface)", borderRight: "1px solid var(--border)",
       zIndex: 200, display: "flex", flexDirection: "column",
@@ -105,17 +106,20 @@ function DesktopNotifPanel({ onClose }: { onClose: () => void }) {
 
 // ── Side nav icon button ───────────────────────────────────────────────────
 
-function SideItem({ href, title, active, children, badge }: {
-  href: string; title: string; active: boolean; children: React.ReactNode; badge?: number
+function SideItem({ href, title, label, active, children, badge }: {
+  href: string; title: string; label: string; active: boolean; children: React.ReactNode; badge?: number
 }) {
   return (
-    <Link href={href} title={title} style={{
-      width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
-      color: active ? "white" : "var(--muted)",
-      background: active ? "rgba(120,75,160,0.18)" : "transparent",
-      textDecoration: "none", flexShrink: 0, position: "relative",
-    }}>
+    <Link href={href} title={title}
+      className={`sidenav-item${active ? " sidenav-item-active" : ""}`}
+      style={{
+        width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
+        color: active ? "white" : "var(--muted)",
+        background: active ? "rgba(120,75,160,0.18)" : "transparent",
+        textDecoration: "none", flexShrink: 0, position: "relative",
+      }}>
       {children}
+      <span className="sidenav-label" style={{ display: "none", fontSize: 13, fontWeight: 500, fontFamily: "Inter,sans-serif", color: "inherit" }}>{label}</span>
       {badge != null && badge > 0 && (
         <span style={{ position: "absolute", top: 4, right: 4, width: 14, height: 14, background: "#ef4444", color: "white", fontSize: 8, fontWeight: 700, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {badge > 9 ? "9+" : badge}
@@ -158,42 +162,33 @@ export default function BottomNav() {
   const username = session?.user?.username
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/")
   const profileActive = !!(username && (pathname === `/@${username}` || pathname.startsWith(`/@${username}/`)))
+  const isFeedHome = pathname === "/"
+  const isGalleryShell = isFeedHome || pathname.startsWith("/search") || pathname.startsWith("/shop")
 
   const menuLinks = [
     { href: "/", label: "Feed", d: "M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" },
     { href: "/shop", label: "Shop", d: "M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" },
     { href: "/commissions", label: "Commissions", d: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" },
-    { href: "/search", label: "Discover", d: "M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" },
+    { href: "/search", label: "Explore", d: "M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" },
     { href: "/messages", label: "Messages", d: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" },
   ]
 
   return (
     <>
-      <style>{`
-        .desktop-sidenav { display: none; }
-        @media (min-width: 768px) {
-          .mobile-topnav  { display: none !important; }
-          .mobile-bottomnav { display: none !important; }
-          .desktop-sidenav { display: flex !important; }
-          .main-layout {
-            max-width: 640px !important;
-            margin-left: max(62px, calc(50% + 31px - 320px)) !important;
-            margin-right: auto !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-          }
-        }
-      `}</style>
 
-      {/* ── Desktop side nav ──────────────────────────────────────────── */}
+      {/* ── Approved Gallery desktop sidebar for Feed / Explore / Shop ── */}
+      {isGalleryShell && <GalleryDesktopSidebar />}
+
+      {/* ── Original desktop side nav for all other routes ─────────────── */}
+      {!isGalleryShell && (
       <nav className="desktop-sidenav" aria-label="Main navigation" style={{
         position: "fixed", left: 0, top: 0, bottom: 0, width: 62,
         background: "var(--nav)", borderRight: "1px solid var(--border)",
         flexDirection: "column", alignItems: "center",
-        padding: "12px 0", zIndex: 50,
+        padding: "12px 0", zIndex: 50, overflow: "hidden",
       }}>
         {/* Gallery G — pinned top */}
-        <Link href="/" title="Home" style={{
+        <Link href="/" title="Home" className="sidenav-home-logo" style={{
           width: 40, height: 40, borderRadius: 10,
           display: "block", textDecoration: "none", flexShrink: 0,
           backgroundImage: "url('/logo.png')",
@@ -203,54 +198,56 @@ export default function BottomNav() {
         }} />
 
         {/* Main nav — fills remaining space, items evenly distributed */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly", width: "100%", paddingTop: 8, paddingBottom: 8 }}>
-          <SideItem href="/" title="Home" active={pathname === "/"}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill={pathname === "/" ? "white" : "none"} stroke="currentColor" strokeWidth="2">
+        <div className="sidenav-main-links" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly", width: "100%", paddingTop: 8, paddingBottom: 8 }}>
+          <SideItem href="/" title="Home" label="Home" active={pathname === "/"}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill={pathname === "/" ? "white" : "none"} stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
               <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
             </svg>
           </SideItem>
 
-          <SideItem href="/search" title="Search" active={isActive("/search")}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <SideItem href="/search" title="Explore" label="Explore" active={isActive("/search")}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
           </SideItem>
 
-          <SideItem href="/shop" title="Shop" active={isActive("/shop")}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <SideItem href="/shop" title="Shop" label="Shop" active={isActive("/shop")}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
             </svg>
           </SideItem>
 
-          <SideItem href="/commissions" title="Commissions" active={isActive("/commissions")}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <SideItem href="/commissions" title="Commissions" label="Commissions" active={isActive("/commissions")}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>
           </SideItem>
 
-          <SideItem href="/messages" title="Messages" active={isActive("/messages")} badge={dmUnread?.count}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <SideItem href="/messages" title="Messages" label="Messages" active={isActive("/messages")} badge={dmUnread?.count}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
           </SideItem>
 
-          <SideItem href={username ? `/@${username}` : "/"} title="Profile" active={profileActive}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <SideItem href={username ? `/@${username}` : "/"} title="Profile" label="Profile" active={profileActive}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
           </SideItem>
 
           {/* Bell */}
-          <div ref={notifRef} style={{ position: "relative" }}>
+          <div ref={notifRef} style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
             <button
               onClick={() => { setNotifOpen(v => !v); setMenuOpen(false) }}
               title="Notifications"
-              style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", background: "transparent", border: "none", cursor: "pointer", position: "relative" }}
+              className={`sidenav-item${notifOpen ? " sidenav-item-active" : ""}`}
+              style={{ width: 46, height: 46, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", background: "transparent", border: "none", cursor: "pointer", position: "relative", gap: 0 }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 24, height: 24 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 22, height: 22, flexShrink: 0 }}>
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
+              <span className="sidenav-label" style={{ display: "none", fontSize: 13, fontWeight: 500, fontFamily: "Inter,sans-serif", color: "inherit" }}>Notifications</span>
               {unread && unread.count > 0 && (
                 <span style={{ position: "absolute", top: 4, right: 4, width: 14, height: 14, background: "#ef4444", color: "white", fontSize: 8, fontWeight: 700, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {unread.count > 9 ? "9+" : unread.count}
@@ -261,11 +258,27 @@ export default function BottomNav() {
           </div>
         </div>
 
-        {/* Bottom group — pinned to bottom */}
-        <div style={{ width: 28, height: 1, background: "var(--border)", margin: "0 0 4px" }} />
+        {/* Create Post button — only visible at 1163px+ */}
+        <Link
+          href={username ? `/@${username}` : "/"}
+          className="sidenav-create-btn"
+          style={{
+            display: "none",
+            alignItems: "center", justifyContent: "center", gap: 8,
+            width: 178, height: 40, borderRadius: 10, margin: "4px 0 8px",
+            background: "var(--grad)", color: "white",
+            fontSize: 13, fontWeight: 700, textDecoration: "none", flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: 18, fontWeight: 300, lineHeight: 1 }}>＋</span>
+          Create Post
+        </Link>
 
-        <SideItem href="/professional-profile" title="Artist Dashboard" active={isActive("/professional-profile")}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* Bottom group — pinned to bottom */}
+        <div className="sidenav-bottom-divider" style={{ width: 28, height: 1, background: "var(--border)", margin: "0 0 4px" }} />
+
+        <SideItem href="/professional-profile" title="Artist Dashboard" label="Dashboard" active={isActive("/professional-profile")}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
             <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
           </svg>
@@ -275,13 +288,16 @@ export default function BottomNav() {
         <button
           onClick={() => { setMenuOpen(v => !v); setNotifOpen(false) }}
           title="Menu"
-          style={{ width: 46, height: 46, borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, background: "transparent", border: "none", cursor: "pointer", marginTop: 2 }}
+          className="sidenav-item"
+          style={{ width: 46, height: 46, borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, background: "transparent", border: "none", cursor: "pointer", marginTop: 2, color: "var(--muted)" }}
         >
           <span style={{ width: 20, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
           <span style={{ width: 20, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
           <span style={{ width: 20, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
+          <span className="sidenav-label" style={{ display: "none", fontSize: 13, fontWeight: 500, fontFamily: "Inter,sans-serif", color: "inherit", height: "auto" }}>More</span>
         </button>
       </nav>
+      )}
 
       {/* ── Desktop slide-out menu ──────────────────────────────────────── */}
       {menuOpen && (
@@ -358,9 +374,9 @@ export default function BottomNav() {
       )}
 
       {/* ── Mobile bottom bar ─────────────────────────────────────────── */}
-      <nav className="mobile-bottomnav" aria-label="Main navigation" style={{
+      <nav className={`mobile-bottomnav${isFeedHome ? " gallery-feed-mobile-bottomnav" : ""}`} aria-label="Main navigation" style={{
         background: "var(--nav)", borderTop: "1px solid var(--border)",
-        padding: "10px 16px 16px", display: "flex", justifyContent: "space-around",
+        padding: "8px 12px 14px", display: "flex", justifyContent: "space-around",
         alignItems: "center", position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40,
       }}>
         <Link href="/" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: pathname === "/" ? "white" : "var(--muted)", textDecoration: "none" }}>

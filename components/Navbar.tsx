@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { trpc } from "@/components/providers"
 import Link from "next/link"
@@ -117,9 +117,11 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
 export default function Navbar() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const pathname = usePathname()
   const [notifOpen, setNotifOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
+  const desktopNotifRef = useRef<HTMLDivElement>(null)
 
   const { data: unread } = trpc.notification.unreadCount.useQuery(undefined, {
     enabled: status === "authenticated",
@@ -128,7 +130,10 @@ export default function Navbar() {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
+      const target = e.target as Node
+      const insideMobile = notifRef.current?.contains(target) ?? false
+      const insideDesktop = desktopNotifRef.current?.contains(target) ?? false
+      if (!insideMobile && !insideDesktop) setNotifOpen(false)
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
@@ -137,6 +142,9 @@ export default function Navbar() {
   if (status === "loading" || status === "unauthenticated") return null
 
   const username = session?.user?.username
+  const isFeedHome = pathname === "/"
+  const isGalleryShell = isFeedHome || pathname.startsWith("/search") || pathname.startsWith("/shop")
+  const globalSearchText = pathname.startsWith("/shop") ? "Search artists, products, or tags..." : "Search artists, tags, or artwork..."
 
   return (
     <>
@@ -157,7 +165,7 @@ export default function Navbar() {
                 { href: "/", label: "Feed", icon: "M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" },
                 { href: "/shop", label: "Shop", icon: "M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" },
                 { href: "/commissions", label: "Commissions", icon: "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" },
-                { href: "/search", label: "Discover", icon: "M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" },
+                { href: "/search", label: "Explore", icon: "M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" },
                 { href: "/messages", label: "Messages", icon: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" },
               ].map(({ href, label, icon }) => (
                 <Link key={href} href={href} onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", color: "var(--text)", textDecoration: "none", fontSize: 13, fontWeight: 500 }}
@@ -222,45 +230,120 @@ export default function Navbar() {
         </>
       )}
 
-      {/* Top nav bar — hidden on desktop (side nav takes over) */}
-      <div className="top-nav mobile-topnav" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "fixed", top: 0, left: 0, right: 0, zIndex: 50 }}>
-        <Link href="/" style={{
-          display: "block", width: 180, height: 22, textDecoration: "none",
-          backgroundImage: "url('/logo.png')",
-          backgroundSize: "220px",
-          backgroundPosition: "center -166px",
-          backgroundRepeat: "no-repeat",
-          mixBlendMode: "screen",
-        }} aria-label="Gallery" />
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ position: "relative" }} ref={notifRef}>
-            <button onClick={() => setNotifOpen(v => !v)} style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }} aria-label="Notifications">
-              <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              {unread && unread.count > 0 && (
-                <span style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, background: "#ef4444", color: "white", fontSize: 8, fontWeight: 700, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {unread.count > 9 ? "9+" : unread.count}
-                </span>
-              )}
-            </button>
-            {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
+      {/* Gallery desktop feed header — real UI, not a screenshot. */}
+      {isGalleryShell && (
+        <header className="gallery-desktop-header" aria-label="Gallery header">
+          <div className="gallery-desktop-header-inner">
+            <div className="gallery-header-paint-code" aria-hidden="true" />
+
+            <div className="gallery-header-actions">
+              <div ref={desktopNotifRef} style={{ position: 'relative' }}>
+                <button className="gallery-round-button" onClick={() => setNotifOpen(v => !v)} aria-label="Notifications">
+                  <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10 21h4"/></svg>
+                  {unread && unread.count > 0 && <span className="gallery-notification-badge">{unread.count > 9 ? '9+' : unread.count}</span>}
+                </button>
+                {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
+              </div>
+              <Link href={username ? `/@${username}` : '/'} className="gallery-profile-circle" aria-label="Profile">
+                {session?.user?.image ? <img src={session.user.image} alt="" /> : (session?.user?.name ?? username ?? 'G').slice(0, 2).toUpperCase()}
+              </Link>
+            </div>
           </div>
-          <button onClick={() => router.push("/search")} style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center" }} aria-label="Search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
+        </header>
+      )}
+
+      {/* Top nav bar — hidden on desktop (side nav takes over) */}
+      {isFeedHome ? (
+        <div className="top-nav mobile-topnav gallery-feed-mobile-topnav">
+          <div className="gallery-mobile-header-paint-code" aria-hidden="true">
+            <svg viewBox="0 0 1024 180" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="galleryMobileHeaderGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#ff2bb8" />
+                  <stop offset="38%" stopColor="#b846ff" />
+                  <stop offset="66%" stopColor="#6b58ff" />
+                  <stop offset="100%" stopColor="#24bdff" />
+                </linearGradient>
+              </defs>
+              <path d="M0 0H1024V44C989 48 971 58 934 53C898 48 879 35 842 44C806 53 790 64 753 57C716 50 699 36 663 44C626 52 612 65 575 58C539 50 522 36 485 44C449 52 434 66 398 58C362 50 346 36 309 44C273 52 258 64 222 57C185 50 169 36 133 44C95 53 68 60 0 51Z" fill="url(#galleryMobileHeaderGradient)" />
+              <g fill="url(#galleryMobileHeaderGradient)">
+                <path d="M54 42c0 23-7 44-4 64 2 10 10 10 13 0 5-21-4-42-1-64z"/>
+                <path d="M198 43c-1 19-7 34-5 52 2 9 9 9 12 0 4-17-3-34-1-52z"/>
+                <path d="M344 43c-2 24-8 44-5 64 2 9 9 9 12 0 4-20-4-43-1-64z"/>
+                <path d="M492 43c-2 19-7 34-5 51 2 8 8 9 11 0 5-17-2-33 1-51z"/>
+                <path d="M642 43c-1 24-8 45-4 65 2 9 9 9 12 0 4-21-4-43-1-65z"/>
+                <path d="M790 43c-2 19-7 35-5 52 2 9 9 9 12 0 4-17-3-34-1-52z"/>
+                <path d="M944 43c-2 24-8 44-5 64 2 9 9 9 12 0 4-20-4-43-1-64z"/>
+              </g>
             </svg>
-          </button>
-          {/* Hamburger */}
-          <button onClick={() => setMenuOpen(true)} style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, border: "none", cursor: "pointer" }} aria-label="Menu">
-            <span style={{ width: 13, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
-            <span style={{ width: 13, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
-            <span style={{ width: 13, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
-          </button>
+          </div>
+
+          <Link href="/" className="gallery-mobile-code-brand" aria-label="Gallery home">
+            <span className="gallery-mobile-code-g">G</span>
+            <span className="gallery-mobile-code-word-wrap">
+              <span className="gallery-mobile-code-word">ALLERY</span>
+              <span className="gallery-mobile-code-tagline">— ANYONE CAN BE AN ARTIST —</span>
+            </span>
+          </Link>
+
+          <div className="gallery-mobile-header-actions">
+            <div style={{ position: "relative" }} ref={notifRef}>
+              <button onClick={() => setNotifOpen(v => !v)} className="gallery-mobile-round" aria-label="Notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {unread && unread.count > 0 && <span className="gallery-mobile-notif-badge">{unread.count > 9 ? "9+" : unread.count}</span>}
+              </button>
+              {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
+            </div>
+            <button onClick={() => router.push("/search")} className="gallery-mobile-round gallery-mobile-search" aria-label="Search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </button>
+            <button onClick={() => setMenuOpen(true)} className="gallery-mobile-round gallery-mobile-menu" aria-label="Menu">
+              <span /><span /><span />
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="top-nav mobile-topnav" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "fixed", top: 0, left: 0, right: 0, zIndex: 50 }}>
+          <Link href="/" style={{
+            display: "block", width: 180, height: 22, textDecoration: "none",
+            backgroundImage: "url('/logo.png')",
+            backgroundSize: "220px",
+            backgroundPosition: "center -166px",
+            backgroundRepeat: "no-repeat",
+            mixBlendMode: "screen",
+          }} aria-label="Gallery" />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ position: "relative" }} ref={notifRef}>
+              <button onClick={() => setNotifOpen(v => !v)} style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }} aria-label="Notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {unread && unread.count > 0 && (
+                  <span style={{ position: "absolute", top: -2, right: -2, width: 14, height: 14, background: "#ef4444", color: "white", fontSize: 8, fontWeight: 700, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {unread.count > 9 ? "9+" : unread.count}
+                  </span>
+                )}
+              </button>
+              {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} />}
+            </div>
+            <button onClick={() => router.push("/search")} style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center" }} aria-label="Search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            </button>
+            <button onClick={() => setMenuOpen(true)} style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, border: "none", cursor: "pointer" }} aria-label="Menu">
+              <span style={{ width: 13, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
+              <span style={{ width: 13, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
+              <span style={{ width: 13, height: 1.5, background: "var(--muted)", borderRadius: 1, display: "block" }} />
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -1,6 +1,8 @@
 "use client"
+
 import { useState } from "react"
 import { useSession } from "next-auth/react"
+import Link from "next/link"
 import { trpc } from "@/components/providers"
 import StoryViewer from "./StoryViewer"
 import StoryUpload from "./StoryUpload"
@@ -40,59 +42,42 @@ export default function StoriesRow() {
 
   return (
     <>
-      <div
-        className="flex gap-4 px-4 py-3 overflow-x-auto"
-        style={{ borderBottom: "1px solid #ffffff08", scrollbarWidth: "none" }}
-      >
-        {groups.map((group) => {
-          const isMe = group.userId === me
-          const hasStory = group.stories.length > 0
-          const ringColor = hasStory
-            ? group.hasUnviewed
-              ? "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)"
-              : "rgba(255,255,255,0.25)"
-            : "transparent"
+      <div className="gallery-functional-stories">
+        <div className="gallery-section-title gallery-stories-heading">
+          <h2>Stories</h2>
+          <Link href="/search">See All</Link>
+        </div>
 
-          return (
-            <button
-              key={group.userId}
-              onClick={() => handleBubbleClick(group)}
-              className="flex flex-col items-center gap-1.5 flex-shrink-0"
-              style={{ minWidth: 60 }}
-            >
-              {/* Avatar with ring */}
-              <div
-                className="rounded-full p-0.5"
-                style={{ background: ringColor, padding: hasStory ? 2 : 0 }}
+        <div className="gallery-story-row gallery-story-row-functional">
+          {groups.map((group) => {
+            const isMe = group.userId === me
+            const hasStory = group.stories.length > 0
+            const muted = hasStory && !group.hasUnviewed
+
+            return (
+              <button
+                key={group.userId}
+                onClick={() => handleBubbleClick(group)}
+                className="gallery-story"
+                type="button"
               >
-                <div
-                  className="rounded-full overflow-hidden relative"
-                  style={{ width: 52, height: 52, background: "var(--bg)", padding: hasStory ? 2 : 0 }}
-                >
-                  {group.image ? (
-                    <img src={group.image} className="w-full h-full rounded-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}>
-                      {(group.name ?? group.username ?? "?")[0].toUpperCase()}
-                    </div>
-                  )}
-                  {/* + overlay for own empty avatar */}
-                  {isMe && !hasStory && (
-                    <div className="absolute inset-0 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.45)" }}>
-                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {/* Label */}
-              <span className="text-[10px] text-white/60 truncate" style={{ maxWidth: 60 }}>
-                {isMe ? "Your story" : (group.username ?? "")}
-              </span>
-            </button>
-          )
-        })}
+                <span className={`gallery-story-ring${muted ? " gallery-story-ring-viewed" : ""}${!hasStory ? " gallery-story-ring-empty" : ""}`}>
+                  <span className="gallery-story-photo-wrap">
+                    {group.image ? (
+                      <img src={group.image} className="gallery-story-photo" alt="" />
+                    ) : (
+                      <span className="gallery-story-photo gallery-story-fallback">
+                        {(group.name ?? group.username ?? "?")[0].toUpperCase()}
+                      </span>
+                    )}
+                    {isMe && !hasStory && <span className="gallery-story-add-overlay">＋</span>}
+                  </span>
+                </span>
+                <span>{isMe ? "Your Story" : (group.username ?? group.name ?? "Artist")}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {viewing && (
@@ -108,7 +93,10 @@ export default function StoriesRow() {
       {uploading && (
         <StoryUpload
           onClose={() => setUploading(false)}
-          onSuccess={() => setUploading(false)}
+          onSuccess={() => {
+            setUploading(false)
+            utils.story.getFeed.invalidate()
+          }}
         />
       )}
     </>

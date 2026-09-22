@@ -7,9 +7,10 @@ import Link from "next/link"
 import { trpc } from "@/components/providers"
 import MentionText from "@/components/MentionText"
 import PostModal from "@/components/PostModal"
-import FeaturedArtistsStrip from "@/components/FeaturedArtistsStrip"
 import ReportModal from "@/components/ReportModal"
 import ProtectedArtwork from "@/components/ProtectedArtwork"
+import StoriesRow from "@/components/StoriesRow"
+import GalleryRightRail from "@/components/GalleryRightRail"
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
@@ -17,6 +18,14 @@ function timeAgo(date: Date): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
   return `${Math.floor(seconds / 86400)}d ago`
+}
+
+async function sharePost(path: string, title: string) {
+  const url = `${window.location.origin}${path}`
+  if (navigator.share) {
+    try { await navigator.share({ title, url }); return } catch { /* cancelled or unsupported */ }
+  }
+  try { await navigator.clipboard.writeText(url) } catch { /* no-op fallback */ }
 }
 
 type FeedPost = {
@@ -69,13 +78,8 @@ export default function FeedPage() {
 
   const toggleLike = trpc.interaction.toggleLike.useMutation({
     onMutate: async ({ postId }) => {
-      // Cancel any in-flight refetch so it doesn't overwrite our optimistic update
       await utils.post.getFeed.cancel()
-
-      // Snapshot the current cache so we can roll back on error
       const previous = utils.post.getFeed.getInfiniteData({})
-
-      // Optimistically update the cache
       utils.post.getFeed.setInfiniteData({}, (old) => {
         if (!old) return old
         return {
@@ -88,41 +92,26 @@ export default function FeedPage() {
               return {
                 ...post,
                 likedByMe: !wasLiked,
-                _count: {
-                  ...post._count,
-                  likes: post._count.likes + (wasLiked ? -1 : 1),
-                },
+                _count: { ...post._count, likes: post._count.likes + (wasLiked ? -1 : 1) },
               }
             }),
           })),
         }
       })
-
       return { previous }
     },
-
     onError: (_err, _input, context) => {
-      // Roll back to the snapshot on failure
-      if (context?.previous) {
-        utils.post.getFeed.setInfiniteData({}, context.previous)
-      }
+      if (context?.previous) utils.post.getFeed.setInfiniteData({}, context.previous)
     },
-
-    onSettled: () => {
-      // Background sync with server after mutation completes
-      utils.post.getFeed.invalidate()
-    },
+    onSettled: () => { utils.post.getFeed.invalidate() },
   })
 
-  // Infinite scroll — fire when sentinel div enters viewport
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
-        }
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage()
       },
       { rootMargin: "400px" }
     )
@@ -140,161 +129,206 @@ export default function FeedPage() {
   if (status === "loading" || status === "unauthenticated") return null
 
   const posts = data?.pages.flatMap((p) => p.posts) ?? []
+  const username = session?.user?.username ?? ""
+  const userImage = session?.user?.image ?? null
+  const userInitials = (session?.user?.name ?? username ?? "?")[0]?.toUpperCase() ?? "?"
+
 
   return (
-    <div>
-      <FeaturedArtistsStrip />
-      {isLoading ? (
-        <div className="text-center py-20 text-gray-400">Loading…</div>
-      ) : error ? (
-        <div className="text-center py-20 text-red-400 text-sm">{error.message}</div>
-      ) : posts.length === 0 ? (
-        <div className="text-center py-20">
-          <div className="text-4xl mb-3">🖼️</div>
-          <p className="font-medium text-white/60">No posts yet</p>
-          <p className="text-sm text-white/40 mt-1 mb-5">Follow artists to see their work here</p>
-          <Link
-            href="/commissions"
-            className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80"
-            style={{ background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)" }}
-          >
-            Find artists →
-          </Link>
-        </div>
-      ) : (
-        <>
-          <div>
-            {posts.map((post) => (
-              <article key={post.id} style={{ borderBottom: "1px solid var(--border)" }}>
+    <div className="gallery-feed-page">
+      <div className="feed-wide-wrap">
+        <div className="feed-main-col">
 
-                {/* Post header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px" }}>
-                  <Link href={`/@${post.user.username}`} style={{ flexShrink: 0 }}>
-                    {post.user.image ? (
-                      <img src={post.user.image} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }} />
-                    ) : (
-                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #784BA0)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700 }}>
-                        {(post.user.name ?? post.user.username ?? "?")[0].toUpperCase()}
+          {/* Functional Stories row — uses the existing story viewer/upload logic. */}
+          <section className="gallery-card gallery-stories-card">
+            <StoriesRow />
+          </section>
+
+          {/* Composer */}
+          <section className="gallery-card gallery-composer">
+            <div className="gallery-composer-top">
+              <Link href={username ? `/@${username}` : "/"} className="gallery-composer-avatar">
+                {userImage ? (
+                  <img src={userImage} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                ) : (
+                  userInitials
+                )}
+              </Link>
+              <Link href={username ? `/@${username}` : "/"} className="gallery-composer-input">What are you creating today?</Link>
+            </div>
+            <div className="gallery-composer-tools">
+              <Link href={username ? `/@${username}` : "/"}>▣ <span>Image</span></Link>
+              <Link href={username ? `/@${username}` : "/"}>▹ <span>Video</span></Link>
+              <Link href={username ? `/@${username}` : "/"}>☷ <span>Poll</span></Link>
+              <Link href={username ? `/@${username}` : "/"}>✎ <span>Sketch</span></Link>
+            </div>
+          </section>
+
+          {/* Feed posts */}
+          {isLoading ? (
+            <div className="text-center py-20 text-gray-400">Loading…</div>
+          ) : error ? (
+            <div className="text-center py-20 text-red-400 text-sm">{error.message}</div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="text-4xl mb-3">🖼️</div>
+              <p className="font-medium text-white/60">No posts yet</p>
+              <p className="text-sm text-white/40 mt-1 mb-5">Follow artists to see their work here</p>
+              <Link
+                href="/commissions"
+                className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-80"
+                style={{ background: "var(--grad)" }}
+              >
+                Find artists →
+              </Link>
+            </div>
+          ) : (
+            <>
+              {posts.map((post) => {
+                const tags = Array.from(new Set((post.description ?? "").match(/#[a-zA-Z0-9_]+/g) ?? [])).slice(0, 5)
+                return (
+                  <article key={post.id} className="gallery-card gallery-post">
+                    {/* Post header */}
+                    <div className="gallery-post-head">
+                      <Link href={`/@${post.user.username}`} className="gallery-author-avatar">
+                        {post.user.image ? (
+                          <img src={post.user.image} alt="" />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "linear-gradient(135deg,#ff28b7,#a34dff)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 16, fontWeight: 800 }}>
+                            {(post.user.name ?? post.user.username ?? "?")[0]?.toUpperCase()}
+                          </div>
+                        )}
+                      </Link>
+
+                      <div className="gallery-author-meta">
+                        <Link href={`/@${post.user.username}`} className="gallery-author-name">
+                          {post.user.name ?? post.user.username}
+                        </Link>
+                        <span>@{post.user.username} · {timeAgo(post.createdAt)}</span>
                       </div>
-                    )}
-                  </Link>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: "var(--text)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}>
-                      {post.user.name ?? post.user.username}
-                    </Link>
-                    <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>
-                      @{post.user.username} · {timeAgo(post.createdAt)}
-                    </div>
-                  </div>
-
-                  {/* 3-dot menu */}
-                  <div style={{ position: "relative", flexShrink: 0 }}>
-                    <button
-                      onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
-                      style={{ width: 28, height: 28, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                    >
-                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
-                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
-                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", display: "block" }} />
-                    </button>
-                    {openMenuId === post.id && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
-                        <div style={{ position: "absolute", right: 0, top: 28, zIndex: 50, width: 140, borderRadius: 12, overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)" }}>
-                          {post.isOwnPost ? (
-                            <button onClick={() => { setOpenMenuId(null); setViewPost(post as FeedPost) }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12, color: "var(--text)", background: "none", border: "none", cursor: "pointer" }}
-                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                              View post
-                            </button>
-                          ) : localReported.has(post.id) || post.viewerHasReported ? (
-                            <div style={{ padding: "10px 14px", fontSize: 12, color: "var(--muted)" }}>Reported</div>
-                          ) : (
-                            <button onClick={() => { setOpenMenuId(null); setReportingPostId(post.id) }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12, color: "#F06060", background: "none", border: "none", cursor: "pointer" }}
-                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                              Report
-                            </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {!post.isOwnPost && !post.isFollowing && (
+                          <Link href={`/@${post.user.username}`} style={{ fontSize: 11, fontWeight: 700, color: "#ff60da", border: "1px solid #dc2dd3", borderRadius: 8, padding: "3px 10px", textDecoration: "none", flexShrink: 0 }}>
+                            Follow
+                          </Link>
+                        )}
+                        <div style={{ position: "relative" }}>
+                          <button
+                            className="gallery-post-menu"
+                            onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
+                          >
+                            ⋮
+                          </button>
+                          {openMenuId === post.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
+                              <div style={{ position: "absolute", right: 0, top: 32, zIndex: 50, width: 140, borderRadius: 12, overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)" }}>
+                                {post.isOwnPost ? (
+                                  <button onClick={() => { setOpenMenuId(null); setViewPost(post as FeedPost) }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12, color: "var(--text)", background: "none", border: "none", cursor: "pointer" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                                    View post
+                                  </button>
+                                ) : localReported.has(post.id) || post.viewerHasReported ? (
+                                  <div style={{ padding: "10px 14px", fontSize: 12, color: "var(--muted)" }}>Reported</div>
+                                ) : (
+                                  <button onClick={() => { setOpenMenuId(null); setReportingPostId(post.id) }} style={{ width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12, color: "#F06060", background: "none", border: "none", cursor: "pointer" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,235,248,0.05)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                                    Report
+                                  </button>
+                                )}
+                              </div>
+                            </>
                           )}
                         </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Image — natural height, NO aspect ratio forcing, 0px radius */}
-                <Link href={`/@${post.user.username}/${post.id}`} style={{ display: "block" }}>
-                  <ProtectedArtwork src={post.image} alt={post.description ?? ""} style={{ width: "100%", borderRadius: 0 }} />
-                </Link>
-
-                {/* Actions row */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <button onClick={() => toggleLike.mutate({ postId: post.id })} disabled={toggleLike.isPending} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, opacity: toggleLike.isPending ? 0.5 : 1 }}>
-                      <span style={post.likedByMe ? {
-                        fontSize: 12, fontWeight: 600,
-                        background: "linear-gradient(90deg, #FF3CAC, #784BA0)",
-                        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-                      } : { fontSize: 12, color: "var(--muted)" }}>
-                        ♥ {post._count.likes}
-                      </span>
-                    </button>
-                    <button onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--muted)", fontSize: 12 }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                      </svg>
-                      {post._count.comments}
-                    </button>
-                  </div>
-                  <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--muted)" }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Caption */}
-                {post.description && (
-                  <div style={{ padding: "0 14px 9px", fontSize: 11, color: "var(--muted)", lineHeight: 1.45 }}>
-                    <Link href={`/@${post.user.username}`} style={{ fontFamily: "'Playfair Display', serif", fontSize: 12, fontWeight: 700, color: "var(--text)", marginRight: 5, textDecoration: "none" }}>
-                      {post.user.name ?? post.user.username}
-                    </Link>
-                    <MentionText text={post.description} />
-                  </div>
-                )}
-
-                {/* Hashtag pills */}
-                {(() => {
-                  const tags = Array.from(new Set((post.description ?? "").match(/#[a-zA-Z0-9_]+/g) ?? [])).slice(0, 5)
-                  if (!tags.length) return null
-                  return (
-                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 5, padding: "0 14px 10px" }}>
-                      {tags.map(tag => (
-                        <span key={tag} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 99, background: "var(--surface)", color: "#9080B8", border: "1px solid var(--border)" }}>
-                          {tag}
-                        </span>
-                      ))}
+                      </div>
                     </div>
-                  )
-                })()}
 
-                {!post.description && <div style={{ height: 12 }} />}
-              </article>
-            ))}
-          </div>
+                    {/* Artwork */}
+                    <Link href={`/@${post.user.username}/${post.id}`} className="gallery-art-button">
+                      <ProtectedArtwork
+                        src={post.image}
+                        alt={post.description ?? ""}
+                        className="gallery-post-art"
+                        style={{ width: "100%", borderRadius: 0, display: "block" }}
+                      />
+                    </Link>
 
-          {/* Infinite scroll sentinel */}
-          <div ref={sentinelRef} className="py-6 flex justify-center">
-            {isFetchingNextPage && (
-              <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-            )}
-            {!hasNextPage && posts.length > 0 && (
-              <p className="text-xs text-gray-300">You're all caught up</p>
-            )}
-          </div>
-        </>
-      )}
+                    {/* Footer */}
+                    <div className="gallery-post-footer">
+                      <div className="gallery-engagement">
+                        <button
+                          className={post.likedByMe ? "gallery-like" : ""}
+                          onClick={() => toggleLike.mutate({ postId: post.id })}
+                          disabled={toggleLike.isPending}
+                          style={{ opacity: toggleLike.isPending ? 0.5 : 1 }}
+                        >
+                          <svg viewBox="0 0 24 24">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                          </svg>
+                          <span>{post._count.likes}</span>
+                        </button>
+
+                        <button onClick={() => { setFocusComment(true); setViewPost(post as FeedPost) }}>
+                          <svg viewBox="0 0 24 24">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                          </svg>
+                          <span>{post._count.comments}</span>
+                        </button>
+
+                        <button onClick={() => sharePost(`/@${post.user.username}/${post.id}`, post.title ?? `Artwork by ${post.user.name ?? post.user.username}`)}>
+                          <svg viewBox="0 0 24 24">
+                            <path d="m22 2-8 20-4-8-8-4z"/><path d="M10 14 22 2"/>
+                          </svg>
+                        </button>
+
+                        <button className="gallery-save">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Caption */}
+                      {post.description && (
+                        <div className="gallery-post-caption">
+                          <Link href={`/@${post.user.username}`} className="gallery-post-caption-name">
+                            {post.user.name ?? post.user.username}
+                          </Link>
+                          <MentionText text={post.description} />
+                        </div>
+                      )}
+
+                      {/* Hashtag pills */}
+                      {tags.length > 0 && (
+                        <div className="gallery-tags">
+                          {tags.map(tag => (
+                            <Link key={tag} href={`/search?q=${encodeURIComponent(tag)}`}>{tag}</Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} className="py-6 flex justify-center">
+                {isFetchingNextPage && (
+                  <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                )}
+                {!hasNextPage && posts.length > 0 && (
+                  <p className="text-xs text-gray-300">You're all caught up</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>{/* /feed-main-col */}
+
+        <GalleryRightRail variant="combined" />
+      </div>{/* /feed-wide-wrap */}
 
       {reportingPostId && (
         <ReportModal

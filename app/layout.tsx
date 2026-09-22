@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
+import "./gallery-feed.css"
+import "./gallery-final.css"
 import { Providers } from "@/components/providers"
 import Navbar from "@/components/Navbar"
 import BottomNav from "@/components/BottomNav"
@@ -32,7 +34,7 @@ export default function RootLayout({
           <CookieConsent />
           <PushInit />
           <Navbar />
-          <div className="main-layout" style={{ maxWidth: 470, margin: "0 auto", paddingTop: 56, paddingBottom: 80, minHeight: "100vh" }}>
+          <div className="main-layout" style={{ maxWidth: 470, margin: "0 auto", paddingTop: 56, paddingBottom: 80, minHeight: "100vh", boxSizing: "border-box" as const }}>
             {children}
             <footer style={{ padding: "16px 24px", textAlign: "center" }}>
               <Link href="/dmca" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>

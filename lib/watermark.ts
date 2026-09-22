@@ -32,17 +32,17 @@ export function applyWatermark(dataUrl: string, username: string): Promise<strin
         // Watermark text
         const handle = username.trim() || "gallery"
         const text = `Gallery | @${handle}`
-        const fontSize = Math.max(12, Math.floor(W * 0.072))
+        const fontSize = Math.max(8, Math.floor(W * 0.022))
 
         ctx.save()
         ctx.translate(W / 2, H / 2)
         ctx.rotate(-Math.PI / 4)
-        ctx.font = `bold ${fontSize}px Arial, sans-serif`
+        ctx.font = `400 ${fontSize}px Arial, sans-serif`
         ctx.textAlign = "center"
         ctx.textBaseline = "middle"
-        ctx.shadowColor = "rgba(0,0,0,0.7)"
-        ctx.shadowBlur = 8
-        ctx.globalAlpha = 0.28
+        ctx.shadowColor = "transparent"
+        ctx.shadowBlur = 0
+        ctx.globalAlpha = 0.05
         ctx.fillStyle = "#ffffff"
         ctx.fillText(text, 0, 0)
         ctx.restore()

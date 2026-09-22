@@ -1,14 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0F0D14;
-  --surface: #1C1825;
-  --border: #2A2438;
-  --text: #F0EBF8;
-  --muted: #6B5F88;
-  --nav: #16131E;
-  --grad: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
-  --grad-135: linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5);
+  --bg: #070811;
+  --surface: #0b0c16;
+  --border: #27243a;
+  --text: #f8f7fb;
+  --muted: #968ab5;
+  --nav: #0b0c16;
+  --grad: linear-gradient(90deg, #ff28b7, #b646ff 39%, #6c57ff 65%, #21b8ff);
+  --grad-135: linear-gradient(135deg, #ff28b7, #b646ff 50%, #21b8ff);
+  --pink: #ff28b7;
+  --purple: #a34dff;
+  --blue: #21b8ff;
 }
 
 @theme inline {
@@ -36,13 +39,13 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Brand gradient — updated palette */
+/* Brand gradient — reference palette */
 .brand-gradient {
-  background: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
+  background: var(--grad);
 }
 
 .brand-gradient-text {
-  background: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
+  background: var(--grad);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -74,14 +77,14 @@ body {
 
 /* Gradient button utility */
 .btn-gradient {
-  background: linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5);
+  background: var(--grad);
   color: #fff;
   font-weight: 600;
 }
 
 /* Gradient toggle (on state) */
 .toggle-on {
-  background: linear-gradient(90deg, #FF3CAC, #784BA0);
+  background: linear-gradient(90deg, #ff28b7, #a34dff);
 }
 
 /* White input → dark surface input */
@@ -116,5 +119,56 @@ textarea::placeholder {
     margin-right: auto !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
+  }
+}
+
+@media (min-width: 1163px) {
+  .desktop-sidenav { width: 226px !important; }
+  .sidenav-label { display: block !important; }
+  .sidenav-item {
+    width: 210px !important;
+    height: 57px !important;
+    border-radius: 14px !important;
+    justify-content: flex-start !important;
+    padding: 0 16px !important;
+    gap: 12px !important;
+    margin-left: 8px !important;
+  }
+  .sidenav-item.sidenav-item-active {
+    background: linear-gradient(90deg,rgba(255,35,184,.30),rgba(103,70,171,.16)) !important;
+    border: 1px solid #49305d !important;
+    color: white !important;
+  }
+  .sidenav-create-btn { display: flex !important; }
+  .sidenav-notif-panel { left: 226px !important; }
+  .main-layout {
+    max-width: 895px !important;
+    margin-left: 226px !important;
+    margin-right: auto !important;
+  }
+}
+
+/* ── Feed 3-column layout at wide desktop ───────────────────────────────── */
+.feed-drips-wrap { display: none; }
+.feed-wide-wrap { display: block; }
+.feed-main-col { width: 100%; }
+.feed-right-col { display: none; }
+
+@media (min-width: 1163px) {
+  .feed-drips-wrap { display: block; }
+  .feed-wide-wrap {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .feed-main-col {
+    flex: 1;
+    max-width: 594px;
+    min-width: 0;
+  }
+  .feed-right-col {
+    display: block;
+    width: 285px;
+    flex-shrink: 0;
   }
 }

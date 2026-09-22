@@ -39,15 +39,15 @@ export default function FeaturedArtistsStrip() {
   return (
     <>
       <div
-        style={{ display: "flex", gap: 10, padding: "10px 14px", borderBottom: "1px solid var(--border)", overflowX: "auto", scrollbarWidth: "none" }}
+        style={{ display: "flex", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--border)", overflowX: "auto", scrollbarWidth: "none" }}
       >
         {/* Always-visible "Your story" add card */}
         <button
           onClick={() => setUploading(true)}
-          style={{ flexShrink: 0, width: 64, height: 80, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer" }}
+          style={{ flexShrink: 0, width: 52, height: 64, borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, cursor: "pointer" }}
         >
-          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 18, fontWeight: 300, lineHeight: 1 }}>+</div>
-          <span style={{ fontSize: 8, color: "var(--muted)" }}>Your story</span>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg, #FF3CAC, #2B86C5)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 16, fontWeight: 300, lineHeight: 1 }}>+</div>
+          <span style={{ fontSize: 7, color: "var(--muted)" }}>Your story</span>
         </button>
 
         {groups.filter(g => g.userId !== me).map((group) => {
@@ -55,9 +55,9 @@ export default function FeaturedArtistsStrip() {
           const previewSrc = group.stories.length > 0 ? group.stories[0].image : group.image
 
           const ringStyle: React.CSSProperties = hasUnviewed
-            ? { padding: 2, background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: 12, flexShrink: 0 }
+            ? { padding: 2, background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: 10, flexShrink: 0 }
             : group.stories.length > 0
-            ? { padding: 1.5, background: "var(--border)", borderRadius: 12, flexShrink: 0 }
+            ? { padding: 1.5, background: "var(--border)", borderRadius: 10, flexShrink: 0 }
             : { flexShrink: 0 }
 
           return (
@@ -67,7 +67,7 @@ export default function FeaturedArtistsStrip() {
               style={{ flexShrink: 0, background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
               <div style={ringStyle}>
-                <div style={{ width: 64, height: 80, borderRadius: 10, background: "#141414", overflow: "hidden", position: "relative" }}>
+                <div style={{ width: 52, height: 64, borderRadius: 8, background: "#141414", overflow: "hidden", position: "relative" }}>
                   {previewSrc ? (
                     <img src={previewSrc} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="" />
                   ) : (
