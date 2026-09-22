@@ -33,6 +33,7 @@ const mockPrisma = {
   user: { findMany: vi.fn() },
   follow: { findMany: vi.fn() },
   post: { findMany: vi.fn(), count: vi.fn() },
+  hashtag: { findMany: vi.fn() },
 }
 
 function getCaller() {
@@ -42,6 +43,27 @@ function getCaller() {
 beforeEach(() => {
   vi.clearAllMocks()
   mockPrisma.block.findMany.mockResolvedValue([])
+})
+
+describe("discovery.trendingTags", () => {
+  it("returns the most-used published tags in descending order", async () => {
+    mockPrisma.hashtag.findMany.mockResolvedValue([
+      { tag: "watercolor", _count: { posts: 7 } },
+      { tag: "conceptart", _count: { posts: 12 } },
+      { tag: "unused", _count: { posts: 0 } },
+    ])
+
+    const caller = getCaller()
+    const result = await caller.discovery.trendingTags({ limit: 2 })
+
+    expect(result.items).toEqual([
+      { tag: "conceptart", count: 12 },
+      { tag: "watercolor", count: 7 },
+    ])
+    expect(mockPrisma.hashtag.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      take: 24,
+    }))
+  })
 })
 
 describe("discovery.risingStars", () => {
@@ -107,7 +129,7 @@ describe("discovery.spotlight", () => {
 describe("discovery.forYou", () => {
   it("returns posts for anonymous user", async () => {
     mockPrisma.post.findMany.mockResolvedValue([
-      { id: "post-1", image: "img1", description: "cool art", user: { username: "luna" }, _count: { likes: 50 } },
+      { id: "post-1", image: "img1", description: "cool art", createdAt: new Date(), user: { username: "luna" }, _count: { likes: 50 } },
     ])
     const caller = getCaller()
     const result = await caller.discovery.forYou({ limit: 9 })
@@ -120,6 +142,7 @@ describe("discovery.forYou", () => {
       id: `post-${i}`,
       image: `img${i}`,
       description: null,
+      createdAt: new Date(Date.now() - i * 60_000),
       user: { username: `user${i}` },
       _count: { likes: i },
     }))

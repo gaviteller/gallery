@@ -114,6 +114,36 @@ const CANDIDATE_SELECT = {
 // ── Router ────────────────────────────────────────────────────────────────────
 
 export const discoveryRouter = router({
+  trendingTags: publicProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(20).default(6) }))
+    .query(async ({ ctx, input }) => {
+      const tags = await ctx.prisma.hashtag.findMany({
+        select: {
+          tag: true,
+          _count: {
+            select: {
+              posts: {
+                where: {
+                  status: "PUBLISHED",
+                  user: { bannedUntil: null },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { posts: { _count: "desc" } },
+        take: Math.max(input.limit * 4, 24),
+      })
+
+      const items = tags
+        .map(({ tag, _count }) => ({ tag, count: _count.posts }))
+        .filter(({ count }) => count > 0)
+        .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+        .slice(0, input.limit)
+
+      return { items }
+    }),
+
   risingStars: publicProcedure
     .input(z.object({ limit: z.number().int().min(1).max(50).default(15) }))
     .query(async ({ ctx, input }) => {
