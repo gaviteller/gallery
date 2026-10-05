@@ -115,6 +115,11 @@ const CANDIDATE_SELECT = {
 // ── Router ────────────────────────────────────────────────────────────────────
 
 export const discoveryRouter = router({
+  /**
+   * Hashtags ranked by how many published posts used them in the last 30 days
+   * (falls back to all-time on a quiet site). Posts by banned users don't count.
+   * Shown in the sidebar "Trending" box.
+   */
   trendingTags: publicProcedure
     .input(z.object({ limit: z.number().int().min(1).max(30).default(6) }))
     .query(async ({ ctx, input }) => {
@@ -124,7 +129,13 @@ export const discoveryRouter = router({
             tag: true,
             _count: {
               select: {
-                posts: { where: { status: "PUBLISHED", ...(since ? { createdAt: { gte: since } } : {}) } },
+                posts: {
+                  where: {
+                    status: "PUBLISHED",
+                    user: { bannedUntil: null },
+                    ...(since ? { createdAt: { gte: since } } : {}),
+                  },
+                },
               },
             },
           },

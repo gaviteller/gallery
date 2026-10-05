@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react"
 import { trpc } from "@/components/providers"
 import Link from "next/link"
 import Avatar from "@/components/Avatar"
+import GalleryLogo from "@/components/GalleryLogo"
+import GalleryPaintDrips from "@/components/GalleryPaintDrips"
 
 function NotificationPanel({ onClose }: { onClose: () => void }) {
   const { data: notifications } = trpc.notification.getAll.useQuery()
@@ -143,8 +145,7 @@ export default function Navbar() {
 
   const username = session?.user?.username
   const isFeedHome = pathname === "/"
-  const isGalleryShell = isFeedHome || pathname.startsWith("/search") || pathname.startsWith("/shop")
-  const globalSearchText = pathname.startsWith("/shop") ? "Search artists, products, or tags..." : "Search artists, tags, or artwork..."
+  const usesNewGalleryHeader = !pathname.startsWith("/commissions")
 
   return (
     <>
@@ -231,10 +232,16 @@ export default function Navbar() {
       )}
 
       {/* Gallery desktop feed header — real UI, not a screenshot. */}
-      {isGalleryShell && (
+      {usesNewGalleryHeader && (
         <header className="gallery-desktop-header" aria-label="Gallery header">
           <div className="gallery-desktop-header-inner">
-            <div className="gallery-header-paint-code" aria-hidden="true" />
+            <div className="gallery-header-paint-code" aria-hidden="true">
+              <GalleryPaintDrips className="gallery-header-paint-svg" />
+            </div>
+
+            <Link href="/" className="gallery-code-brand" aria-label="Gallery home">
+              <GalleryLogo className="gallery-logo-svg" />
+            </Link>
 
             <div className="gallery-header-actions">
               <div ref={desktopNotifRef} style={{ position: 'relative' }}>
@@ -253,37 +260,14 @@ export default function Navbar() {
       )}
 
       {/* Top nav bar — hidden on desktop (side nav takes over) */}
-      {isFeedHome ? (
+      {usesNewGalleryHeader ? (
         <div className="top-nav mobile-topnav gallery-feed-mobile-topnav">
           <div className="gallery-mobile-header-paint-code" aria-hidden="true">
-            <svg viewBox="0 0 1024 180" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="galleryMobileHeaderGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#ff2bb8" />
-                  <stop offset="38%" stopColor="#b846ff" />
-                  <stop offset="66%" stopColor="#6b58ff" />
-                  <stop offset="100%" stopColor="#24bdff" />
-                </linearGradient>
-              </defs>
-              <path d="M0 0H1024V44C989 48 971 58 934 53C898 48 879 35 842 44C806 53 790 64 753 57C716 50 699 36 663 44C626 52 612 65 575 58C539 50 522 36 485 44C449 52 434 66 398 58C362 50 346 36 309 44C273 52 258 64 222 57C185 50 169 36 133 44C95 53 68 60 0 51Z" fill="url(#galleryMobileHeaderGradient)" />
-              <g fill="url(#galleryMobileHeaderGradient)">
-                <path d="M54 42c0 23-7 44-4 64 2 10 10 10 13 0 5-21-4-42-1-64z"/>
-                <path d="M198 43c-1 19-7 34-5 52 2 9 9 9 12 0 4-17-3-34-1-52z"/>
-                <path d="M344 43c-2 24-8 44-5 64 2 9 9 9 12 0 4-20-4-43-1-64z"/>
-                <path d="M492 43c-2 19-7 34-5 51 2 8 8 9 11 0 5-17-2-33 1-51z"/>
-                <path d="M642 43c-1 24-8 45-4 65 2 9 9 9 12 0 4-21-4-43-1-65z"/>
-                <path d="M790 43c-2 19-7 35-5 52 2 9 9 9 12 0 4-17-3-34-1-52z"/>
-                <path d="M944 43c-2 24-8 44-5 64 2 9 9 9 12 0 4-20-4-43-1-64z"/>
-              </g>
-            </svg>
+            <GalleryPaintDrips className="gallery-mobile-paint-svg" />
           </div>
 
           <Link href="/" className="gallery-mobile-code-brand" aria-label="Gallery home">
-            <span className="gallery-mobile-code-g">G</span>
-            <span className="gallery-mobile-code-word-wrap">
-              <span className="gallery-mobile-code-word">ALLERY</span>
-              <span className="gallery-mobile-code-tagline">— ANYONE CAN BE AN ARTIST —</span>
-            </span>
+            <GalleryLogo className="gallery-mobile-logo-svg" />
           </Link>
 
           <div className="gallery-mobile-header-actions">
@@ -307,14 +291,9 @@ export default function Navbar() {
         </div>
       ) : (
         <div className="top-nav mobile-topnav" style={{ background: "var(--nav)", borderBottom: "1px solid var(--border)", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "fixed", top: 0, left: 0, right: 0, zIndex: 50 }}>
-          <Link href="/" style={{
-            display: "block", width: 180, height: 22, textDecoration: "none",
-            backgroundImage: "url('/logo.png')",
-            backgroundSize: "220px",
-            backgroundPosition: "center -166px",
-            backgroundRepeat: "no-repeat",
-            mixBlendMode: "screen",
-          }} aria-label="Gallery" />
+          <Link href="/" className="gallery-compact-logo" aria-label="Gallery">
+            <GalleryLogo />
+          </Link>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div style={{ position: "relative" }} ref={notifRef}>
               <button onClick={() => setNotifOpen(v => !v)} style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }} aria-label="Notifications">
