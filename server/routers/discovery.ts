@@ -24,6 +24,7 @@ async function getBlockedIds(
 
 const DISCOVERY_WINDOW_DAYS = 90
 const DISCOVERY_WINDOW_MS = DISCOVERY_WINDOW_DAYS * 24 * 60 * 60 * 1000
+const TRENDING_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
@@ -114,10 +115,53 @@ const CANDIDATE_SELECT = {
 // ── Router ────────────────────────────────────────────────────────────────────
 
 export const discoveryRouter = router({
-  risingStars: publicProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(50).default(15) }))
+  trendingTags: publicProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(30).default(6) }))
     .query(async ({ ctx, input }) => {
-      const blockedIds = await getBlockedIds(ctx.prisma, ctx.session?.user?.id)
+      const rank = async (since?: Date) => {
+        const tags = await ctx.prisma.hashtag.findMany({
+          select: {
+            tag: true,
+            _count: {
+              select: {
+                posts: { where: { status: "PUBLISHED", ...(since ? { createdAt: { gte: since } } : {}) } },
+              },
+            },
+          },
+        })
+        return tags
+          .map(t => ({ tag: t.tag, count: t._count.posts }))
+          .filter(t => t.count > 0)
+          .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+          .slice(0, input.limit)
+      }
+
+      // Small communities may have no tagged posts in the window; fall back to all-time.
+      const recent = await rank(new Date(Date.now() - TRENDING_WINDOW_MS))
+      return { items: recent.length > 0 ? recent : await rank() }
+    }),
+
+  /**
+   * New artists (joined in the last 90 days) ranked by early traction.
+   * `excludeFollowed: true` turns this into "suggested artists to follow": it also
+   * leaves out the viewer themself and anyone they already follow (used by the sidebar).
+   */
+  risingStars: publicProcedure
+    .input(z.object({
+      limit: z.number().int().min(1).max(50).default(15),
+      excludeFollowed: z.boolean().default(false),
+    }))
+    .query(async ({ ctx, input }) => {
+      const viewerId = ctx.session?.user?.id
+      const hiddenUserIds = await getBlockedIds(ctx.prisma, viewerId)
+      if (input.excludeFollowed && viewerId) {
+        hiddenUserIds.add(viewerId)
+        const alreadyFollowing = await ctx.prisma.follow.findMany({
+          where: { followerId: viewerId },
+          select: { followingId: true },
+        })
+        for (const follow of alreadyFollowing) hiddenUserIds.add(follow.followingId)
+      }
       const ninetyDaysAgo = new Date(Date.now() - DISCOVERY_WINDOW_MS)
 
       const candidates = await ctx.prisma.user.findMany({
@@ -126,7 +170,7 @@ export const discoveryRouter = router({
           username: { not: null },
           posts: { some: { status: "PUBLISHED" } },
           bannedUntil: null,
-          ...(blockedIds.size > 0 ? { id: { notIn: [...blockedIds] } } : {}),
+          ...(hiddenUserIds.size > 0 ? { id: { notIn: [...hiddenUserIds] } } : {}),
         },
         select: CANDIDATE_SELECT,
         take: 100,

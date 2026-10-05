@@ -1,10 +1,21 @@
+/**
+ * TRANSACTIONAL EMAILS (sent through Resend).
+ *
+ * One exported function per email the site sends (password reset, commission
+ * updates, shop receipts, moderation notices...). Each builds its HTML with
+ * `wrapInEmailTemplate` and sends it with `sendEmail`.
+ *
+ * ⚠️ If RESEND_API_KEY is not set (true as of 2026-10-05), emails are NOT sent —
+ * they're just logged to the server console. Nothing crashes.
+ */
 import { Resend } from "resend"
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = process.env.EMAIL_FROM ?? "Gallery <noreply@yourdomain.com>"
 const GALLERY_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
-async function send(to: string, subject: string, html: string) {
+/** Sends one email. Never throws — failures are logged so they can't break the action that triggered them. */
+async function sendEmail(to: string, subject: string, html: string) {
   if (!resend) {
     console.log(`[email] skipped (no RESEND_API_KEY) → ${to} | ${subject}`)
     return
@@ -16,7 +27,8 @@ async function send(to: string, subject: string, html: string) {
   }
 }
 
-function layout(title: string, body: string) {
+/** Wraps an email's body in the shared Gallery-branded dark template (header + footer). */
+function wrapInEmailTemplate(title: string, body: string) {
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /><title>${title}</title></head>
@@ -41,7 +53,7 @@ function layout(title: string, body: string) {
 }
 
 export async function sendPostAutoRemovedEmail(to: string, opts: { username: string }) {
-  await send(to, "A post has been removed from your Gallery account", layout(
+  await sendEmail(to, "A post has been removed from your Gallery account", wrapInEmailTemplate(
     "Post Auto-Removed",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">A post has been removed</h1>
      <p style="margin:0 0 8px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, a post on your account that was flagged for review was not resolved within 14 days and has been automatically removed.</p>
@@ -52,7 +64,7 @@ export async function sendPostAutoRemovedEmail(to: string, opts: { username: str
 
 export async function sendAiContentRemovedEmail(to: string, opts: { username: string; contentType: string; reason: string }) {
   const label = opts.contentType.replace(/_/g, ' ').toLowerCase()
-  await send(to, "Content removed from your Gallery account", layout(
+  await sendEmail(to, "Content removed from your Gallery account", wrapInEmailTemplate(
     "Content Removed",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Content removed by AI moderation</h1>
      <p style="margin:0 0 8px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, our automated moderation system removed your ${label}.</p>
@@ -67,7 +79,7 @@ export async function sendPasswordResetEmail(to: string, opts: {
   token: string  // raw (unhashed) token
 }) {
   const resetUrl = `${GALLERY_URL}/reset-password?token=${opts.token}`
-  await send(to, "Reset your Gallery password", layout(
+  await sendEmail(to, "Reset your Gallery password", wrapInEmailTemplate(
     "Reset your Gallery password",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Reset your password</h1>
      <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, we received a request to reset your Gallery password. Click the button below to choose a new one.</p>
@@ -77,7 +89,7 @@ export async function sendPasswordResetEmail(to: string, opts: {
 }
 
 export async function sendPostFlaggedEmail(to: string, opts: { username: string }) {
-  await send(to, "One of your posts has been flagged for review", layout(
+  await sendEmail(to, "One of your posts has been flagged for review", wrapInEmailTemplate(
     "Post Flagged for Review",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your post has been flagged</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, one of your posts has received enough community reports to be placed under review. It remains visible on your profile while our team reviews it.</p>
@@ -87,7 +99,7 @@ export async function sendPostFlaggedEmail(to: string, opts: { username: string 
 }
 
 export async function sendWelcomeEmail(to: string, opts: { username: string }) {
-  await send(to, "Welcome to Gallery!", layout(
+  await sendEmail(to, "Welcome to Gallery!", wrapInEmailTemplate(
     "Welcome to Gallery",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Welcome to Gallery, @${opts.username}!</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Your account is ready. Start by uploading your first artwork, following artists you love, or opening commissions.</p>
@@ -96,7 +108,7 @@ export async function sendWelcomeEmail(to: string, opts: { username: string }) {
 }
 
 export async function sendCommissionRequestEmail(to: string, opts: { artistUsername: string; buyerUsername: string }) {
-  await send(to, `@${opts.buyerUsername} sent you a commission request`, layout(
+  await sendEmail(to, `@${opts.buyerUsername} sent you a commission request`, wrapInEmailTemplate(
     "New Commission Request",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">New commission request</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> has sent you a commission request. Head to your Professional DMs to review the brief and accept or decline.</p>
@@ -105,7 +117,7 @@ export async function sendCommissionRequestEmail(to: string, opts: { artistUsern
 }
 
 export async function sendCommissionAcceptedEmail(to: string, opts: { buyerUsername: string; artistUsername: string; price: number; deadline: string }) {
-  await send(to, `@${opts.artistUsername} accepted your commission`, layout(
+  await sendEmail(to, `@${opts.artistUsername} accepted your commission`, wrapInEmailTemplate(
     "Commission Accepted",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your commission was accepted!</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.buyerUsername}, <strong style="color:#fff;">@${opts.artistUsername}</strong> has accepted your commission.</p>
@@ -119,7 +131,7 @@ export async function sendCommissionAcceptedEmail(to: string, opts: { buyerUsern
 }
 
 export async function sendCommissionDeclinedEmail(to: string, opts: { buyerUsername: string; artistUsername: string }) {
-  await send(to, `@${opts.artistUsername} declined your commission request`, layout(
+  await sendEmail(to, `@${opts.artistUsername} declined your commission request`, wrapInEmailTemplate(
     "Commission Declined",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission request declined</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.buyerUsername}, <strong style="color:#fff;">@${opts.artistUsername}</strong> has declined your commission request. You can browse other artists and send a new request.</p>
@@ -128,7 +140,7 @@ export async function sendCommissionDeclinedEmail(to: string, opts: { buyerUsern
 }
 
 export async function sendCommissionPaymentConfirmedEmail(to: string, opts: { artistUsername: string; buyerUsername: string }) {
-  await send(to, `Payment received — commission is now in progress`, layout(
+  await sendEmail(to, `Payment received — commission is now in progress`, wrapInEmailTemplate(
     "Payment Confirmed",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Payment confirmed</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> has confirmed payment. Your commission is now in progress — get to work!</p>
@@ -137,7 +149,7 @@ export async function sendCommissionPaymentConfirmedEmail(to: string, opts: { ar
 }
 
 export async function sendCommissionDeliveredEmail(to: string, opts: { buyerUsername: string; artistUsername: string }) {
-  await send(to, `@${opts.artistUsername} delivered your commission`, layout(
+  await sendEmail(to, `@${opts.artistUsername} delivered your commission`, wrapInEmailTemplate(
     "Commission Delivered",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your commission has been delivered!</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.buyerUsername}, <strong style="color:#fff;">@${opts.artistUsername}</strong> has delivered your commission. Please review the work and approve it to release payment.</p>
@@ -146,7 +158,7 @@ export async function sendCommissionDeliveredEmail(to: string, opts: { buyerUser
 }
 
 export async function sendCommissionCompleteEmail(to: string, opts: { artistUsername: string; buyerUsername: string }) {
-  await send(to, `Commission complete — payment released`, layout(
+  await sendEmail(to, `Commission complete — payment released`, wrapInEmailTemplate(
     "Commission Complete",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission complete!</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.artistUsername}, <strong style="color:#fff;">@${opts.buyerUsername}</strong> approved your delivery. Payment has been released. Congratulations on the completed commission!</p>
@@ -156,7 +168,7 @@ export async function sendCommissionCompleteEmail(to: string, opts: { artistUser
 
 export async function sendCommissionCancelledEmail(to: string, opts: { username: string; cancelledByRole: "artist" | "buyer" }) {
   const cancellerLabel = opts.cancelledByRole === "artist" ? "the artist" : "the buyer"
-  await send(to, `A commission was cancelled`, layout(
+  await sendEmail(to, `A commission was cancelled`, wrapInEmailTemplate(
     "Commission Cancelled",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission cancelled</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, a commission has been cancelled by ${cancellerLabel}. You can view the details in your Professional DMs.</p>
@@ -165,7 +177,7 @@ export async function sendCommissionCancelledEmail(to: string, opts: { username:
 }
 
 export async function sendCommissionDisputeEmail(to: string, opts: { username: string }) {
-  await send(to, `A commission dispute has been raised`, layout(
+  await sendEmail(to, `A commission dispute has been raised`, wrapInEmailTemplate(
     "Commission Dispute Raised",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Commission dispute raised</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, a dispute has been raised on one of your commissions. The commission is now frozen pending moderation review. Our team will reach out with next steps.</p>
@@ -175,7 +187,7 @@ export async function sendCommissionDisputeEmail(to: string, opts: { username: s
 
 export async function sendDmcaCounterNoticeEmail(to: string, opts: { claimantName: string; counterNoticeText: string; postUrl: string }) {
   const excerpt = opts.counterNoticeText.length > 300 ? opts.counterNoticeText.slice(0, 300) + "…" : opts.counterNoticeText
-  await send(to, `A counter-notice has been filed on your DMCA claim`, layout(
+  await sendEmail(to, `A counter-notice has been filed on your DMCA claim`, wrapInEmailTemplate(
     "DMCA Counter-Notice Filed",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Counter-notice filed</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi ${opts.claimantName}, the user whose content was removed in response to your DMCA claim has filed a counter-notice. The post URL was: <span style="color:#b044f8;">${opts.postUrl}</span></p>
@@ -187,7 +199,7 @@ export async function sendDmcaCounterNoticeEmail(to: string, opts: { claimantNam
 }
 
 export async function sendPostRestoredEmail(to: string, opts: { username: string }) {
-  await send(to, "Your post has been restored", layout(
+  await sendEmail(to, "Your post has been restored", wrapInEmailTemplate(
     "Post Restored",
     `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">Your post has been restored</h1>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi @${opts.username}, the 14-day counter-notice waiting period has elapsed with no court action from the claimant. Your post has been restored and is now visible on your profile.</p>
@@ -210,7 +222,7 @@ export async function sendShopPurchaseEmail({
   downloadUrl: string
   amountPaid: number
 }) {
-  await send(to, `Your download is ready — ${itemTitle}`, layout(
+  await sendEmail(to, `Your download is ready — ${itemTitle}`, wrapInEmailTemplate(
     "Your purchase from Gallery",
     `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi ${buyerName},</p>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Your purchase was successful! Here's your download link for <strong style="color:#fff;">${itemTitle}</strong> by <a href="${GALLERY_URL}/@${sellerUsername}" style="color:#b044f8;">@${sellerUsername}</a>:</p>
@@ -235,7 +247,7 @@ export async function sendShopSaleEmail({
   buyerUsername: string
   sellerPayout: number
 }) {
-  await send(to, `New sale — ${itemTitle}`, layout(
+  await sendEmail(to, `New sale — ${itemTitle}`, wrapInEmailTemplate(
     "You made a sale on Gallery",
     `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi ${artistName},</p>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">You made a sale! <a href="${GALLERY_URL}/@${buyerUsername}" style="color:#b044f8;">@${buyerUsername}</a> purchased <strong style="color:#fff;">${itemTitle}</strong>.</p>

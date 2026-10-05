@@ -61,6 +61,11 @@ export default function FeedPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
+  // The feed's ranking is frozen to the moment this page opened, so it doesn't
+  // reshuffle while you scroll or like things. Opening/refreshing the page re-ranks it.
+  const [feedSnapshotTime] = useState(() => Date.now())
+  const feedQueryInput = { asOf: feedSnapshotTime }
+
   const {
     data,
     isLoading,
@@ -69,18 +74,22 @@ export default function FeedPage() {
     hasNextPage,
     isFetchingNextPage,
   } = trpc.post.getFeed.useInfiniteQuery(
-    {},
+    feedQueryInput,
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       initialCursor: 0,
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
     }
   )
 
+  // Likes update instantly on screen (optimistic) without re-fetching the feed,
+  // so the order stays put. Rolls back if the server rejects the like.
   const toggleLike = trpc.interaction.toggleLike.useMutation({
     onMutate: async ({ postId }) => {
       await utils.post.getFeed.cancel()
-      const previous = utils.post.getFeed.getInfiniteData({})
-      utils.post.getFeed.setInfiniteData({}, (old) => {
+      const previous = utils.post.getFeed.getInfiniteData(feedQueryInput)
+      utils.post.getFeed.setInfiniteData(feedQueryInput, (old) => {
         if (!old) return old
         return {
           ...old,
@@ -101,9 +110,8 @@ export default function FeedPage() {
       return { previous }
     },
     onError: (_err, _input, context) => {
-      if (context?.previous) utils.post.getFeed.setInfiniteData({}, context.previous)
+      if (context?.previous) utils.post.getFeed.setInfiniteData(feedQueryInput, context.previous)
     },
-    onSettled: () => { utils.post.getFeed.invalidate() },
   })
 
   useEffect(() => {

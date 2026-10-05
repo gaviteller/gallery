@@ -1,3 +1,8 @@
+/**
+ * ART STYLE + PRICE FILTERS for browsing commission artists (/commissions).
+ * Artists type free-text styles on their profile ("oil painting", "chibi"...);
+ * these chips group those into a few filter buttons by keyword matching.
+ */
 export const ART_STYLE_CHIPS = [
   "Digital",
   "Traditional",
@@ -27,10 +32,11 @@ export const ART_STYLE_KEYWORDS: Record<ArtStyleChip, string[]> = {
 export function matchesStyleChip(artStyles: string[], chip: ArtStyleChip): boolean {
   const keywords = ART_STYLE_KEYWORDS[chip]
   return artStyles.some(style =>
-    keywords.some(kw => style.toLowerCase().includes(kw))
+    keywords.some(keyword => style.toLowerCase().includes(keyword))
   )
 }
 
+/** Price filter buttons on the commission browse page. */
 export const PRICE_BUCKETS = [
   { label: "Under $25",  min: 0,    max: 24.99 },
   { label: "$25–$75",    min: 25,   max: 74.99 },
@@ -46,7 +52,7 @@ export function getStartingPrice(
 ): number | null {
   if (!Array.isArray(priceRanges) || priceRanges.length === 0) return null
   const prices = (priceRanges as { label: string; price: number }[])
-    .map(r => r.price)
+    .map(priceRange => priceRange.price)
     .filter(Number.isFinite)
   return prices.length > 0 ? Math.min(...prices) : null
 }

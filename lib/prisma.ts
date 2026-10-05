@@ -1,3 +1,11 @@
+/**
+ * DATABASE CLIENT — the single shared connection to PostgreSQL (Neon).
+ *
+ * Import `prisma` from here; never create a new PrismaClient elsewhere.
+ * In development, the client is stored on `globalThis` so hot-reloading
+ * doesn't open a new database connection on every file save.
+ * In development every SQL query is also printed to the server log.
+ */
 import { PrismaClient } from "@prisma/client"
 
 const globalForPrisma = globalThis as unknown as {

@@ -1,3 +1,7 @@
+/**
+ * TRUST SCORE — the badge shown on artists' commission profiles.
+ * Turns a numeric score into a named tier, plus the label and color used in the UI.
+ */
 export type TrustTier =
   | "excellent"
   | "good"
@@ -27,6 +31,7 @@ export function computeTier(
   return "poor"
 }
 
+/** Display text for each tier. */
 export const TIER_LABELS: Record<TrustTier, string> = {
   excellent: "Excellent",
   good: "Good",
@@ -36,6 +41,7 @@ export const TIER_LABELS: Record<TrustTier, string> = {
   suspended: "Suspended",
 }
 
+/** Badge color for each tier. */
 export const TIER_COLORS: Record<TrustTier, string> = {
   excellent: "#4ade80",
   good: "#60a5fa",

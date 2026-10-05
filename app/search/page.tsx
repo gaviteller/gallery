@@ -285,12 +285,15 @@ function SearchInner() {
     else { const typeParam = type.toLowerCase(); router.push(query ? `/search?q=${encodeURIComponent(query)}&tab=${typeParam}` : `/search?tab=${typeParam}`) }
   }
 
+  // Maps the filter sheet's sort label to the value the search API expects.
+  const postSort = activeSort === "Newest" ? "newest" : activeSort === "Most liked" ? "mostLiked" : "trending"
+
   const overviewEnabled = enabled && !tab
   const { data: artistsData } = trpc.search.artists.useQuery({ query, limit: 5 }, { enabled: overviewEnabled })
-  const { data: postsData } = trpc.search.posts.useQuery({ query, limit: 8 }, { enabled: overviewEnabled })
+  const { data: postsData } = trpc.search.posts.useQuery({ query, limit: 8, sort: postSort }, { enabled: overviewEnabled })
   const { data: shopData } = trpc.search.shop.useQuery({ query, limit: 5 }, { enabled: overviewEnabled })
   const { data: tabArtists } = trpc.search.artists.useQuery({ query, limit }, { enabled: enabled && tab === "artists" })
-  const { data: tabPosts } = trpc.search.posts.useQuery({ query, limit }, { enabled: enabled && tab === "posts" })
+  const { data: tabPosts } = trpc.search.posts.useQuery({ query, limit, sort: postSort }, { enabled: enabled && tab === "posts" })
   const { data: tabShop } = trpc.search.shop.useQuery({ query, limit }, { enabled: enabled && tab === "shop" })
 
   const hasArtists = (artistsData?.items.length ?? 0) > 0

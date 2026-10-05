@@ -2,6 +2,8 @@
  * Uploads a base64 data URL as a private file via /api/upload-file.
  * Returns the Cloudinary public_id (NOT a direct URL).
  * Store this value in ShopItem.fileUrl — generate signed URLs on demand.
+ * Used for the downloadable file a buyer receives after purchasing a shop item.
+ * Requires CLOUDINARY_* environment variables on the server.
  */
 export async function uploadFile(base64: string, filename: string): Promise<string> {
   const res = await fetch("/api/upload-file", {

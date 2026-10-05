@@ -1,6 +1,11 @@
+/**
+ * BAN CHECK — call at the start of any action a suspended user shouldn't be able to do
+ * (posting, commenting, selling...).
+ */
 import { TRPCError } from "@trpc/server"
 import type { PrismaClient } from "@prisma/client"
 
+/** Throws FORBIDDEN if the user's ban (`bannedUntil`) is still in the future; otherwise does nothing. */
 export async function checkNotBanned(
   prisma: PrismaClient,
   userId: string

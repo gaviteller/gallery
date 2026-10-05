@@ -1,3 +1,13 @@
+/**
+ * LOGIN / SESSION SETUP (NextAuth).
+ *
+ * Decides how people can sign in and what's stored in their login cookie:
+ *  - Email + password (always on)
+ *  - Google, Apple, magic-link email → only switched on if their keys are in .env
+ *
+ * The session lives in a small signed cookie (JWT). We deliberately keep it tiny —
+ * only id, username and a few flags — and load everything else with `trpc.user.me`.
+ */
 import { type NextAuthOptions } from "next-auth"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
@@ -8,22 +18,27 @@ import bcrypt from "bcryptjs"
 import { prisma } from "./prisma"
 import { normalizeEmail } from "./normalizeEmail"
 
+/**
+ * Ban-evasion check for a newly created account.
+ * Saves the account's canonical email, then flags the account (`banEvasionFlag`)
+ * if another currently-banned account uses the same inbox. Moderators see the flag.
+ */
 export async function runBanEvasionCheck(userId: string, email: string) {
-  const normalized = normalizeEmail(email)
+  const canonicalEmail = normalizeEmail(email)
   await prisma.user.update({
     where: { id: userId },
-    data: { normalizedEmail: normalized },
+    data: { normalizedEmail: canonicalEmail },
   })
-  const bannedMatches = await prisma.user.findMany({
+  const bannedAccountsWithSameEmail = await prisma.user.findMany({
     where: {
-      normalizedEmail: normalized,
+      normalizedEmail: canonicalEmail,
       id: { not: userId },
       bannedUntil: { not: null },
     },
     select: { id: true, bannedUntil: true },
   })
-  const hasBannedMatch = bannedMatches.some(
-    u => u.bannedUntil && u.bannedUntil > new Date()
+  const hasBannedMatch = bannedAccountsWithSameEmail.some(
+    account => account.bannedUntil && account.bannedUntil > new Date()
   )
   if (hasBannedMatch) {
     await prisma.user.update({
@@ -33,12 +48,17 @@ export async function runBanEvasionCheck(userId: string, email: string) {
   }
 }
 
+/**
+ * The standard NextAuth↔database adapter, plus one extra step: every account
+ * created through Google/Apple/email-link also gets the ban-evasion check.
+ * (Password signups run the same check in server/routers/auth.ts.)
+ */
 function buildAdapter() {
-  const base = PrismaAdapter(prisma)
+  const defaultAdapter = PrismaAdapter(prisma)
   return {
-    ...base,
-    async createUser(data: Parameters<NonNullable<typeof base.createUser>>[0]) {
-      const newUser = await base.createUser!(data)
+    ...defaultAdapter,
+    async createUser(data: Parameters<NonNullable<typeof defaultAdapter.createUser>>[0]) {
+      const newUser = await defaultAdapter.createUser!(data)
       if (newUser.email) {
         await runBanEvasionCheck(newUser.id, newUser.email)
       }
@@ -66,8 +86,9 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !user.password) return null
 
-        const valid = await bcrypt.compare(credentials.password, user.password)
-        if (!valid) return null
+        // Passwords are stored hashed (bcrypt); compare against the hash, never plain text.
+        const passwordMatches = await bcrypt.compare(credentials.password, user.password)
+        if (!passwordMatches) return null
 
         // Keep the JWT small — only store what's needed for routing/auth guards.
         // image/name/email are NOT stored here because base64 profile photos
@@ -92,14 +113,19 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
+    /**
+     * Builds the contents of the login cookie.
+     * Runs at sign-in (`user` is set) and whenever the page calls `update()`
+     * (`trigger === "update"`, e.g. after changing username or finishing onboarding).
+     */
     async jwt({ token, user, trigger }) {
       if (trigger === "update" && token.id) {
-        const fresh = await prisma.user.findUnique({ where: { id: token.id as string } })
-        if (fresh) {
-          token.username = fresh.username
-          token.sellingEnabled = fresh.sellingEnabled
-          token.onboardingComplete = fresh.onboardingComplete
-          token.bannedUntil = fresh.bannedUntil?.toISOString() ?? null
+        const latestUser = await prisma.user.findUnique({ where: { id: token.id as string } })
+        if (latestUser) {
+          token.username = latestUser.username
+          token.sellingEnabled = latestUser.sellingEnabled
+          token.onboardingComplete = latestUser.onboardingComplete
+          token.bannedUntil = latestUser.bannedUntil?.toISOString() ?? null
         }
       }
       if (user) {
@@ -120,6 +146,7 @@ export const authOptions: NextAuthOptions = {
       delete token.picture
       return token
     },
+    /** Copies cookie fields onto `session.user`, which pages read via useSession(). */
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string

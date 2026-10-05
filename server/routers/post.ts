@@ -45,107 +45,140 @@ export const postRouter = router({
       return post
     }),
 
+  /**
+   * Home "For You" feed, ranked and paged.
+   *
+   * The ranking is frozen to a snapshot time (`asOf`) chosen by the client when the
+   * feed page opens. Every page request uses the same snapshot, so:
+   *  - the order doesn't shuffle while you scroll or after you like something
+   *  - posts are never repeated or skipped between pages
+   * The feed re-ranks only when the page is opened/refreshed (new `asOf`).
+   */
   getFeed: publicProcedure
-    .input(z.object({ cursor: z.number().int().min(0).default(0) }))
+    .input(z.object({
+      cursor: z.number().int().min(0).default(0),
+      asOf: z.number().int().positive().optional(),
+    }))
     .query(async ({ ctx, input }) => {
       const PAGE_SIZE = 12
-      const POOL = 300
+      const RANKING_POOL_SIZE = 300
+      const snapshotTime = new Date(input.asOf ?? Date.now())
+      const viewerId = ctx.session?.user?.id ?? null
+      const beforeSnapshot = { createdAt: { lte: snapshotTime } }
 
-      // Pull a large recent pool to rank from
+      // Step 1: load the candidate pool WITHOUT image data. Images are large, so we
+      // only fetch them for the 12 posts actually being returned (step 3).
       const posts = await ctx.prisma.post.findMany({
         where: {
+          ...beforeSnapshot,
           user: { username: { not: null } },
           OR: [
             { status: "PUBLISHED" },
-            ...(ctx.session?.user?.id ? [{ status: "PENDING_REVIEW" as const, userId: ctx.session.user.id }] : []),
+            ...(viewerId ? [{ status: "PENDING_REVIEW" as const, userId: viewerId }] : []),
           ],
         },
         orderBy: { createdAt: "desc" },
-        take: POOL,
-        include: {
+        take: RANKING_POOL_SIZE,
+        select: {
+          id: true, userId: true, title: true, description: true, createdAt: true, updatedAt: true,
+          isAiGenerated: true, isCommission: true, pinned: true, status: true, pendingAt: true,
+          flagReason: true, reportCount: true, removedAt: true, removalReason: true,
+          aiVerdict: true, aiScores: true,
           user: { select: { id: true, username: true, name: true, image: true, commissionStatus: true } },
-          _count: { select: { likes: true, comments: true } },
+          // Counts as of the snapshot, so new likes/comments don't reshuffle the feed mid-scroll.
+          _count: { select: { likes: { where: beforeSnapshot }, comments: { where: beforeSnapshot } } },
         },
       })
 
-      const userId = ctx.session?.user?.id ?? null
-      let followingSet = new Set<string>()
-      let likedSet = new Set<string>()
-      let likedArtistSet = new Set<string>()
-      let reportedSet = new Set<string>()
+      // Step 2: viewer-specific signals. Ranking inputs (follows, liked artists) are
+      // limited to the snapshot; display flags (likedByMe, reported) are live.
+      let followedArtistIds = new Set<string>()
+      let likedPostIds = new Set<string>()
+      let likedArtistIds = new Set<string>()
+      let reportedPostIds = new Set<string>()
       let blockedUserIds = new Set<string>()
 
-      if (userId) {
-        const postIds = posts.map((p) => p.id)
-        const userIds = [...new Set(posts.map((p) => p.userId))]
+      if (viewerId) {
+        const poolPostIds = posts.map((p) => p.id)
+        const poolArtistIds = [...new Set(posts.map((p) => p.userId))]
 
-        const [follows, myLikes, myRecentLikes, myReports, blockRelations] = await Promise.all([
+        const [follows, likesOnPool, recentLikes, reports, blockRelations] = await Promise.all([
           ctx.prisma.follow.findMany({
-            where: { followerId: userId, followingId: { in: userIds } },
+            where: { followerId: viewerId, followingId: { in: poolArtistIds }, ...beforeSnapshot },
             select: { followingId: true },
           }),
           ctx.prisma.like.findMany({
-            where: { userId, postId: { in: postIds } },
+            where: { userId: viewerId, postId: { in: poolPostIds } },
             select: { postId: true },
           }),
-          // Which artists has this user liked in the past? (interest graph)
+          // Artists the viewer has liked before (interest graph)
           ctx.prisma.like.findMany({
-            where: { userId },
+            where: { userId: viewerId, ...beforeSnapshot },
             select: { post: { select: { userId: true } } },
             orderBy: { createdAt: "desc" },
             take: 300,
           }),
           ctx.prisma.report.findMany({
-            where: { reporterId: userId, postId: { in: postIds } },
+            where: { reporterId: viewerId, postId: { in: poolPostIds } },
             select: { postId: true },
           }),
           ctx.prisma.block.findMany({
-            where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+            where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
             select: { blockerId: true, blockedId: true },
           }),
         ])
 
-        followingSet = new Set(follows.map((f) => f.followingId))
-        likedSet = new Set(myLikes.map((l) => l.postId))
-        likedArtistSet = new Set(myRecentLikes.map((l) => l.post.userId))
-        reportedSet = new Set(myReports.map((r) => r.postId))
+        followedArtistIds = new Set(follows.map((f) => f.followingId))
+        likedPostIds = new Set(likesOnPool.map((l) => l.postId))
+        likedArtistIds = new Set(recentLikes.map((l) => l.post.userId))
+        reportedPostIds = new Set(reports.map((r) => r.postId))
         blockedUserIds = new Set(
-          blockRelations.map((b) => b.blockerId === userId ? b.blockedId : b.blockerId)
+          blockRelations.map((b) => b.blockerId === viewerId ? b.blockedId : b.blockerId)
         )
       }
 
       const visiblePosts = posts.filter((p) => !blockedUserIds.has(p.userId))
 
-      // Score every post
-      const now = Date.now()
+      // Score every post. Scoring uses the snapshot time, so it's identical for every page.
       const scored = visiblePosts.map((post) => {
-        const ageHours = (now - new Date(post.createdAt).getTime()) / 3_600_000
-        // Recency: 30-point bonus decaying with a 72-hour half-life
-        const recency = 30 * Math.exp(-ageHours / 72)
-        // Engagement: likes + weighted comments, dampened by age
-        const engagement = ((post._count.likes + post._count.comments * 2) / Math.pow(ageHours + 2, 1.1)) * 8
-        // Social signals
-        const followBoost = followingSet.has(post.userId) ? 45 : 0
-        const interestBoost = likedArtistSet.has(post.userId) && !followingSet.has(post.userId) ? 18 : 0
+        const ageHours = (snapshotTime.getTime() - new Date(post.createdAt).getTime()) / 3_600_000
+        // Recency: up to 30 points, fading as the post gets older (72-hour decay)
+        const recencyScore = 30 * Math.exp(-ageHours / 72)
+        // Engagement: likes + double-weighted comments, dampened by age
+        const engagementScore = ((post._count.likes + post._count.comments * 2) / Math.pow(ageHours + 2, 1.1)) * 8
+        // Social: big boost for artists you follow, smaller for artists you've liked but don't follow
+        const followBoost = followedArtistIds.has(post.userId) ? 45 : 0
+        const interestBoost = likedArtistIds.has(post.userId) && !followedArtistIds.has(post.userId) ? 18 : 0
 
         return {
           ...post,
-          isFollowing: followingSet.has(post.userId),
-          isOwnPost: post.userId === userId,
-          likedByMe: likedSet.has(post.id),
-          viewerHasReported: reportedSet.has(post.id),
-          _score: recency + engagement + followBoost + interestBoost,
+          isFollowing: followedArtistIds.has(post.userId),
+          isOwnPost: post.userId === viewerId,
+          likedByMe: likedPostIds.has(post.id),
+          viewerHasReported: reportedPostIds.has(post.id),
+          _score: recencyScore + engagementScore + followBoost + interestBoost,
         }
       })
 
-      scored.sort((a, b) => b._score - a._score)
+      // Tie-break on id so equal scores always come out in the same order.
+      scored.sort((a, b) => b._score - a._score || a.id.localeCompare(b.id))
 
-      let slice = scored.slice(input.cursor, input.cursor + PAGE_SIZE)
+      const page = scored.slice(input.cursor, input.cursor + PAGE_SIZE)
       const nextCursor = input.cursor + PAGE_SIZE < scored.length
         ? input.cursor + PAGE_SIZE
         : null
 
-      return { posts: slice, nextCursor }
+      // Step 3: fetch images only for the posts on this page.
+      const images = await ctx.prisma.post.findMany({
+        where: { id: { in: page.map((p) => p.id) } },
+        select: { id: true, image: true },
+      })
+      const imageByPostId = new Map(images.map((p) => [p.id, p.image]))
+
+      return {
+        posts: page.map((p) => ({ ...p, image: imageByPostId.get(p.id) ?? "" })),
+        nextCursor,
+      }
     }),
 
   getByUsername: publicProcedure

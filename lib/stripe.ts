@@ -1,17 +1,24 @@
+/**
+ * STRIPE (payments) CLIENT.
+ *
+ * Created lazily — only on the first payment call — so the site still runs
+ * when STRIPE_SECRET_KEY isn't set (payments are intentionally not live yet).
+ */
 import Stripe from "stripe"
 
-let _stripe: Stripe | null = null
+let stripeClient: Stripe | null = null
 
+/** Returns the shared Stripe client, creating it on first use. Throws if no key is configured. */
 export function getStripe(): Stripe {
-  if (!_stripe) {
+  if (!stripeClient) {
     if (!process.env.STRIPE_SECRET_KEY) {
       throw new Error("STRIPE_SECRET_KEY is not set")
     }
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: "2026-05-27.dahlia",
     })
   }
-  return _stripe
+  return stripeClient
 }
 
 // Proxy so existing `stripe.xxx` call sites keep working without changes

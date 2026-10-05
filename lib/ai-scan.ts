@@ -1,6 +1,34 @@
+/**
+ * AI CONTENT MODERATION.
+ *
+ * Sends uploaded images and comments to an AI model (Llama 4 Scout via OpenRouter)
+ * that scores them against Gallery's rules, then acts on the score automatically.
+ *
+ * What gets scanned (and by which function):
+ *   scanPost      → new posts                 (called from server/routers/post.ts)
+ *   scanShopItem  → new shop listings         (server/routers/shop.ts)
+ *   scanAvatar    → profile photos & banners  (server/routers/user.ts)
+ *   scanComment   → new comments              (server/routers/interaction.ts)
+ * Commission reference photos and DM attachments are intentionally NOT scanned
+ * (private content — report-only).
+ *
+ * Image outcome ladder (posts & shop items):
+ *   any category 10  → removed + ZERO_TOLERANCE strike
+ *   any category 9   → removed + SEVERE strike
+ *   clothing/violence/self-harm ≥ 7 → hidden for human review + MODERATE strike
+ *   pose ≥ 7 only    → hidden for human review, no strike
+ *   otherwise        → published normally
+ * Every scan (including errors) is written to the AIScanLog table, visible in the admin panel.
+ *
+ * If OPENROUTER_API_KEY is missing, every scan is skipped and content is published unscanned.
+ */
 import { PrismaClient, StrikeLevel, StrikeViolation } from "@prisma/client"
 
-const PROMPT = `You are the image moderation AI for Gallery, an art platform.
+const AI_MODEL = "meta-llama/llama-4-scout"
+const AI_REQUEST_TIMEOUT_MS = 30_000
+
+/** Instructions + scoring rubric sent to the AI with every image. */
+const IMAGE_MODERATION_PROMPT = `You are the image moderation AI for Gallery, an art platform.
 
 IMPORTANT: These rules apply equally to ALL art styles and mediums — anime, illustration, digital art, photography, realistic, abstract, manga, 3D render. Do not apply different standards based on art style or medium.
 
@@ -75,6 +103,7 @@ Override rules (apply before calculating verdict):
 Respond with ONLY a JSON object — no markdown, no code blocks:
 {"clothing":1,"pose":1,"violence":1,"selfHarm":1,"combined":10,"verdict":"SAFE","reason":"one sentence referencing the specific rule or scale level"}`
 
+/** The AI's scores for one image (each category 1–10, combined 1–100). */
 interface ScanScores {
   clothing: number
   pose: number
@@ -85,63 +114,73 @@ interface ScanScores {
   reason: string
 }
 
-async function callOpenRouter(imageDataUrl: string): Promise<ScanScores> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+/** Removes the ```json ... ``` wrapper some models put around their answer. */
+function stripCodeFence(aiReply: string): string {
+  return aiReply.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim()
+}
 
-  let res: Response
+/** Reads one numeric field (e.g. "clothing": 4) out of a possibly-broken JSON reply. */
+function readNumberField(replyText: string, fieldName: string, fallback: number): number {
+  const match = replyText.match(new RegExp(`"${fieldName}"\\s*:\\s*(\\d+)`))
+  return match ? parseInt(match[1], 10) : fallback
+}
+
+/**
+ * Sends one request to OpenRouter and returns the AI's text reply.
+ * Gives up after 30 seconds. Throws on any HTTP error.
+ */
+async function askOpenRouter(messageContent: unknown): Promise<string> {
+  const abortController = new AbortController()
+  const timeoutTimer = setTimeout(() => abortController.abort(), AI_REQUEST_TIMEOUT_MS)
+
+  let response: Response
   try {
-    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      signal: controller.signal,
+      signal: abortController.signal,
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-4-scout",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "image_url", image_url: { url: imageDataUrl } },
-              { type: "text", text: PROMPT },
-            ],
-          },
-        ],
+        model: AI_MODEL,
+        messages: [{ role: "user", content: messageContent }],
       }),
     })
   } finally {
-    clearTimeout(timeout)
+    clearTimeout(timeoutTimer)
   }
 
-  if (!res.ok) throw new Error(`OpenRouter ${res.status}`)
-  const data = await res.json()
-  const text: string = (data.choices?.[0]?.message?.content ?? "").trim()
-  const clean = text.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim()
+  if (!response.ok) throw new Error(`OpenRouter ${response.status}`)
+  const responseBody = await response.json()
+  return (responseBody.choices?.[0]?.message?.content ?? "").trim()
+}
 
-  // Primary parse
+/** Asks the AI to score one image. Tolerates replies that were cut off mid-JSON. */
+async function scoreImageWithAI(imageDataUrl: string): Promise<ScanScores> {
+  const replyText = stripCodeFence(await askOpenRouter([
+    { type: "image_url", image_url: { url: imageDataUrl } },
+    { type: "text", text: IMAGE_MODERATION_PROMPT },
+  ]))
+
   try {
-    return JSON.parse(clean) as ScanScores
+    return JSON.parse(replyText) as ScanScores
   } catch {
-    // Fallback: extract fields individually when model truncates the JSON
-    const num = (key: string, fallback: number) => {
-      const m = clean.match(new RegExp(`"${key}"\\s*:\\s*(\\d+)`))
-      return m ? parseInt(m[1], 10) : fallback
-    }
-    const clothing = num("clothing", 1)
-    const pose = num("pose", 1)
-    const violence = num("violence", 1)
-    const selfHarm = num("selfHarm", 1)
-    const combined = num("combined", Math.floor((clothing * 30 + pose * 10 + violence * 30 + selfHarm * 30) / 10))
-    const verdictMatch = clean.match(/"verdict"\s*:\s*"(SAFE|SUGGESTIVE|EXPLICIT)"/)
+    // The model sometimes truncates its JSON — salvage each field individually.
+    const clothing = readNumberField(replyText, "clothing", 1)
+    const pose = readNumberField(replyText, "pose", 1)
+    const violence = readNumberField(replyText, "violence", 1)
+    const selfHarm = readNumberField(replyText, "selfHarm", 1)
+    const combined = readNumberField(replyText, "combined", Math.floor((clothing * 30 + pose * 10 + violence * 30 + selfHarm * 30) / 10))
+    const verdictMatch = replyText.match(/"verdict"\s*:\s*"(SAFE|SUGGESTIVE|EXPLICIT)"/)
     const verdict = (verdictMatch?.[1] ?? (combined >= 70 ? "EXPLICIT" : combined >= 50 ? "SUGGESTIVE" : "SAFE")) as ScanScores["verdict"]
-    const reasonMatch = clean.match(/"reason"\s*:\s*"([^"]*)"/)
+    const reasonMatch = replyText.match(/"reason"\s*:\s*"([^"]*)"/)
     const reason = reasonMatch?.[1] ?? "AI response was truncated — manual review recommended."
     return { clothing, pose, violence, selfHarm, combined, verdict, reason }
   }
 }
 
+/** Picks which strike type to issue, based on whichever category scored highest. */
 function pickViolation(scores: ScanScores): StrikeViolation {
   if (scores.violence >= scores.clothing && scores.violence >= scores.selfHarm) {
     return StrikeViolation.GORE
@@ -150,7 +189,8 @@ function pickViolation(scores: ScanScores): StrikeViolation {
   return StrikeViolation.EXPLICIT_SEXUAL
 }
 
-const COMMENT_PROMPT = `You are a content moderator for Gallery, an art platform.
+/** Instructions + scoring rubric sent to the AI with every comment. */
+const COMMENT_MODERATION_PROMPT = `You are a content moderator for Gallery, an art platform.
 
 Analyze this comment for TOS violations. Rate each category 1-10:
 
@@ -170,6 +210,7 @@ Override rules:
 Respond with ONLY a JSON object — no markdown, no code blocks:
 {"hateSpeech":1,"harassment":1,"spam":1,"nsfwSolicitation":1,"combined":7,"verdict":"SAFE","reason":"one sentence"}`
 
+/** The AI's scores for one comment (each category 1–10, combined 1–100). */
 interface CommentScores {
   hateSpeech: number
   harassment: number
@@ -180,50 +221,26 @@ interface CommentScores {
   reason: string
 }
 
-async function callOpenRouterText(text: string): Promise<CommentScores> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
-  let res: Response
+/** Asks the AI to score one comment. Tolerates replies that were cut off mid-JSON. */
+async function scoreCommentWithAI(commentText: string): Promise<CommentScores> {
+  const replyText = stripCodeFence(await askOpenRouter(`${COMMENT_MODERATION_PROMPT}\n\nComment: "${commentText}"`))
   try {
-    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-4-scout",
-        messages: [{ role: "user", content: `${COMMENT_PROMPT}\n\nComment: "${text}"` }],
-      }),
-    })
-  } finally {
-    clearTimeout(timeout)
-  }
-  if (!res.ok) throw new Error(`OpenRouter ${res.status}`)
-  const data = await res.json()
-  const raw: string = (data.choices?.[0]?.message?.content ?? "").trim()
-  const clean = raw.replace(/^```json\n?/, "").replace(/\n?```$/, "").trim()
-  try {
-    return JSON.parse(clean) as CommentScores
+    return JSON.parse(replyText) as CommentScores
   } catch {
-    const num = (key: string, fallback: number) => {
-      const m = clean.match(new RegExp(`"${key}"\\s*:\\s*(\\d+)`))
-      return m ? parseInt(m[1], 10) : fallback
-    }
-    const hateSpeech = num("hateSpeech", 1)
-    const harassment = num("harassment", 1)
-    const spam = num("spam", 1)
-    const nsfwSolicitation = num("nsfwSolicitation", 1)
-    const combined = num("combined", Math.floor((hateSpeech * 30 + harassment * 40 + spam * 10 + nsfwSolicitation * 20) / 10))
-    const verdictMatch = clean.match(/"verdict"\s*:\s*"(SAFE|WARNING|REMOVE)"/)
+    const hateSpeech = readNumberField(replyText, "hateSpeech", 1)
+    const harassment = readNumberField(replyText, "harassment", 1)
+    const spam = readNumberField(replyText, "spam", 1)
+    const nsfwSolicitation = readNumberField(replyText, "nsfwSolicitation", 1)
+    const combined = readNumberField(replyText, "combined", Math.floor((hateSpeech * 30 + harassment * 40 + spam * 10 + nsfwSolicitation * 20) / 10))
+    const verdictMatch = replyText.match(/"verdict"\s*:\s*"(SAFE|WARNING|REMOVE)"/)
     const verdict = (verdictMatch?.[1] ?? (combined >= 60 ? "REMOVE" : combined >= 30 ? "WARNING" : "SAFE")) as CommentScores["verdict"]
-    const reasonMatch = clean.match(/"reason"\s*:\s*"([^"]*)"/)
+    const reasonMatch = replyText.match(/"reason"\s*:\s*"([^"]*)"/)
     const reason = reasonMatch?.[1] ?? "AI response truncated."
     return { hateSpeech, harassment, spam, nsfwSolicitation, combined, verdict, reason }
   }
 }
 
+/** Scans a saved comment; if the AI says REMOVE, the comment is hidden (not deleted) with the reason. */
 export async function scanComment(
   prisma: PrismaClient,
   commentId: string,
@@ -235,7 +252,7 @@ export async function scanComment(
 
   let scores: CommentScores
   try {
-    scores = await callOpenRouterText(comment.text)
+    scores = await scoreCommentWithAI(comment.text)
   } catch (err) {
     console.error("[ai-scan] comment scan failed:", err)
     return
@@ -253,6 +270,10 @@ export async function scanComment(
   }
 }
 
+/**
+ * Scans a new shop listing's preview image and applies the outcome ladder
+ * (see top of file): may remove or hide the listing, issue a strike, notify the seller.
+ */
 export async function scanShopItem(
   prisma: PrismaClient,
   itemId: string,
@@ -263,7 +284,7 @@ export async function scanShopItem(
 
   let scores: ScanScores
   try {
-    scores = await callOpenRouter(imageDataUrl)
+    scores = await scoreImageWithAI(imageDataUrl)
   } catch (err) {
     console.error("[ai-scan] OpenRouter call failed (shop):", err)
     try {
@@ -373,7 +394,7 @@ export async function scanAvatar(
 
   let scores: ScanScores
   try {
-    scores = await callOpenRouter(imageDataUrl)
+    scores = await scoreImageWithAI(imageDataUrl)
   } catch (err) {
     console.error("[ai-scan] OpenRouter call failed (avatar):", err)
     try {
@@ -429,6 +450,11 @@ export async function scanAvatar(
   }
 }
 
+/**
+ * Scans a new post's image and applies the outcome ladder (see top of file):
+ * may remove the post or hold it for review, issue a strike, and notify the artist.
+ * Also re-run by the report flow when a reported post was never scanned.
+ */
 export async function scanPost(
   prisma: PrismaClient,
   postId: string,
@@ -439,7 +465,7 @@ export async function scanPost(
 
   let scores: ScanScores
   try {
-    scores = await callOpenRouter(imageDataUrl)
+    scores = await scoreImageWithAI(imageDataUrl)
   } catch (err) {
     console.error("[ai-scan] OpenRouter call failed:", err)
     try {

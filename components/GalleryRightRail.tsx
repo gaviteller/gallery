@@ -6,18 +6,25 @@ import { trpc } from "@/components/providers"
 
 type Variant = "combined" | "split"
 
+/**
+ * Follow / unfollow toggle for a suggested artist.
+ * The sidebar only suggests artists you don't follow yet, so it starts as "Follow";
+ * after following, clicking "Following" undoes it.
+ */
 function FollowButton({ username }: { username: string | null }) {
-  const [following, setFollowing] = useState(false)
-  const follow = trpc.follow.follow.useMutation({ onSuccess: () => setFollowing(true) })
+  const [isFollowing, setIsFollowing] = useState(false)
+  const follow = trpc.follow.follow.useMutation({ onSuccess: () => setIsFollowing(true) })
+  const unfollow = trpc.follow.unfollow.useMutation({ onSuccess: () => setIsFollowing(false) })
+  const isSaving = follow.isPending || unfollow.isPending
   if (!username) return null
   return (
     <button
       type="button"
-      className={`gallery-follow${following ? " is-following" : ""}`}
-      disabled={following || follow.isPending}
-      onClick={() => follow.mutate({ username })}
+      className={`gallery-follow${isFollowing ? " is-following" : ""}`}
+      disabled={isSaving}
+      onClick={() => (isFollowing ? unfollow : follow).mutate({ username })}
     >
-      {following ? "Following" : follow.isPending ? "…" : "Follow"}
+      {isSaving ? "…" : isFollowing ? "Following" : "Follow"}
     </button>
   )
 }
@@ -36,7 +43,7 @@ export function GalleryPromoCard() {
 }
 
 export default function GalleryRightRail({ variant = "combined", showPromo = true }: { variant?: Variant; showPromo?: boolean }) {
-  const { data: suggested } = trpc.discovery.risingStars.useQuery({ limit: 5 })
+  const { data: suggested } = trpc.discovery.risingStars.useQuery({ limit: 5, excludeFollowed: true })
   const { data: trending } = trpc.discovery.trendingTags.useQuery({ limit: 6 })
 
   const suggestedBlock = (
