@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
+import GalleryLogo from "@/components/GalleryLogo"
 import { trpc } from "@/components/providers"
 
 export default function ForgotPasswordPage() {
@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
     <div className="space-y-3">
       <div className="rounded-2xl border border-white/10 p-8" style={{ background: "var(--surface)" }}>
         <div className="flex flex-col items-center mb-8">
-          <Image src="/logo.png" alt="Gallery" width={100} height={100} className="mb-3" />
+          <GalleryLogo markOnly width={100} height={100} className="mb-3" />
           <p className="text-white/50 text-sm">Reset your password</p>
         </div>
 

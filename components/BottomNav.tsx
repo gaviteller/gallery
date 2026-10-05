@@ -7,6 +7,7 @@ import { trpc } from "@/components/providers"
 import Link from "next/link"
 import Avatar from "@/components/Avatar"
 import GalleryDesktopSidebar from "@/components/GalleryDesktopSidebar"
+import GalleryLogo from "@/components/GalleryLogo"
 
 // ── Desktop notification panel ─────────────────────────────────────────────
 
@@ -191,11 +192,7 @@ export default function BottomNav() {
         <Link href="/" title="Home" className="sidenav-home-logo" style={{
           width: 40, height: 40, borderRadius: 10,
           display: "block", textDecoration: "none", flexShrink: 0,
-          backgroundImage: "url('/logo.png')",
-          backgroundSize: "143%",
-          backgroundPosition: "center top",
-          mixBlendMode: "screen",
-        }} />
+        }}><GalleryLogo markOnly style={{ width: "100%", height: "100%" }} /></Link>
 
         {/* Main nav — fills remaining space, items evenly distributed */}
         <div className="sidenav-main-links" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-evenly", width: "100%", paddingTop: 8, paddingBottom: 8 }}>

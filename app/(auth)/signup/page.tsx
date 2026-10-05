@@ -4,7 +4,7 @@ import { useState, useRef, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
-import Image from "next/image"
+import GalleryLogo from "@/components/GalleryLogo"
 import { trpc } from "@/components/providers"
 import TermsContent from "@/components/TermsContent"
 import { isAtLeast13 } from "@/lib/age"
@@ -136,7 +136,7 @@ function SignUpForm() {
       <div style={{ background: "var(--bg)", border: "1.5px solid var(--border)", borderRadius: 16, padding: "28px 24px 32px" }}>
         {/* Logo */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-          <Image src="/logo.png" alt="Gallery" width={58} height={58} style={{ borderRadius: 14 }} />
+          <GalleryLogo markOnly style={{ width: 58, height: 58 }} />
         </div>
 
         {/* Title */}

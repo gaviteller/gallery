@@ -3,9 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/ensure-local-db.mjs && npm run prisma:generate",
     "dev": "next dev -H 0.0.0.0",
     "build": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
+    "prisma:generate": "node --env-file=.env.local node_modules/prisma/build/index.js generate",
+    "prisma:validate": "node --env-file=.env.local node_modules/prisma/build/index.js validate",
+    "prisma:status": "node --env-file=.env.local node_modules/prisma/build/index.js migrate status",
+    "prisma:studio": "node --env-file=.env.local node_modules/prisma/build/index.js studio",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest"
