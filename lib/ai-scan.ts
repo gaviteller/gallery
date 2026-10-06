@@ -19,10 +19,12 @@
  *   pose ≥ 7 only    → hidden for human review, no strike
  *   otherwise        → published normally
  * Every scan (including errors) is written to the AIScanLog table, visible in the admin panel.
+ * After any strike, server/lib/autoBan.ts checks whether the user has now earned a ban.
  *
  * If OPENROUTER_API_KEY is missing, every scan is skipped and content is published unscanned.
  */
 import { PrismaClient, StrikeLevel, StrikeViolation } from "@prisma/client"
+import { applyAutomaticBan } from "@/server/lib/autoBan"
 
 const AI_MODEL = "meta-llama/llama-4-scout"
 const AI_REQUEST_TIMEOUT_MS = 30_000
@@ -377,6 +379,7 @@ export async function scanShopItem(
         },
       })
     })
+    if (strikeLevel) await applyAutomaticBan(prisma, userId)
   } catch (err) {
     console.error("[ai-scan] DB update failed (shop):", err)
   }
@@ -445,6 +448,7 @@ export async function scanAvatar(
         },
       })
     })
+    if (isExplicit) await applyAutomaticBan(prisma, userId)
   } catch (err) {
     console.error("[ai-scan] DB update failed (avatar):", err)
   }
@@ -562,6 +566,7 @@ export async function scanPost(
         },
       })
     })
+    if (strikeLevel) await applyAutomaticBan(prisma, userId)
   } catch (err) {
     console.error("[ai-scan] DB update failed:", err)
   }
