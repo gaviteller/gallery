@@ -1,21 +1,26 @@
+/**
+ * NIGHTLY JOB — posts left "under review" (PENDING_REVIEW) for 14 days without a
+ * moderator decision are removed. The owner is notified in-app and by email and
+ * can appeal from /appeal. Runs daily (see vercel.json).
+ */
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { sendPostAutoRemovedEmail } from "@/lib/email"
+import { isAuthorizedCronRequest } from "@/lib/cron"
 
-export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization")
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+const REVIEW_PERIOD_MS = 14 * 24 * 60 * 60 * 1000
+
+export async function GET(request: Request) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-
-  const expired = await prisma.post.findMany({
-    where: { status: "PENDING_REVIEW", pendingAt: { lt: cutoff } },
+  const expiredReviews = await prisma.post.findMany({
+    where: { status: "PENDING_REVIEW", pendingAt: { lt: new Date(Date.now() - REVIEW_PERIOD_MS) } },
     select: { id: true, userId: true, user: { select: { email: true, username: true } } },
   })
 
-  for (const post of expired) {
+  for (const post of expiredReviews) {
     await prisma.$transaction(async (tx) => {
       await tx.post.update({
         where: { id: post.id },
@@ -34,5 +39,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ removed: expired.length })
+  return NextResponse.json({ removed: expiredReviews.length })
 }

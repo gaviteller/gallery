@@ -1,3 +1,15 @@
+/**
+ * POST /api/stripe/shop-webhook — Stripe calls this after a shop checkout is paid.
+ *
+ * For each purchased listing it: creates a ShopOrder (with a download token),
+ * bumps the listing's purchase count, transfers the artist's payout (price − 8%)
+ * to their Stripe account, and emails the buyer a download link and the artist a
+ * sale notice. Single "Buy now" and cart checkouts are handled separately because
+ * their metadata differs (set in server/routers/shop.ts).
+ *
+ * Safe to receive twice: an order already recorded for the payment is skipped.
+ * Requires STRIPE_WEBHOOK_SECRET (payments are not live yet).
+ */
 import { NextRequest, NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
@@ -6,6 +18,9 @@ import { sendShopPurchaseEmail, sendShopSaleEmail } from "@/lib/email"
 import Stripe from "stripe"
 
 export const runtime = "nodejs"
+
+/** Download links stay valid for a year (buyers can re-download from /shop/orders). */
+const DOWNLOAD_LINK_LIFETIME_MS = 365 * 24 * 60 * 60 * 1000
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -33,9 +48,10 @@ export async function POST(req: NextRequest) {
     ? session.payment_intent
     : session.payment_intent?.id ?? ""
 
-  // Idempotency guard
+  // Stripe may deliver the same event more than once — only process a payment once.
   const existing = await prisma.shopOrder.findFirst({
     where: { stripePaymentIntentId: paymentIntentId },
+    select: { id: true },
   })
   if (existing) return NextResponse.json({ received: true })
 
@@ -59,7 +75,7 @@ async function handleSinglePurchase({
 
   const [item, buyer, seller] = await Promise.all([
     prisma.shopItem.findUnique({ where: { id: itemId } }),
-    prisma.user.findUnique({ where: { id: buyerId }, select: { id: true, email: true, name: true } }),
+    prisma.user.findUnique({ where: { id: buyerId }, select: { id: true, email: true, name: true, username: true } }),
     prisma.user.findUnique({ where: { id: sellerId }, select: { id: true, email: true, name: true, username: true, stripeConnectId: true } }),
   ])
 
@@ -76,7 +92,7 @@ async function handleSinglePurchase({
       galleryFee: fees.galleryFee,
       sellerPayout: fees.sellerPayout,
       stripePaymentIntentId: paymentIntentId,
-      downloadTokenExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      downloadTokenExpiresAt: new Date(Date.now() + DOWNLOAD_LINK_LIFETIME_MS),
       status: "PURCHASED",
     },
   })
@@ -86,7 +102,7 @@ async function handleSinglePurchase({
     data: { purchaseCount: { increment: 1 } },
   })
 
-  // Issue transfer to seller
+  // Pay the artist their share (Stripe Connect transfer). Logged, not retried, on failure.
   if (seller.stripeConnectId) {
     stripe.transfers.create({
       amount: fees.sellerPayoutCents,
@@ -116,7 +132,7 @@ async function handleSinglePurchase({
       to: seller.email,
       artistName: seller.name ?? "there",
       itemTitle: item.title,
-      buyerUsername: buyer.name ?? buyerId,
+      buyerUsername: buyer.username ?? buyer.name ?? buyerId,
       sellerPayout: fees.sellerPayout,
     }).catch(console.error)
   }
@@ -176,7 +192,7 @@ async function handleCartPurchase({
         galleryFee: fees.galleryFee,
         sellerPayout: fees.sellerPayout,
         stripePaymentIntentId: paymentIntentId,
-        downloadTokenExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        downloadTokenExpiresAt: new Date(Date.now() + DOWNLOAD_LINK_LIFETIME_MS),
         status: "PURCHASED",
       },
     })

@@ -1,3 +1,8 @@
+/**
+ * POST /api/upload-file — uploads the private file a shop buyer will download
+ * (up to 50 MB). Stored on Cloudinary as a private "raw" file; returns only its
+ * id, never a public link. Used by lib/uploadFile.ts. Needs CLOUDINARY_* keys.
+ */
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"

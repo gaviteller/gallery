@@ -1,3 +1,10 @@
+/**
+ * GET /api/shop/download/[token] — download a purchased shop file.
+ *
+ * The token comes from the purchase email / order history. Only the logged-in
+ * buyer of that order can use it (anyone else gets "Not found"). The file lives
+ * privately on Cloudinary; we redirect to a signed link that works for 24 hours.
+ */
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"

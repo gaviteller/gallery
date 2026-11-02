@@ -79,7 +79,7 @@ function SignUpForm() {
     e.preventDefault()
     if (!agreed) { setError("You must agree to the Terms of Service"); return }
     if (!usernameAvailable) { setError("Please choose a valid, available username"); return }
-    if (form.password.length < 6) { setError("Password must be at least 6 characters"); return }
+    if (form.password.length < 8) { setError("Password must be at least 8 characters"); return }
     if (!form.dateOfBirth) { setError("Date of birth is required"); return }
     if (!isAtLeast13(form.dateOfBirth)) { setError("You must be at least 13 years old to create an account."); return }
 

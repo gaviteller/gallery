@@ -1,50 +1,37 @@
+/**
+ * NIGHTLY JOB — completes deliveries the buyer didn't respond to within 5 days,
+ * releasing payment to the artist. Disputed commissions are never touched
+ * (their status is DISPUTED, not DELIVERED). Runs daily (see vercel.json).
+ */
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { isAuthorizedCronRequest } from "@/lib/cron"
 
-const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000
+const BUYER_REVIEW_WINDOW_MS = 5 * 24 * 60 * 60 * 1000
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization")
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
-  const cutoff = new Date(Date.now() - FIVE_DAYS_MS)
-
-  const stale = await prisma.commission.findMany({
-    where: {
-      status: "DELIVERED",
-      deliveredAt: { lt: cutoff },
-    },
+  const overdueDeliveries = await prisma.commission.findMany({
+    where: { status: "DELIVERED", deliveredAt: { lt: new Date(Date.now() - BUYER_REVIEW_WINDOW_MS) } },
     select: { id: true, buyerId: true, artistId: true },
   })
-
-  if (stale.length === 0) {
-    return NextResponse.json({ released: 0 })
-  }
-
-  const staleIds = stale.map(c => c.id)
+  if (overdueDeliveries.length === 0) return NextResponse.json({ released: 0 })
 
   await prisma.$transaction([
     prisma.commission.updateMany({
-      where: { id: { in: staleIds } },
+      where: { id: { in: overdueDeliveries.map((commission) => commission.id) } },
       data: { status: "COMPLETE" },
     }),
     prisma.notification.createMany({
-      data: stale.flatMap(c => [
-        {
-          userId: c.buyerId,
-          fromUserId: c.artistId,
-          type: `commission_auto_released:${c.id}`,
-        },
-        {
-          userId: c.artistId,
-          fromUserId: c.buyerId,
-          type: `commission_auto_released:${c.id}`,
-        },
+      data: overdueDeliveries.flatMap((commission) => [
+        { userId: commission.buyerId, fromUserId: commission.artistId, type: `commission_auto_released:${commission.id}` },
+        { userId: commission.artistId, fromUserId: commission.buyerId, type: `commission_auto_released:${commission.id}` },
       ]),
     }),
   ])
 
-  return NextResponse.json({ released: stale.length })
+  return NextResponse.json({ released: overdueDeliveries.length })
 }

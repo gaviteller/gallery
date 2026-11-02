@@ -113,12 +113,15 @@ export const userRouter = router({
       return profile
     }),
 
-  /** Whether a username is free (exact match). Used live while typing on signup/onboarding. */
+  /**
+   * Whether a username is free, ignoring upper/lower case ("Gavi" = "gavi"),
+   * because profile URLs ignore case. Used live while typing on signup/onboarding.
+   */
   checkUsername: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
-      const existing = await ctx.prisma.user.findUnique({
-        where: { username: input.username },
+      const existing = await ctx.prisma.user.findFirst({
+        where: { username: { equals: input.username, mode: "insensitive" } },
         select: { id: true },
       })
       return { available: !existing }
@@ -160,14 +163,17 @@ export const userRouter = router({
       })
     }),
 
-  /** Changes the username (letters, numbers, underscores; 3–30 chars). Fails if taken. */
+  /** Changes the username (letters, numbers, underscores; 3–30 chars). Fails if taken, ignoring case. */
   changeUsername: protectedProcedure
     .input(z.object({
       username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
     }))
     .mutation(async ({ ctx, input }) => {
       const viewerId = ctx.session.user.id
-      const owner = await ctx.prisma.user.findUnique({ where: { username: input.username }, select: { id: true } })
+      const owner = await ctx.prisma.user.findFirst({
+        where: { username: { equals: input.username, mode: "insensitive" } },
+        select: { id: true },
+      })
       if (owner && owner.id !== viewerId) {
         throw new TRPCError({ code: "CONFLICT", message: "Username is already taken." })
       }

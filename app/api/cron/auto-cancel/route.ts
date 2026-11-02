@@ -1,47 +1,36 @@
+/**
+ * NIGHTLY JOB — cancels commission requests the artist ignored for 3 days.
+ * Runs daily (see vercel.json). Both parties get an in-app notification.
+ */
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { isAuthorizedCronRequest } from "@/lib/cron"
 
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
+const UNANSWERED_REQUEST_LIMIT_MS = 3 * 24 * 60 * 60 * 1000
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization")
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
-  const cutoff = new Date(Date.now() - THREE_DAYS_MS)
-
-  const stale = await prisma.commission.findMany({
-    where: { status: "PENDING", createdAt: { lt: cutoff } },
+  const unansweredRequests = await prisma.commission.findMany({
+    where: { status: "PENDING", createdAt: { lt: new Date(Date.now() - UNANSWERED_REQUEST_LIMIT_MS) } },
     select: { id: true, buyerId: true, artistId: true },
   })
-
-  if (stale.length === 0) {
-    return NextResponse.json({ cancelled: 0 })
-  }
-
-  const staleIds = stale.map(c => c.id)
+  if (unansweredRequests.length === 0) return NextResponse.json({ cancelled: 0 })
 
   await prisma.$transaction([
     prisma.commission.updateMany({
-      where: { id: { in: staleIds } },
+      where: { id: { in: unansweredRequests.map((commission) => commission.id) } },
       data: { status: "CANCELLED" },
     }),
     prisma.notification.createMany({
-      data: stale.flatMap(c => [
-        {
-          userId: c.buyerId,
-          fromUserId: c.artistId,
-          type: `commission_auto_cancelled:${c.id}`,
-        },
-        {
-          userId: c.artistId,
-          fromUserId: c.buyerId,
-          type: `commission_auto_cancelled:${c.id}`,
-        },
+      data: unansweredRequests.flatMap((commission) => [
+        { userId: commission.buyerId, fromUserId: commission.artistId, type: `commission_auto_cancelled:${commission.id}` },
+        { userId: commission.artistId, fromUserId: commission.buyerId, type: `commission_auto_cancelled:${commission.id}` },
       ]),
     }),
   ])
 
-  return NextResponse.json({ cancelled: stale.length })
+  return NextResponse.json({ cancelled: unansweredRequests.length })
 }
