@@ -86,7 +86,7 @@ export default function ProfessionalDMsPage() {
   }, [status, router])
 
   if (status === "unauthenticated" || status === "loading") {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
+    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
   return <ProfessionalDMsInner />
@@ -96,7 +96,7 @@ function ProfessionalDMsInner() {
   const { data, isLoading } = trpc.commission.getMine.useQuery()
 
   if (isLoading) {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
+    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
   const asBuyer = data?.asBuyer ?? []
@@ -109,7 +109,7 @@ function ProfessionalDMsInner() {
   ].sort((a, b) => new Date(b.commission.updatedAt).getTime() - new Date(a.commission.updatedAt).getTime())
 
   return (
-    <div style={{ maxWidth: 512, margin: "0 auto", paddingBottom: 96, background: "var(--bg)", minHeight: "100vh" }}>
+    <div style={{ maxWidth: 512, margin: "0 auto", paddingBottom: 96, background: "var(--bg)", flex: "1 0 auto" }}>
       <MessagesTabs />
       {threads.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 32px" }}>

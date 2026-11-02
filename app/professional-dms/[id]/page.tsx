@@ -104,7 +104,7 @@ export default function CommissionThreadPage({ params }: { params: Promise<{ id:
   }, [authStatus, router])
 
   if (authStatus === "unauthenticated" || authStatus === "loading") {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
+    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
   return <CommissionThread id={id} userId={session!.user.id} />
@@ -205,7 +205,7 @@ function CommissionThread({ id, userId }: { id: string; userId: string }) {
   }
 
   if (isLoading || !commission) {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
+    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
   const isArtist = commission.artistId === userId

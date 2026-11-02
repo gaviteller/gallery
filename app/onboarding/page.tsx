@@ -116,7 +116,7 @@ export default function OnboardingPage() {
   // ── LOADING ──
   if (step === "loading") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--border)", borderTopColor: "#784BA0" }} />
       </div>
     )
@@ -125,7 +125,7 @@ export default function OnboardingPage() {
   // ── USERNAME (OAuth users only) ──
   if (step === "username") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", background: "var(--bg)" }}>
         <div style={{ width: "100%", maxWidth: 400, background: "var(--bg)", border: "1.5px solid var(--border)", borderRadius: 16, padding: "32px 24px" }}>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: "var(--text)", textAlign: "center", marginBottom: 6 }}>One last thing</div>
           <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginBottom: 24 }}>Pick a username for your Gallery profile</div>
@@ -175,7 +175,7 @@ export default function OnboardingPage() {
   // ── SCREEN 1: WELCOME ──
   if (step === "welcome") {
     return (
-      <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #1A1030 0%, var(--bg) 55%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+      <div style={{ flex: "1 0 auto", background: "linear-gradient(180deg, #1A1030 0%, var(--bg) 55%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
         <div style={{ width: "100%", maxWidth: 400 }}>
           <Dots total={4} active={0} />
           <div style={{ textAlign: "center", padding: "32px 0 0" }}>
@@ -210,7 +210,7 @@ export default function OnboardingPage() {
   // ── SCREEN 2: ROLE ──
   if (step === "role") {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+      <div style={{ flex: "1 0 auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
         <div style={{ width: "100%", maxWidth: 400 }}>
           <Dots total={4} active={1} />
           <div style={{ paddingTop: 28 }}>
@@ -253,7 +253,7 @@ export default function OnboardingPage() {
   // ── SCREEN 3: STYLES ──
   if (step === "styles") {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+      <div style={{ flex: "1 0 auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
         <div style={{ width: "100%", maxWidth: 400 }}>
           <Dots total={4} active={2} />
           <div style={{ paddingTop: 28 }}>
@@ -305,7 +305,7 @@ export default function OnboardingPage() {
   const artists = suggestedArtists?.slice(0, 5) ?? []
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+    <div style={{ flex: "1 0 auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
         <Dots total={4} active={3} />
         <div style={{ paddingTop: 28 }}>

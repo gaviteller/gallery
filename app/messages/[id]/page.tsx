@@ -40,7 +40,7 @@ export default function DMThreadPage({ params }: { params: Promise<{ id: string 
 
   if (status === "loading" || status === "unauthenticated") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
       </div>
     )
@@ -82,7 +82,7 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
       </div>
     )
@@ -90,7 +90,7 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
 
   if (isError) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Conversation not found.</p>
       </div>
     )

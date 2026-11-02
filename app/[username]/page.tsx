@@ -160,11 +160,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   })
 
   if (userLoading) {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading…</div>
+    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>Loading…</div>
   }
 
   if (!profileUser) {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>User not found</div>
+    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>User not found</div>
   }
 
   const isOwn = session?.user?.id === profileUser.id

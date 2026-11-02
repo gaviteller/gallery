@@ -14,6 +14,15 @@
   --blue: #21b8ff;
 }
 
+/* .main-layout is a flex column (see app/layout.tsx) so pages can fill the space
+   between header and bottom nav. Keep its children sized like normal blocks:
+   full available width, respecting margins and max-width. */
+.main-layout > * {
+  width: -moz-available;
+  width: -webkit-fill-available;
+  width: stretch;
+}
+
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
@@ -37,6 +46,18 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  /* Header + page area stack in a column; the page area takes whatever height
+     is left, so short pages end at the bottom of the screen instead of scrolling. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-layout {
+  flex: 1 0 auto;
+  width: -moz-available;
+  width: -webkit-fill-available;
+  width: stretch;
 }
 
 /* Brand gradient — reference palette */

@@ -19,7 +19,7 @@ export default function DmcaPage() {
   if (submitted) {
     return (
       <div style={{
-        minHeight: "100vh", background: "var(--bg)", display: "flex",
+        flex: "1 0 auto", background: "var(--bg)", display: "flex",
         alignItems: "center", justifyContent: "center",
       }}>
         <div style={{ maxWidth: 480, textAlign: "center", padding: "0 24px" }}>
@@ -36,7 +36,7 @@ export default function DmcaPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "48px 24px" }}>
+    <div style={{ flex: "1 0 auto", background: "var(--bg)", padding: "48px 24px" }}>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         <h1 style={{ color: "white", fontSize: 26, fontWeight: 700, marginBottom: 8 }}>
           DMCA Takedown Request

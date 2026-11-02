@@ -41,7 +41,7 @@ export default function PrivacyPage() {
   const router = useRouter()
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: 80 }}>
+    <div style={{ flex: "1 0 auto", background: "var(--bg)", paddingBottom: 80 }}>
       {/* Nav */}
       <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--nav)", borderBottom: "1px solid var(--border)", padding: "11px 14px", display: "flex", alignItems: "center", gap: 12 }}>
         <button

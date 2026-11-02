@@ -48,7 +48,7 @@ export default function ProfessionalProfilePage() {
 
   if (status === "unauthenticated" || status === "loading" || !session?.user?.username) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
       </div>
     )
@@ -221,14 +221,14 @@ function ProfessionalProfileInner({ username }: { username: string }) {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
       </div>
     )
   }
 
   const S: Record<string, React.CSSProperties> = {
-    page: { minHeight: "100vh", background: "var(--bg)", paddingBottom: 100 },
+    page: { flex: "1 0 auto", background: "var(--bg)", paddingBottom: 100 },
     inner: { maxWidth: 480, margin: "0 auto", padding: "20px 16px" },
     secHead: { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--muted)", marginBottom: 8, fontFamily: "Inter,sans-serif" },
     fieldLabel: { fontSize: 8.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted)", marginBottom: 7, fontFamily: "Inter,sans-serif" },

@@ -59,7 +59,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ username:
 
   if (postLoading || dataLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
       </div>
     )
@@ -67,7 +67,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ username:
 
   if (!post) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Post not found</p>
       </div>
     )
@@ -94,7 +94,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ username:
   }
 
   return (
-    <div style={{ maxWidth: 512, margin: "0 auto", minHeight: "100vh", background: "var(--bg)", paddingBottom: 80 }}>
+    <div style={{ maxWidth: 512, margin: "0 auto", flex: "1 0 auto", background: "var(--bg)", paddingBottom: 80 }}>
 
       {/* Full-bleed art zone */}
       <div style={{ position: "relative", height: 320 }}>

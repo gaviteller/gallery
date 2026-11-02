@@ -91,7 +91,7 @@ export default function MessagesPage() {
 
   if (status === "loading" || status === "unauthenticated") {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
       </div>
     )
@@ -110,7 +110,7 @@ function MessagesInner({ userId }: { userId: string }) {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
         <p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p>
       </div>
     )
@@ -120,7 +120,7 @@ function MessagesInner({ userId }: { userId: string }) {
     <>
       {composing && <NewMessageModal onClose={() => setComposing(false)} />}
 
-      <div style={{ maxWidth: 512, margin: "0 auto", minHeight: "100vh", background: "var(--bg)", paddingBottom: 80 }}>
+      <div style={{ maxWidth: 512, margin: "0 auto", flex: "1 0 auto", background: "var(--bg)", paddingBottom: 80 }}>
 
         {/* Sticky nav */}
         <div style={{ background: "var(--nav)", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 10 }}>

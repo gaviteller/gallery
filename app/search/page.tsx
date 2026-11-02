@@ -343,5 +343,5 @@ function SearchInner() {
 }
 
 export default function SearchPage() {
-  return <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", color: "var(--muted)" }}>Loading…</div>}><SearchInner /></Suspense>
+  return <Suspense fallback={<div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", color: "var(--muted)" }}>Loading…</div>}><SearchInner /></Suspense>
 }

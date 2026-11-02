@@ -1259,3 +1259,15 @@ body { overflow-x: hidden; }
   .gallery-mobile-code-brand > .gallery-mobile-logo-svg { display:block!important;visibility:visible!important;width:100%!important;height:100%!important; }
   .gallery-mobile-header-actions .gallery-mobile-round { opacity:1!important; }
 }
+
+
+/* --------------------------------------------------------------------------
+   LAYOUT FIX (functional, keep last): on phones the top nav sits in normal
+   page flow, so it already takes its own height. The extra top padding above
+   doubled the gap under the header. `html` outranks the equal rules above.
+   -------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  html body:has(.gallery-feed-mobile-topnav) .main-layout {
+    padding-top: 12px !important;
+  }
+}

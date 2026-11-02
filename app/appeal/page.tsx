@@ -35,7 +35,7 @@ function AppealPageInner() {
 
   if (!session) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Please sign in to submit an appeal.</p>
       </div>
     )

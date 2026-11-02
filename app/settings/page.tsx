@@ -260,7 +260,7 @@ function SettingsForm() {
   }
 
   if (status === "loading" || isLoading) {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
+    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
   }
 
   const rowStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "120px 1fr", gap: 14, padding: "12px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }
@@ -287,7 +287,7 @@ function SettingsForm() {
   })
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", paddingBottom: 80 }}>
+    <div style={{ flex: "1 0 auto", background: "var(--bg)", paddingBottom: 80 }}>
       {/* Sticky nav */}
       <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--nav)", borderBottom: "1px solid var(--border)", padding: "11px 14px", display: "flex", alignItems: "center", gap: 12 }}>
         <button

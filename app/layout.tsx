@@ -34,7 +34,10 @@ export default function RootLayout({
           <CookieConsent />
           <PushInit />
           <Navbar />
-          <div className="main-layout" style={{ maxWidth: 470, margin: "0 auto", paddingTop: 56, paddingBottom: 80, minHeight: "100vh", boxSizing: "border-box" as const }}>
+          {/* Fills the height left under the header (see body/.main-layout in globals.css).
+              Column layout so a page's root can use `flex: "1 0 auto"` to fill the space
+              between the header and bottom nav (instead of 100vh, which overflows). */}
+          <div className="main-layout" style={{ maxWidth: 470, margin: "0 auto", paddingTop: 56, paddingBottom: 80, boxSizing: "border-box" as const, display: "flex", flexDirection: "column" }}>
             {children}
             <footer style={{ padding: "16px 24px", textAlign: "center" }}>
               <Link href="/dmca" style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
