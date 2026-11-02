@@ -1,10 +1,33 @@
+/**
+ * COMMISSIONS — `trpc.commission.*`
+ *
+ * Everything about paid custom-art requests between a buyer and an artist.
+ *
+ * Lifecycle (status):
+ *   PENDING      buyer sent a request          → artist accepts (sets price + deadline) or declines
+ *   ACCEPTED     waiting for the buyer to pay  → buyer confirms payment (simulated for now)
+ *   IN_PROGRESS  paid, artist is working       → artist delivers a file
+ *   DELIVERED    waiting for the buyer          → buyer approves, disputes, or 5 days pass (auto-release)
+ *   COMPLETE     money released to the artist  → buyer may rate; buyer may allow it as a portfolio example
+ *   DECLINED / CANCELLED / DISPUTED (frozen for moderators)
+ *
+ * Every status change also writes a system message into the commission thread,
+ * notifies the other party, and usually sends an email.
+ * Automatic time-based changes live in app/api/cron/ (auto-cancel, auto-release).
+ *
+ * Sections below: artist settings · dashboard stats · request-form categories ·
+ * lifecycle actions · ratings & portfolio · trust score · browse feeds.
+ */
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
-import { Prisma } from "@prisma/client"
+import { Prisma, type PrismaClient } from "@prisma/client"
 import { computeTier } from "@/server/lib/trustScore"
 import { sendPushToUser } from "@/lib/sendPush"
 import { checkNotBanned } from "@/server/lib/ban"
+import { applyAutomaticBan } from "@/server/lib/autoBan"
+import { getBlockedUserIds, excludeIds } from "@/server/lib/blocks"
+import { scanPost } from "@/lib/ai-scan"
 import {
   sendCommissionRequestEmail,
   sendCommissionAcceptedEmail,
@@ -21,6 +44,62 @@ const priceRangeSchema = z.array(z.object({
   price: z.number().positive(),
 }))
 
+/** After this many paid-commission cancellations in one month, an artist's commissions are switched off. */
+const MONTHLY_ARTIST_CANCEL_LIMIT = 5
+const AUTO_RELEASE_AFTER_MS = 5 * 24 * 60 * 60 * 1000
+const DEADLINE_WARNING_WINDOW_MS = 48 * 60 * 60 * 1000
+
+/**
+ * The commission columns the actions below need. Deliberately leaves out
+ * `referencePhotos` (inline images — large) so status checks stay cheap.
+ */
+const COMMISSION_CORE_FIELDS = {
+  id: true,
+  buyerId: true,
+  artistId: true,
+  status: true,
+  agreedPrice: true,
+  deadline: true,
+  deliveredAt: true,
+  disputedAt: true,
+  buyerRating: true,
+  ratingFlagged: true,
+  displayAsExample: true,
+  displayPermissionAnswered: true,
+  artistFeedShareOffered: true,
+} as const
+
+/** Loads a commission's core fields, or null if it doesn't exist. */
+function findCommission(prisma: PrismaClient, commissionId: string) {
+  return prisma.commission.findUnique({ where: { id: commissionId }, select: COMMISSION_CORE_FIELDS })
+}
+
+/**
+ * Prisma filter for artists who can actually take commissions right now:
+ * open, selling enabled, commissions not suspended, and not currently banned.
+ */
+function availableArtistFilter() {
+  return {
+    commissionStatus: { in: ["OPEN" as const, "LIMITED" as const] },
+    sellingEnabled: true,
+    commissionFeatureDisabled: false,
+    username: { not: null },
+    OR: [{ bannedUntil: null }, { bannedUntil: { lt: new Date() } }],
+  }
+}
+
+/**
+ * Small, stable "random" number (0–8) per artist that changes once an hour.
+ * Gives the browse feed some variety without reshuffling between page loads,
+ * which would repeat or skip artists while scrolling.
+ */
+function hourlyJitter(artistId: string): number {
+  const seed = `${artistId}:${Math.floor(Date.now() / 3_600_000)}`
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0
+  return (Math.abs(hash) % 1000) / 1000 * 8
+}
+
 export const acceptInputSchema = z.object({
   id: z.string(),
   price: z.number().positive(),
@@ -34,6 +113,7 @@ export const commissionRouter = router({
 
   // ── Artist profile settings ───────────────────────────────────────────────
 
+  /** An artist's public commission info: status, description, prices, styles, request-form categories. */
   getProfile: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -57,6 +137,7 @@ export const commissionRouter = router({
       return user
     }),
 
+  /** Saves the artist's commission settings (dashboard). Returns only the saved fields. */
   updateProfile: protectedProcedure
     .input(z.object({
       commissionStatus: z.enum(["OPEN", "LIMITED", "CLOSED"]),
@@ -67,7 +148,17 @@ export const commissionRouter = router({
       artStyles: z.array(z.string().min(1).max(50)).max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // SECURITY: explicit select — the full user row includes the password hash.
       return ctx.prisma.user.update({
+        select: {
+          id: true,
+          commissionStatus: true,
+          commissionDescription: true,
+          commissionTurnaround: true,
+          priceRanges: true,
+          commissionCardImages: true,
+          artStyles: true,
+        },
         where: { id: ctx.session.user.id },
         data: {
           commissionStatus: input.commissionStatus,
@@ -82,6 +173,7 @@ export const commissionRouter = router({
 
   // ── Business overview (artist only) ──────────────────────────────────────
 
+  /** Artist dashboard numbers: active commissions, money held in escrow, total earned. */
   getMyStats: protectedProcedure
     .query(async ({ ctx }) => {
       const userId = ctx.session.user.id
@@ -116,19 +208,22 @@ export const commissionRouter = router({
 
   // ── Dropdown category management ─────────────────────────────────────────
 
+  /** The custom dropdowns (e.g. "Size", "Background") an artist added to their request form. */
   getCategories: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
-      const user = await ctx.prisma.user.findFirst({
+      const artist = await ctx.prisma.user.findFirst({
         where: { username: { equals: input.username, mode: "insensitive" } },
+        select: { id: true },
       })
-      if (!user) throw new TRPCError({ code: "NOT_FOUND" })
+      if (!artist) throw new TRPCError({ code: "NOT_FOUND" })
       return ctx.prisma.commissionDropdownCategory.findMany({
-        where: { userId: user.id },
+        where: { userId: artist.id },
         orderBy: { order: "asc" },
       })
     }),
 
+  /** Adds a request-form dropdown; it goes to the end of the list. */
   createCategory: protectedProcedure
     .input(z.object({
       name: z.string().min(1).max(50),
@@ -148,6 +243,7 @@ export const commissionRouter = router({
       })
     }),
 
+  /** Renames a request-form dropdown or changes its options (owner only). */
   updateCategory: protectedProcedure
     .input(z.object({
       id: z.string(),
@@ -155,9 +251,9 @@ export const commissionRouter = router({
       options: z.array(z.string().min(1).max(50)).min(1).max(20).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const cat = await ctx.prisma.commissionDropdownCategory.findUnique({ where: { id: input.id } })
-      if (!cat) throw new TRPCError({ code: "NOT_FOUND" })
-      if (cat.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      const category = await ctx.prisma.commissionDropdownCategory.findUnique({ where: { id: input.id } })
+      if (!category) throw new TRPCError({ code: "NOT_FOUND" })
+      if (category.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       return ctx.prisma.commissionDropdownCategory.update({
         where: { id: input.id },
         data: {
@@ -167,17 +263,19 @@ export const commissionRouter = router({
       })
     }),
 
+  /** Removes a request-form dropdown (owner only). */
   deleteCategory: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const cat = await ctx.prisma.commissionDropdownCategory.findUnique({ where: { id: input.id } })
-      if (!cat) throw new TRPCError({ code: "NOT_FOUND" })
-      if (cat.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      const category = await ctx.prisma.commissionDropdownCategory.findUnique({ where: { id: input.id } })
+      if (!category) throw new TRPCError({ code: "NOT_FOUND" })
+      if (category.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       return ctx.prisma.commissionDropdownCategory.delete({ where: { id: input.id } })
     }),
 
   // ── Commission request lifecycle ─────────────────────────────────────────
 
+  /** Buyer sends a commission request. Refused if blocked either way, or the artist is closed / not selling / suspended. Notifies the artist (in-app + email). */
   submitRequest: protectedProcedure
     .input(z.object({
       artistId: z.string(),
@@ -190,21 +288,27 @@ export const commissionRouter = router({
       if (input.artistId === ctx.session.user.id) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot commission yourself" })
       }
-      const artist = await ctx.prisma.user.findUnique({ where: { id: input.artistId } })
+      const buyerId = ctx.session.user.id
+      const artist = await ctx.prisma.user.findUnique({
+        where: { id: input.artistId },
+        select: {
+          email: true, username: true, name: true, commissionStatus: true,
+          sellingEnabled: true, commissionFeatureDisabled: true, bannedUntil: true,
+        },
+      })
       if (!artist) throw new TRPCError({ code: "NOT_FOUND", message: "Artist not found" })
       const block = await ctx.prisma.block.findFirst({
         where: {
           OR: [
-            { blockerId: ctx.session.user.id, blockedId: input.artistId },
-            { blockerId: input.artistId, blockedId: ctx.session.user.id },
+            { blockerId: buyerId, blockedId: input.artistId },
+            { blockerId: input.artistId, blockedId: buyerId },
           ],
         },
+        select: { id: true },
       })
       if (block) throw new TRPCError({ code: "FORBIDDEN", message: "Cannot commission this artist." })
-      if (artist.commissionStatus === "CLOSED") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "This artist is not accepting commissions" })
-      }
-      if (!artist.sellingEnabled) {
+      const artistIsBanned = !!artist.bannedUntil && artist.bannedUntil > new Date()
+      if (artist.commissionStatus === "CLOSED" || !artist.sellingEnabled || artistIsBanned) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "This artist is not accepting commissions" })
       }
       if (artist.commissionFeatureDisabled) {
@@ -212,7 +316,7 @@ export const commissionRouter = router({
       }
       const commission = await ctx.prisma.commission.create({
         data: {
-          buyerId: ctx.session.user.id,
+          buyerId,
           artistId: input.artistId,
           description: input.description,
           dropdownSelections: input.dropdownSelections as unknown as Prisma.InputJsonValue,
@@ -220,10 +324,10 @@ export const commissionRouter = router({
         },
       })
       await ctx.prisma.notification.create({
-        data: { userId: commission.artistId, fromUserId: ctx.session.user.id, type: `commission_request:${commission.id}` },
+        data: { userId: commission.artistId, fromUserId: buyerId, type: `commission_request:${commission.id}` },
       })
       if (artist.email) {
-        const buyer = await ctx.prisma.user.findUnique({ where: { id: ctx.session.user.id }, select: { username: true } })
+        const buyer = await ctx.prisma.user.findUnique({ where: { id: buyerId }, select: { username: true } })
         await sendCommissionRequestEmail(artist.email, {
           artistUsername: artist.username ?? artist.name ?? "Artist",
           buyerUsername: buyer?.username ?? "Someone",
@@ -232,28 +336,35 @@ export const commissionRouter = router({
       return commission
     }),
 
+  /** The viewer's commissions as buyer and as artist (Professional DMs list). Reference photos are left out — the list doesn't show them. */
   getMine: protectedProcedure
     .query(async ({ ctx }) => {
-      const userId = ctx.session.user.id
+      const viewerId = ctx.session.user.id
+      // Every column except referencePhotos (inline images — large, and unused by the list).
+      const listFields = {
+        id: true, buyerId: true, artistId: true, status: true, description: true,
+        dropdownSelections: true, agreedPrice: true, deliveredAt: true, createdAt: true,
+        updatedAt: true, deadline: true, deadlineNotificationSent: true, artistFeedShareOffered: true,
+        buyerRating: true, displayAsExample: true, displayPermissionAnswered: true,
+        cancelledBy: true, disputedAt: true, ratingFlagged: true,
+      } as const
+      const partyFields = { select: { id: true, username: true, name: true, image: true } } as const
       const [asBuyer, asArtist] = await Promise.all([
         ctx.prisma.commission.findMany({
-          where: { buyerId: userId },
-          include: {
-            artist: { select: { id: true, username: true, name: true, image: true } },
-          },
+          where: { buyerId: viewerId },
+          select: { ...listFields, artist: partyFields },
           orderBy: { updatedAt: "desc" },
         }),
         ctx.prisma.commission.findMany({
-          where: { artistId: userId },
-          include: {
-            buyer: { select: { id: true, username: true, name: true, image: true } },
-          },
+          where: { artistId: viewerId },
+          select: { ...listFields, buyer: partyFields },
           orderBy: { updatedAt: "desc" },
         }),
       ])
       return { asBuyer, asArtist }
     }),
 
+  /** One commission with both parties and its whole message thread. Also sends the one-time "deadline in 48h" notification when due. */
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -312,11 +423,12 @@ export const commissionRouter = router({
       return commission
     }),
 
+  /** Artist accepts a PENDING request, setting the price and deadline. Buyer is asked to pay. */
   accept: protectedProcedure
     .input(acceptInputSchema)
     .mutation(async ({ ctx, input }) => {
       await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "PENDING") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not pending" })
@@ -365,10 +477,11 @@ export const commissionRouter = router({
       return updated
     }),
 
+  /** Artist declines a PENDING request. */
   decline: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "PENDING") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not pending" })
@@ -395,10 +508,11 @@ export const commissionRouter = router({
       return updated
     }),
 
+  /** Artist changes the agreed price before the buyer has paid. */
   updatePrice: protectedProcedure
     .input(z.object({ id: z.string(), price: z.number().positive() }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "ACCEPTED") throw new TRPCError({ code: "BAD_REQUEST", message: "Can only update price on accepted commissions" })
@@ -408,6 +522,7 @@ export const commissionRouter = router({
       })
     }),
 
+  /** Artist sets or changes the deadline on an open commission; resets the 48h reminder. */
   setDeadline: protectedProcedure
     .input(z.object({
       id: z.string(),
@@ -452,10 +567,11 @@ export const commissionRouter = router({
       return { deadline: newDeadline }
     }),
 
+  /** Buyer confirms payment (simulated until Stripe escrow is built): ACCEPTED → IN_PROGRESS. */
   confirmPayment: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "ACCEPTED") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not accepted yet" })
@@ -482,10 +598,11 @@ export const commissionRouter = router({
       return updated
     }),
 
+  /** Artist delivers the finished file: IN_PROGRESS → DELIVERED. Starts the 5-day auto-release clock. */
   markDelivered: protectedProcedure
     .input(z.object({ id: z.string(), fileUrl: z.string().url() }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "IN_PROGRESS") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not in progress" })
@@ -528,10 +645,11 @@ export const commissionRouter = router({
       return updatedCommission
     }),
 
+  /** Buyer approves the delivery: DELIVERED → COMPLETE, payment released to the artist. */
   confirmDelivery: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "DELIVERED") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission has not been delivered yet" })
@@ -564,19 +682,25 @@ export const commissionRouter = router({
       return updated
     }),
 
+  /**
+   * Cancels a commission (buyer or artist), allowed until it's delivered.
+   * After payment (IN_PROGRESS) there are consequences, per the Terms of Service:
+   *  - artist cancels → Minor selling strike (ARTIST_CANCEL); 5+ such cancellations
+   *    in a calendar month switch the artist's commissions off
+   *  - buyer cancels  → buyer's public cancellation count goes up
+   */
   cancel: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      const me = ctx.session.user.id
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const viewerId = ctx.session.user.id
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
 
-      const isArtist = commission.artistId === me
-      const isBuyer = commission.buyerId === me
+      const isArtist = commission.artistId === viewerId
+      const isBuyer = commission.buyerId === viewerId
       if (!isArtist && !isBuyer) throw new TRPCError({ code: "FORBIDDEN" })
 
-      // Cannot cancel DELIVERED, COMPLETE, CANCELLED, or DISPUTED
       const cancellableStatuses = ["PENDING", "ACCEPTED", "IN_PROGRESS"]
       if (!cancellableStatuses.includes(commission.status)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Commission cannot be cancelled at this stage" })
@@ -584,43 +708,46 @@ export const commissionRouter = router({
 
       const isPaid = commission.status === "IN_PROGRESS"
       const cancellerRole = isArtist ? "artist" : "buyer"
+      const otherPartyId = isArtist ? commission.buyerId : commission.artistId
 
-      // Build system message
-      let systemMsg: string
-      if (!isPaid) {
-        systemMsg = `Commission cancelled by ${cancellerRole}.`
-      } else if (isArtist) {
-        systemMsg = "Commission cancelled by artist after payment. Full refund issued to buyer. A strike has been recorded against the artist."
-      } else {
-        systemMsg = "Commission cancelled by buyer after payment. Full refund issued."
-      }
+      const threadMessage = !isPaid
+        ? `Commission cancelled by ${cancellerRole}.`
+        : isArtist
+          ? "Commission cancelled by artist after payment. Full refund issued to buyer. A strike has been recorded against the artist."
+          : "Commission cancelled by buyer after payment. Full refund issued."
 
       await ctx.prisma.$transaction(async (tx) => {
-        // Cancel the commission
         await tx.commission.update({
           where: { id: input.id },
           data: { status: "CANCELLED", cancelledBy: cancellerRole },
         })
 
-        // Post-payment consequences
         if (isPaid && isArtist) {
-          // Increment artist's monthly cancellation count — check if feature should be disabled
-          const monthStart = new Date()
-          monthStart.setDate(1)
-          monthStart.setHours(0, 0, 0, 0)
+          await tx.strike.create({
+            data: {
+              userId: commission.artistId,
+              level: "MINOR",
+              violation: "ARTIST_CANCEL",
+              isSelling: true,
+              contentId: input.id,
+              contentType: "commission",
+              notes: "Artist cancelled a commission after the buyer paid.",
+            },
+          })
 
-          const monthlyCancels = await tx.commission.count({
+          const startOfMonth = new Date()
+          startOfMonth.setDate(1)
+          startOfMonth.setHours(0, 0, 0, 0)
+          // Includes this commission (already marked cancelled above).
+          const artistCancelsThisMonth = await tx.commission.count({
             where: {
               artistId: commission.artistId,
               cancelledBy: "artist",
               status: "CANCELLED",
-              updatedAt: { gte: monthStart },
+              updatedAt: { gte: startOfMonth },
             },
           })
-
-          // The current commission is already updated above, so it's included in the count.
-          // monthlyCancels >= 5 means this is the 5th+ cancellation this month.
-          if (monthlyCancels >= 5) {
+          if (artistCancelsThisMonth >= MONTHLY_ARTIST_CANCEL_LIMIT) {
             await tx.user.update({
               where: { id: commission.artistId },
               data: { commissionFeatureDisabled: true },
@@ -635,19 +762,17 @@ export const commissionRouter = router({
           })
         }
 
-        // Notifications
-        const notifyId = isArtist ? commission.buyerId : commission.artistId
         await tx.notification.create({
-          data: { userId: notifyId, fromUserId: me, type: `commission_cancelled:${input.id}` },
+          data: { userId: otherPartyId, fromUserId: viewerId, type: `commission_cancelled:${input.id}` },
         })
-
         await tx.professionalMessage.create({
-          data: { commissionId: input.id, senderId: me, text: systemMsg, isSystem: true },
+          data: { commissionId: input.id, senderId: viewerId, text: threadMessage, isSystem: true },
         })
       })
 
-      const notifyId = isArtist ? commission.buyerId : commission.artistId
-      const notified = await ctx.prisma.user.findUnique({ where: { id: notifyId }, select: { email: true, username: true } })
+      if (isPaid && isArtist) await applyAutomaticBan(ctx.prisma, commission.artistId)
+
+      const notified = await ctx.prisma.user.findUnique({ where: { id: otherPartyId }, select: { email: true, username: true } })
       if (notified?.email) {
         await sendCommissionCancelledEmail(notified.email, {
           username: notified.username ?? "there",
@@ -657,6 +782,7 @@ export const commissionRouter = router({
       return ctx.prisma.commission.findUnique({ where: { id: input.id } })
     }),
 
+  /** Buyer disputes a delivery: the commission is frozen (DISPUTED) for moderators; escrow is not released. */
   dispute: protectedProcedure
     .input(z.object({
       id: z.string(),
@@ -664,10 +790,10 @@ export const commissionRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      const me = ctx.session.user.id
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const viewerId = ctx.session.user.id
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
-      if (commission.buyerId !== me) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.buyerId !== viewerId) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "DELIVERED") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Can only dispute a delivered commission" })
       }
@@ -680,14 +806,14 @@ export const commissionRouter = router({
         ctx.prisma.notification.create({
           data: {
             userId: commission.artistId,
-            fromUserId: me,
+            fromUserId: viewerId,
             type: `commission_disputed:${input.id}`,
           },
         }),
         ctx.prisma.professionalMessage.create({
           data: {
             commissionId: input.id,
-            senderId: me,
+            senderId: viewerId,
             text: `Commission disputed by buyer. Reason: ${input.reason}\n\nThis commission is now frozen pending moderation review. Escrow will not be released until resolved.`,
             isSystem: true,
           },
@@ -705,10 +831,11 @@ export const commissionRouter = router({
       return ctx.prisma.commission.findUnique({ where: { id: input.id } })
     }),
 
+  /** Completes a DELIVERED commission once 5 days pass without a dispute (also done nightly by /api/cron/auto-release). */
   checkAutoRelease: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission || commission.status !== "DELIVERED" || commission.disputedAt || !commission.deliveredAt) return null
       if (commission.buyerId !== ctx.session.user.id && commission.artistId !== ctx.session.user.id) {
         throw new TRPCError({ code: "FORBIDDEN" })
@@ -723,13 +850,14 @@ export const commissionRouter = router({
       return null
     }),
 
+  /** Buyer rates a completed commission 1–5 stars, once. */
   submitRating: protectedProcedure
     .input(z.object({
       id: z.string(),
       rating: z.number().int().min(1).max(5),
     }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "COMPLETE") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not complete" })
@@ -740,13 +868,14 @@ export const commissionRouter = router({
       })
     }),
 
+  /** Artist flags a rating as retaliatory, queuing it for human review. */
   flagRating: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const me = ctx.session.user.id
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const viewerId = ctx.session.user.id
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
-      if (commission.artistId !== me) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.artistId !== viewerId) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "COMPLETE") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not complete" })
       if (commission.buyerRating === null) throw new TRPCError({ code: "BAD_REQUEST", message: "No rating to dispute" })
       if (commission.ratingFlagged) throw new TRPCError({ code: "BAD_REQUEST", message: "Rating already flagged" })
@@ -759,7 +888,7 @@ export const commissionRouter = router({
         ctx.prisma.professionalMessage.create({
           data: {
             commissionId: input.id,
-            senderId: me,
+            senderId: viewerId,
             text: "Artist has flagged this rating as potentially retaliatory. The rating has been queued for human review.",
             isSystem: true,
           },
@@ -769,13 +898,14 @@ export const commissionRouter = router({
       return ctx.prisma.commission.findUnique({ where: { id: input.id } })
     }),
 
+  /** Buyer decides once whether the artist may show this commission as a portfolio example. */
   setDisplayPermission: protectedProcedure
     .input(z.object({
       id: z.string(),
       allow: z.boolean(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.buyerId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.status !== "COMPLETE") throw new TRPCError({ code: "BAD_REQUEST", message: "Commission is not complete" })
@@ -789,12 +919,17 @@ export const commissionRouter = router({
       })
     }),
 
+  /** With the buyer's permission, the artist posts the delivered image to their public feed (AI-scanned like any post). */
   shareToFeed: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const artistId = ctx.session.user.id
       const commission = await ctx.prisma.commission.findUnique({
         where: { id: input.id },
-        include: {
+        select: {
+          artistId: true,
+          displayAsExample: true,
+          artistFeedShareOffered: true,
           messages: {
             where: { fileUrl: { not: null } },
             orderBy: { createdAt: "desc" },
@@ -804,31 +939,31 @@ export const commissionRouter = router({
         },
       })
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
-      if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      if (commission.artistId !== artistId) throw new TRPCError({ code: "FORBIDDEN" })
       if (!commission.displayAsExample) throw new TRPCError({ code: "BAD_REQUEST", message: "Buyer has not approved display" })
       if (commission.artistFeedShareOffered) throw new TRPCError({ code: "BAD_REQUEST", message: "Already responded" })
-      const fileUrl = commission.messages[0]?.fileUrl
-      if (!fileUrl) throw new TRPCError({ code: "BAD_REQUEST", message: "No delivered image found" })
-      await ctx.prisma.$transaction([
+      const deliveredImage = commission.messages[0]?.fileUrl
+      if (!deliveredImage) throw new TRPCError({ code: "BAD_REQUEST", message: "No delivered image found" })
+      const [post] = await ctx.prisma.$transaction([
         ctx.prisma.post.create({
-          data: {
-            userId: ctx.session.user.id,
-            image: fileUrl,
-            isCommission: true,
-          },
+          data: { userId: artistId, image: deliveredImage, isCommission: true },
         }),
         ctx.prisma.commission.update({
           where: { id: input.id },
           data: { artistFeedShareOffered: true },
         }),
       ])
+      // Delivered files are private and unscanned; once posted publicly they get
+      // the same AI check as any other post.
+      await scanPost(ctx.prisma, post.id, artistId, deliveredImage)
       return { posted: true }
     }),
 
+  /** Artist declines the offer to share the delivered work to their feed. */
   dismissFeedShare: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const commission = await ctx.prisma.commission.findUnique({ where: { id: input.id } })
+      const commission = await findCommission(ctx.prisma, input.id)
       if (!commission) throw new TRPCError({ code: "NOT_FOUND" })
       if (commission.artistId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
       if (commission.artistFeedShareOffered) throw new TRPCError({ code: "BAD_REQUEST", message: "Already responded" })
@@ -838,6 +973,7 @@ export const commissionRouter = router({
       })
     }),
 
+  /** The artist's Trust Score: average rating minus selling-strike deductions, cancel rate and tier. Shown publicly after 10 completions. */
   getTrustScore: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -902,6 +1038,7 @@ export const commissionRouter = router({
       }
     }),
 
+  /** Delivered images the buyers allowed the artist to display (profile portfolio). */
   getApprovedWork: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -935,69 +1072,99 @@ export const commissionRouter = router({
 
   // ── For You feed + favorites ─────────────────────────────────────────────
 
+  /** Saves or un-saves an artist to the viewer's favourites. */
   toggleFavorite: protectedProcedure
     .input(z.object({ artistId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id
-      const existing = await ctx.prisma.commissionFavorite.findUnique({
-        where: { userId_artistId: { userId, artistId: input.artistId } },
-      })
-      if (existing) {
-        await ctx.prisma.commissionFavorite.delete({ where: { id: existing.id } })
-        return { favorited: false }
-      }
-      await ctx.prisma.commissionFavorite.create({ data: { userId, artistId: input.artistId } })
+      const viewerId = ctx.session.user.id
+      const removed = await ctx.prisma.commissionFavorite.deleteMany({ where: { userId: viewerId, artistId: input.artistId } })
+      if (removed.count > 0) return { favorited: false }
+      await ctx.prisma.commissionFavorite.create({ data: { userId: viewerId, artistId: input.artistId } })
       return { favorited: true }
     }),
 
+  /**
+   * Commission browse "For You", 8 artists per page. Only artists who can take
+   * commissions right now (open, not suspended, not banned, not blocked).
+   * Score = new-artist boost + popularity (completions, favourites) + style match
+   * with artists you follow + big boosts for artists you follow / favourited
+   * + a small hourly-stable shuffle so the feed varies without reshuffling mid-scroll.
+   */
   getForYouFeed: publicProcedure
     .input(z.object({ cursor: z.number().int().min(0).default(0) }))
     .query(async ({ ctx, input }) => {
       const PAGE_SIZE = 8
-      const userId = ctx.session?.user?.id ?? null
+      const CANDIDATE_POOL_SIZE = 200
+      const viewerId = ctx.session?.user?.id ?? null
 
-      // Gather style preferences from followed artists
       let preferredStyles: string[] = []
-      let followedIds: string[] = []
-      let favoritedIds: string[] = []
+      let followedIds = new Set<string>()
+      let favoritedIds = new Set<string>()
 
-      if (userId) {
+      if (viewerId) {
         const [follows, favorites] = await Promise.all([
-          ctx.prisma.follow.findMany({
-            where: { followerId: userId },
-            select: { followingId: true },
-          }),
-          ctx.prisma.commissionFavorite.findMany({
-            where: { userId },
-            select: { artistId: true },
-          }),
+          ctx.prisma.follow.findMany({ where: { followerId: viewerId }, select: { followingId: true } }),
+          ctx.prisma.commissionFavorite.findMany({ where: { userId: viewerId }, select: { artistId: true } }),
         ])
-        followedIds = follows.map(f => f.followingId)
-        favoritedIds = favorites.map(f => f.artistId)
+        followedIds = new Set(follows.map((follow) => follow.followingId))
+        favoritedIds = new Set(favorites.map((favorite) => favorite.artistId))
 
-        if (followedIds.length > 0) {
+        // "Styles you like" = art styles of commission artists you follow.
+        if (followedIds.size > 0) {
           const followedArtists = await ctx.prisma.user.findMany({
             where: {
-              id: { in: followedIds },
+              id: { in: [...followedIds] },
               sellingEnabled: true,
               commissionStatus: { in: ["OPEN", "LIMITED"] },
             },
             select: { artStyles: true },
           })
-          const styleSet = new Set<string>()
-          for (const a of followedArtists) a.artStyles.forEach(s => styleSet.add(s))
-          preferredStyles = Array.from(styleSet)
+          preferredStyles = [...new Set(followedArtists.flatMap((artist) => artist.artStyles))]
         }
       }
 
-      // Fetch candidate pool
-      const pool = await ctx.prisma.user.findMany({
-        where: {
-          commissionStatus: { in: ["OPEN", "LIMITED"] },
-          sellingEnabled: true,
-          username: { not: null },
-          id: { not: userId ?? undefined },
+      const blockedIds = await getBlockedUserIds(ctx.prisma, viewerId)
+      if (viewerId) blockedIds.add(viewerId)
+
+      // Step 1: score a pool of artists using only small fields (no images).
+      const candidates = await ctx.prisma.user.findMany({
+        where: { ...availableArtistFilter(), ...excludeIds("id", blockedIds) },
+        select: {
+          id: true,
+          createdAt: true,
+          artStyles: true,
+          _count: {
+            select: {
+              favoritedByUsers: true,
+              artistCommissions: { where: { status: "COMPLETE" } },
+            },
+          },
         },
+        take: CANDIDATE_POOL_SIZE,
+        orderBy: { createdAt: "desc" },
+      })
+
+      const now = Date.now()
+      const ranked = candidates
+        .map((artist) => {
+          const ageHours = (now - artist.createdAt.getTime()) / 3_600_000
+          const newArtistBoost = ageHours < 168 ? 30 * Math.exp(-ageHours / 72) : 0
+          const popularity = Math.log1p(artist._count.artistCommissions * 2 + artist._count.favoritedByUsers) * 12
+          const styleMatch = artist.artStyles.filter((style) => preferredStyles.includes(style)).length * 20
+          const followBoost = followedIds.has(artist.id) ? 60 : 0
+          const favoriteBoost = favoritedIds.has(artist.id) ? 40 : 0
+          const score = newArtistBoost + popularity + styleMatch + followBoost + favoriteBoost + hourlyJitter(artist.id)
+          return { artistId: artist.id, score }
+        })
+        .sort((a, b) => b.score - a.score || a.artistId.localeCompare(b.artistId))
+
+      const pageArtistIds = ranked.slice(input.cursor, input.cursor + PAGE_SIZE).map((entry) => entry.artistId)
+      const nextCursor = input.cursor + PAGE_SIZE < ranked.length ? input.cursor + PAGE_SIZE : null
+      if (pageArtistIds.length === 0) return { artists: [], nextCursor }
+
+      // Step 2: load full card details (including images) for just this page.
+      const pageArtists = await ctx.prisma.user.findMany({
+        where: { id: { in: pageArtistIds } },
         select: {
           id: true,
           username: true,
@@ -1011,97 +1178,38 @@ export const commissionRouter = router({
           priceRanges: true,
           createdAt: true,
           posts: {
-            where: { isCommission: true },
+            where: { isCommission: true, status: "PUBLISHED" },
             take: 4,
             orderBy: { createdAt: "desc" },
             select: { id: true, image: true },
           },
-          commissionCategories: {
-            orderBy: { order: "asc" },
-            select: { name: true, options: true },
-          },
-          artistCommissions: {
-            where: { status: "COMPLETE" },
-            select: { id: true },
-          },
-          _count: {
-            select: { favoritedByUsers: true },
-          },
+          commissionCategories: { orderBy: { order: "asc" }, select: { name: true, options: true } },
+          artistCommissions: { where: { status: "COMPLETE" }, select: { id: true } },
+          _count: { select: { favoritedByUsers: true } },
         },
-        take: 200,
-        orderBy: { createdAt: "desc" },
       })
-
-      // Score each artist
-      const now = Date.now()
-      const scored = pool.map(artist => {
-        const ageHours = (now - artist.createdAt.getTime()) / 3_600_000
-        const completedCount = artist.artistCommissions.length
-        const favoriteCount = artist._count.favoritedByUsers
-
-        // Recency for new artists (rising star boost)
-        const risingBoost = ageHours < 168 ? 30 * Math.exp(-ageHours / 72) : 0
-
-        // Popularity signal (completions + favorites)
-        const popularity = Math.log1p(completedCount * 2 + favoriteCount) * 12
-
-        // Style match
-        const styleMatch = preferredStyles.length > 0
-          ? artist.artStyles.filter(s => preferredStyles.includes(s)).length * 20
-          : 0
-
-        // Follow boost
-        const followBoost = followedIds.includes(artist.id) ? 60 : 0
-
-        // Favorite boost
-        const favoriteBoost = favoritedIds.includes(artist.id) ? 40 : 0
-
-        // Small random shuffle so feed varies
-        const jitter = Math.random() * 8
-
-        const score = risingBoost + popularity + styleMatch + followBoost + favoriteBoost + jitter
-        return { artist, score }
-      })
-
-      scored.sort((a, b) => b.score - a.score)
-
-      // Beyond what we scored highly, append the rest for end-of-feed
-      const page = scored.slice(input.cursor, input.cursor + PAGE_SIZE)
-      const nextCursor = input.cursor + PAGE_SIZE < scored.length ? input.cursor + PAGE_SIZE : null
-
-      // Build favorited set for this user
-      const returnedIds = page.map(p => p.artist.id)
-      let favoritedSet = new Set<string>()
-      if (userId && returnedIds.length > 0) {
-        const favs = await ctx.prisma.commissionFavorite.findMany({
-          where: { userId, artistId: { in: returnedIds } },
-          select: { artistId: true },
-        })
-        favoritedSet = new Set(favs.map(f => f.artistId))
-      }
-
-      // Build followed set for this user
-      let followedSet = new Set<string>()
-      if (userId && returnedIds.length > 0) {
-        const follows = await ctx.prisma.follow.findMany({
-          where: { followerId: userId, followingId: { in: returnedIds } },
-          select: { followingId: true },
-        })
-        followedSet = new Set(follows.map(f => f.followingId))
-      }
+      const artistById = new Map(pageArtists.map((artist) => [artist.id, artist]))
 
       return {
-        artists: page.map(({ artist }) => ({
-          ...artist,
-          isFavorited: favoritedSet.has(artist.id),
-          isFollowed: followedSet.has(artist.id),
-        })),
+        artists: pageArtistIds
+          .map((artistId) => artistById.get(artistId))
+          .filter((artist): artist is NonNullable<typeof artist> => !!artist)
+          .map((artist) => ({
+            ...artist,
+            isFavorited: favoritedIds.has(artist.id),
+            isFollowed: followedIds.has(artist.id),
+          })),
         nextCursor,
       }
     }),
 
   // ── Discovery feed ────────────────────────────────────────────────────────
 
+  /**
+   * Commission browse search + sort (up to 50 artists available right now).
+   * Search matches username, display name, or an exact option in the artist's
+   * request-form dropdowns. "affordable" sorts by average listed price.
+   */
   getDiscovery: publicProcedure
     .input(z.object({
       search: z.string().optional(),
@@ -1109,32 +1217,26 @@ export const commissionRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const sortBy = input.sortBy ?? "default"
-
       const orderBy: Prisma.UserOrderByWithRelationInput =
-        sortBy === "top"
-          ? { artistCommissions: { _count: "desc" } }
-          : sortBy === "new"
-          ? { createdAt: "desc" }
-          : { createdAt: "desc" }
+        sortBy === "top" ? { artistCommissions: { _count: "desc" } } : { createdAt: "desc" }
 
-      const users = await ctx.prisma.user.findMany({
+      const blockedIds = await getBlockedUserIds(ctx.prisma, ctx.session?.user?.id)
+
+      const artists = await ctx.prisma.user.findMany({
         where: {
-          commissionStatus: { in: ["OPEN", "LIMITED"] },
-          sellingEnabled: true,
-          username: { not: null },
-          ...(input.search ? {
-            OR: [
-              { username: { contains: input.search, mode: "insensitive" } },
-              { name: { contains: input.search, mode: "insensitive" } },
-              {
-                commissionCategories: {
-                  some: {
-                    options: { has: input.search },
-                  },
-                },
-              },
-            ],
-          } : {}),
+          AND: [
+            availableArtistFilter(),
+            excludeIds("id", blockedIds),
+            input.search
+              ? {
+                  OR: [
+                    { username: { contains: input.search, mode: "insensitive" } },
+                    { name: { contains: input.search, mode: "insensitive" } },
+                    { commissionCategories: { some: { options: { has: input.search } } } },
+                  ],
+                }
+              : {},
+          ],
         },
         select: {
           id: true,
@@ -1148,66 +1250,24 @@ export const commissionRouter = router({
           artStyles: true,
           priceRanges: true,
           posts: {
-            where: { isCommission: true },
+            where: { isCommission: true, status: "PUBLISHED" },
             take: 4,
             orderBy: { createdAt: "desc" },
             select: { id: true, image: true },
           },
-          commissionCategories: {
-            orderBy: { order: "asc" },
-            select: { name: true, options: true },
-          },
+          commissionCategories: { orderBy: { order: "asc" }, select: { name: true, options: true } },
         },
         take: 50,
         orderBy,
       })
 
-      // Affordable: sort client-side by avg price ascending
-      if (sortBy === "affordable") {
-        return [...users].sort((a, b) => {
-          const avg = (u: typeof a) => {
-            const ranges = u.priceRanges as { label: string; price: number }[] | null
-            if (!ranges || ranges.length === 0) return Infinity
-            return ranges.reduce((s, r) => s + r.price, 0) / ranges.length
-          }
-          return avg(a) - avg(b)
-        })
+      if (sortBy !== "affordable") return artists
+
+      const averagePrice = (artist: typeof artists[number]) => {
+        const priceRanges = artist.priceRanges as { label: string; price: number }[] | null
+        if (!priceRanges || priceRanges.length === 0) return Infinity
+        return priceRanges.reduce((sum, range) => sum + range.price, 0) / priceRanges.length
       }
-
-      return users
-    }),
-
-  getCompletedWork: publicProcedure
-    .input(z.object({ username: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const user = await ctx.prisma.user.findFirst({
-        where: { username: { equals: input.username, mode: "insensitive" } },
-        select: { id: true },
-      })
-      if (!user) return []
-
-      const commissions = await ctx.prisma.commission.findMany({
-        where: { artistId: user.id, status: "COMPLETE" },
-        orderBy: { updatedAt: "desc" },
-        take: 20,
-        include: {
-          messages: {
-            where: { fileUrl: { not: null } },
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: { fileUrl: true },
-          },
-          buyer: { select: { username: true, name: true, image: true } },
-        },
-      })
-
-      return commissions
-        .filter(c => c.messages.length > 0)
-        .map(c => ({
-          id: c.id,
-          fileUrl: c.messages[0].fileUrl!,
-          buyer: c.buyer,
-          completedAt: c.updatedAt,
-        }))
+      return [...artists].sort((a, b) => averagePrice(a) - averagePrice(b))
     }),
 })
