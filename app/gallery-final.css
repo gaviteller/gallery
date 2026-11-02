@@ -873,6 +873,35 @@ body { overflow-x: hidden; }
   overflow:visible;
 }
 
+/* The paint silhouette and its surface texture are separate so the palette
+   can change without losing the wet highlights and liquid depth. */
+.gallery-paint-art {
+  --gallery-paint-gradient:linear-gradient(90deg,#ff18a8 0%,#f21bd2 20%,#a82dff 38%,#405bff 57%,#09cfff 72%,#f21bd2 89%,#15d7ff 100%);
+  position:relative;
+  pointer-events:none;
+}
+.gallery-paint-color,
+.gallery-paint-detail {
+  position:absolute;
+  inset:0;
+  display:block;
+  background-position:top center;
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+}
+.gallery-paint-color {
+  background:var(--gallery-paint-gradient);
+  -webkit-mask:url('/gallery-paint-texture-v1.png') top center / 100% 100% no-repeat;
+  mask:url('/gallery-paint-texture-v1.png') top center / 100% 100% no-repeat;
+  filter:drop-shadow(0 4px 6px rgba(188,30,255,.58)) drop-shadow(0 8px 13px rgba(0,174,255,.24));
+}
+.gallery-paint-detail {
+  background-image:url('/gallery-paint-texture-v1.png');
+  filter:grayscale(1) contrast(1.32) brightness(1.2);
+  mix-blend-mode:screen;
+  opacity:.62;
+}
+
 .gallery-code-brand > *,
 .gallery-mobile-code-brand > * {
   display:block!important;
