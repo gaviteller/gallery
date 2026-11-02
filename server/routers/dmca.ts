@@ -1,9 +1,24 @@
+/**
+ * DMCA (COPYRIGHT) — `trpc.dmca.*`
+ *
+ * Flow: a rights-holder submits a takedown (public form at /dmca) → a moderator
+ * reviews it in the admin panel and may remove the post → the post's owner can
+ * file a counter-notice (/dmca/counter-notice) → if the claimant doesn't respond
+ * with a court action within 14 days, the cron job /api/cron/dmca-restore
+ * restores the post.
+ */
 import { z } from "zod"
 import { router, publicProcedure, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { sendDmcaCounterNoticeEmail } from "@/lib/email"
 
 export const dmcaRouter = router({
+  /**
+   * Records a takedown request. Anyone can submit (no login needed).
+   * ⚠️ KNOWN ISSUE: the post id is only detected in URLs shaped like "/posts/<id>",
+   * but real post URLs are "/@username/<id>", so `postId` is usually left empty.
+   * Left as-is pending a decision.
+   */
   submit: publicProcedure
     .input(z.object({
       claimantName: z.string().min(1).max(200),
@@ -12,15 +27,13 @@ export const dmcaRouter = router({
       description: z.string().min(50).max(5000),
     }))
     .mutation(async ({ ctx, input }) => {
-      // Attempt to extract postId from a URL like /posts/<id>
-      const match = input.postUrl.match(/\/posts\/([a-z0-9]+)/i)
-      const postId = match ? match[1] : null
+      const postIdMatch = input.postUrl.match(/\/posts\/([a-z0-9]+)/i)
 
       await ctx.prisma.dmcaRequest.create({
         data: {
           claimantName: input.claimantName,
           claimantEmail: input.claimantEmail,
-          postId: postId ?? null,
+          postId: postIdMatch ? postIdMatch[1] : null,
           postUrl: input.postUrl,
           description: input.description,
         },
@@ -28,33 +41,37 @@ export const dmcaRouter = router({
 
       return { success: true }
     }),
+
+  /**
+   * The post owner disputes a DMCA removal. Only allowed when the request is
+   * REMOVED and the linked post belongs to the caller. Emails the claimant.
+   */
   fileCounterNotice: protectedProcedure
     .input(z.object({
       dmcaRequestId: z.string(),
       statement: z.string().min(20).max(5000),
     }))
     .mutation(async ({ ctx, input }) => {
-      const dmca = await ctx.prisma.dmcaRequest.findUnique({
+      const dmcaRequest = await ctx.prisma.dmcaRequest.findUnique({
         where: { id: input.dmcaRequestId },
         select: { id: true, status: true, postId: true, claimantEmail: true, claimantName: true, postUrl: true },
       })
-      if (!dmca) throw new TRPCError({ code: "NOT_FOUND" })
-      if (dmca.status !== "REMOVED") {
+      if (!dmcaRequest) throw new TRPCError({ code: "NOT_FOUND" })
+      if (dmcaRequest.status !== "REMOVED") {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "A counter-notice can only be filed for posts that have been removed via DMCA.",
         })
       }
-      if (!dmca.postId) {
+      if (!dmcaRequest.postId) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "No post is linked to this DMCA request.",
         })
       }
 
-      // Verify the linked post belongs to the calling user
       const post = await ctx.prisma.post.findUnique({
-        where: { id: dmca.postId },
+        where: { id: dmcaRequest.postId },
         select: { userId: true },
       })
       if (!post) {
@@ -67,7 +84,7 @@ export const dmcaRouter = router({
         throw new TRPCError({ code: "FORBIDDEN" })
       }
 
-      const updated = await ctx.prisma.dmcaRequest.update({
+      const updatedRequest = await ctx.prisma.dmcaRequest.update({
         where: { id: input.dmcaRequestId },
         data: {
           status: "COUNTER_FILED",
@@ -75,13 +92,13 @@ export const dmcaRouter = router({
           counterNoticeText: input.statement,
         },
       })
-      if (dmca.claimantEmail) {
-        await sendDmcaCounterNoticeEmail(dmca.claimantEmail, {
-          claimantName: dmca.claimantName,
+      if (dmcaRequest.claimantEmail) {
+        await sendDmcaCounterNoticeEmail(dmcaRequest.claimantEmail, {
+          claimantName: dmcaRequest.claimantName,
           counterNoticeText: input.statement,
-          postUrl: dmca.postUrl ?? "(URL not recorded)",
+          postUrl: dmcaRequest.postUrl ?? "(URL not recorded)",
         })
       }
-      return updated
+      return updatedRequest
     }),
 })

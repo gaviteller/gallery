@@ -1,13 +1,20 @@
+/**
+ * PUSH NOTIFICATION SUBSCRIPTIONS — `trpc.push.*`
+ *
+ * When a user allows notifications, their browser gives us a "subscription"
+ * (an endpoint URL + two keys). We store one row per device so lib/sendPush.ts
+ * can deliver phone/browser notifications later.
+ */
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 
 export const pushRouter = router({
-  // Return the VAPID public key so the client can subscribe
+  /** Our server's public VAPID key — the browser needs it to create a subscription. */
   getPublicKey: publicProcedure.query(() => {
     return { publicKey: process.env.VAPID_PUBLIC_KEY ?? "" }
   }),
 
-  // Save a push subscription for the current user
+  /** Saves (or re-assigns) this device's subscription to the logged-in user. */
   subscribe: protectedProcedure
     .input(z.object({
       endpoint: z.string(),
@@ -15,24 +22,16 @@ export const pushRouter = router({
       auth: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id
       await ctx.prisma.pushSubscription.upsert({
         where: { endpoint: input.endpoint },
-        create: {
-          userId: ctx.session.user.id,
-          endpoint: input.endpoint,
-          p256dh: input.p256dh,
-          auth: input.auth,
-        },
-        update: {
-          userId: ctx.session.user.id,
-          p256dh: input.p256dh,
-          auth: input.auth,
-        },
+        create: { userId, endpoint: input.endpoint, p256dh: input.p256dh, auth: input.auth },
+        update: { userId, p256dh: input.p256dh, auth: input.auth },
       })
       return { ok: true }
     }),
 
-  // Remove a subscription (e.g. on logout)
+  /** Removes this device's subscription (e.g. on logout or when notifications are turned off). */
   unsubscribe: protectedProcedure
     .input(z.object({ endpoint: z.string() }))
     .mutation(async ({ ctx, input }) => {
