@@ -23,6 +23,7 @@ const mockUser = {
 const mockPrisma = {
   user: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     update: vi.fn(),
   },
 }
@@ -54,14 +55,32 @@ describe("user.me", () => {
     const caller = getCaller()
     const result = await caller.user.me()
     expect(result).toEqual(mockUser)
-    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "user-1" },
-    })
+    }))
+    // Security: the password hash and moderation-only fields must never be sent to the browser.
+    const selected = mockPrisma.user.findUnique.mock.calls[0][0].select
+    expect(selected).toBeDefined()
+    for (const secret of ["password", "normalizedEmail", "accountNotes", "banEvasionFlag", "stripeConnectId", "chargebackCount"]) {
+      expect(selected[secret]).toBeUndefined()
+    }
   })
 
   it("throws UNAUTHORIZED when not logged in", async () => {
     const unauthCaller = getCaller(null as any)
     await expect(unauthCaller.user.me()).rejects.toThrow("UNAUTHORIZED")
+  })
+})
+
+describe("user.getByUsername", () => {
+  it("only requests public profile fields (no email, password or moderation data)", async () => {
+    mockPrisma.user.findFirst.mockResolvedValue({ id: "user-2", username: "artist" })
+    await createCaller({ session: null, prisma: mockPrisma as any }).user.getByUsername({ username: "artist" })
+    const selected = mockPrisma.user.findFirst.mock.calls.at(-1)![0].select
+    expect(selected.username).toBe(true)
+    for (const secret of ["password", "email", "dateOfBirth", "normalizedEmail", "accountNotes", "banEvasionFlag", "stripeConnectId", "isAdmin"]) {
+      expect(selected[secret]).toBeUndefined()
+    }
   })
 })
 
@@ -73,10 +92,11 @@ describe("user.completeOnboarding", () => {
     const result = await caller.user.completeOnboarding({ sellingEnabled: true })
     expect(result.onboardingComplete).toBe(true)
     expect(result.sellingEnabled).toBe(true)
-    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "user-1" },
       data: { sellingEnabled: true, onboardingComplete: true },
-    })
+    }))
+    expect(mockPrisma.user.update.mock.calls[0][0].select.password).toBeUndefined()
   })
 })
 
