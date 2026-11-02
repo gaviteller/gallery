@@ -1,39 +1,33 @@
+/**
+ * SEARCH — `trpc.search.*` (results on the /search page when text is typed)
+ *
+ * Three separate searches (artists, posts, shop) so the page can show grouped
+ * results and a "See all" tab for each. All hide users blocked either way.
+ * Each returns `{ items, total }` where total is the full match count.
+ */
 import { z } from "zod"
 import { router, publicProcedure } from "@/lib/trpc"
+import { getBlockedUserIds, excludeIds } from "@/server/lib/blocks"
 
 export const searchRouter = router({
+  /** Artists whose username or display name contains the text, A→Z by username. */
   artists: publicProcedure
     .input(z.object({
       query: z.string().min(1),
       limit: z.number().int().min(1).max(50).default(20),
     }))
     .query(async ({ ctx, input }) => {
-      const blockedIds = new Set<string>()
+      const blockedIds = await getBlockedUserIds(ctx.prisma, ctx.session?.user?.id)
 
-      if (ctx.session?.user?.id) {
-        const blockRelations = await ctx.prisma.block.findMany({
-          where: {
-            OR: [
-              { blockerId: ctx.session.user.id },
-              { blockedId: ctx.session.user.id },
-            ],
-          },
-          select: { blockerId: true, blockedId: true },
-        })
-        for (const b of blockRelations) {
-          blockedIds.add(b.blockerId === ctx.session.user.id ? b.blockedId : b.blockerId)
-        }
-      }
-
-      // Note: bannedUntil is intentionally not filtered here — search is public discovery.
-      // Banned users can still be found but cannot accept commissions.
+      // bannedUntil is intentionally not filtered — banned users can still be
+      // found (their profile explains the ban); they just can't take commissions.
       const where = {
         OR: [
           { username: { contains: input.query, mode: "insensitive" as const } },
           { name: { contains: input.query, mode: "insensitive" as const } },
         ],
         username: { not: null },
-        ...(blockedIds.size > 0 ? { id: { notIn: [...blockedIds] } } : {}),
+        ...excludeIds("id", blockedIds),
       }
 
       const items = await ctx.prisma.user.findMany({
@@ -49,6 +43,7 @@ export const searchRouter = router({
         orderBy: { username: "asc" },
       })
 
+      // Only count separately when the page is full (otherwise items.length is the total).
       const total = items.length < input.limit
         ? items.length
         : await ctx.prisma.user.count({ where })
@@ -70,26 +65,12 @@ export const searchRouter = router({
       sort: z.enum(["trending", "newest", "mostLiked"]).default("trending"),
     }))
     .query(async ({ ctx, input }) => {
-      const blockedIds = new Set<string>()
-      if (ctx.session?.user?.id) {
-        const blockRelations = await ctx.prisma.block.findMany({
-          where: {
-            OR: [
-              { blockerId: ctx.session.user.id },
-              { blockedId: ctx.session.user.id },
-            ],
-          },
-          select: { blockerId: true, blockedId: true },
-        })
-        for (const b of blockRelations) {
-          blockedIds.add(b.blockerId === ctx.session.user.id ? b.blockedId : b.blockerId)
-        }
-      }
+      const blockedIds = await getBlockedUserIds(ctx.prisma, ctx.session?.user?.id)
 
       const where = {
         status: "PUBLISHED" as const,
         user: { username: { not: null } },
-        ...(blockedIds.size > 0 ? { userId: { notIn: [...blockedIds] } } : {}),
+        ...excludeIds("userId", blockedIds),
         OR: [
           { description: { contains: input.query, mode: "insensitive" as const } },
           { hashtags: { some: { tag: { contains: input.query, mode: "insensitive" as const } } } },
@@ -147,33 +128,20 @@ export const searchRouter = router({
       return { items, total }
     }),
 
+  /** Live shop listings whose title or description contains the text, newest first. */
   shop: publicProcedure
     .input(z.object({
       query: z.string().min(1),
       limit: z.number().int().min(1).max(50).default(20),
     }))
     .query(async ({ ctx, input }) => {
-      const blockedIds = new Set<string>()
-      if (ctx.session?.user?.id) {
-        const blockRelations = await ctx.prisma.block.findMany({
-          where: {
-            OR: [
-              { blockerId: ctx.session.user.id },
-              { blockedId: ctx.session.user.id },
-            ],
-          },
-          select: { blockerId: true, blockedId: true },
-        })
-        for (const b of blockRelations) {
-          blockedIds.add(b.blockerId === ctx.session.user.id ? b.blockedId : b.blockerId)
-        }
-      }
+      const blockedIds = await getBlockedUserIds(ctx.prisma, ctx.session?.user?.id)
 
       const where = {
         // Only live listings — never paused, removed, or held for moderation review.
         status: "ACTIVE",
         user: { username: { not: null } },
-        ...(blockedIds.size > 0 ? { userId: { notIn: [...blockedIds] } } : {}),
+        ...excludeIds("userId", blockedIds),
         OR: [
           { title: { contains: input.query, mode: "insensitive" as const } },
           { description: { contains: input.query, mode: "insensitive" as const } },

@@ -1,24 +1,18 @@
+/**
+ * DISCOVERY — `trpc.discovery.*` (the Explore page and the sidebar)
+ *
+ *   trendingTags → sidebar "Trending" box
+ *   risingStars  → newer artists (joined ≤ 90 days ago) growing fast; also the sidebar "Suggested" list
+ *   spotlight    → established artists (joined > 90 days ago) with the biggest following
+ *   forYou       → "You Might Like" post grid, excluding people the viewer already follows
+ *
+ * Every list hides blocked users. Artist scores get a small boost or penalty
+ * from how many of their posts the AI moderation marked SAFE.
+ */
 import { z } from "zod"
 import { router, publicProcedure } from "@/lib/trpc"
-import type { PrismaClient, CommissionStatus } from "@prisma/client"
-
-// ── Block helper ─────────────────────────────────────────────────────────────
-
-async function getBlockedIds(
-  prisma: PrismaClient,
-  userId: string | undefined
-): Promise<Set<string>> {
-  const blocked = new Set<string>()
-  if (!userId) return blocked
-  const relations = await prisma.block.findMany({
-    where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
-    select: { blockerId: true, blockedId: true },
-  })
-  for (const b of relations) {
-    blocked.add(b.blockerId === userId ? b.blockedId : b.blockerId)
-  }
-  return blocked
-}
+import type { CommissionStatus } from "@prisma/client"
+import { getBlockedUserIds } from "@/server/lib/blocks"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -40,55 +34,58 @@ type ScoredCandidate = {
   artistCommissions: { buyerRating: number | null }[]
 }
 
+/** Average buyer rating (1–5) across completed commissions; 0 if none rated. */
 function avgRating(commissions: { buyerRating: number | null }[]): number {
-  const ratings = commissions.map(c => c.buyerRating).filter((r): r is number => r !== null)
-  return ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0
+  const ratings = commissions.map((commission) => commission.buyerRating).filter((rating): rating is number => rating !== null)
+  return ratings.length > 0 ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : 0
 }
 
 function totalLikes(posts: { _count: { likes: number } }[]): number {
-  return posts.reduce((s, p) => s + p._count.likes, 0)
+  return posts.reduce((sum, post) => sum + post._count.likes, 0)
 }
 
-// 0–1: fraction of AI-scanned posts that are SAFE. Unscanned posts are neutral (0.5).
+/** 0–1: share of AI-scanned posts marked SAFE. Artists with no scanned posts count as neutral (0.5). */
 function contentQuality(posts: { aiVerdict: string | null }[]): number {
-  const scanned = posts.filter(p => p.aiVerdict !== null)
-  if (scanned.length === 0) return 0.5
-  const safe = scanned.filter(p => p.aiVerdict === "SAFE").length
-  return safe / scanned.length
+  const scannedPosts = posts.filter((post) => post.aiVerdict !== null)
+  if (scannedPosts.length === 0) return 0.5
+  return scannedPosts.filter((post) => post.aiVerdict === "SAFE").length / scannedPosts.length
 }
 
-/** Rising Star score: weighted by follower + like growth per account-age-day, boosted by content quality */
-function scoreRisingStar(u: ScoredCandidate): number {
-  const ageDays = Math.max(1, (Date.now() - u.createdAt.getTime()) / 86_400_000)
-  const followerScore = u._count.followers / ageDays
-  const likeScore = totalLikes(u.posts) / ageDays
-  const ratingScore = avgRating(u.artistCommissions) / 5
-  const base = followerScore * 0.4 + likeScore * 0.35 + ratingScore * 0.25
-  // Content quality multiplier: 0.8x (all flagged) → 1.1x (all safe)
-  const quality = 0.8 + contentQuality(u.posts) * 0.3
-  return base * quality
+/** Multiplier from content quality: 0.8× (everything flagged) up to 1.1× (everything safe). */
+function qualityMultiplier(posts: { aiVerdict: string | null }[]): number {
+  return 0.8 + contentQuality(posts) * 0.3
 }
 
-/** Spotlight score: weighted by absolute followers, commissions, likes, rating, boosted by content quality */
-function scoreSpotlight(u: ScoredCandidate): number {
-  const completedCount = u.artistCommissions.length
-  const base =
-    u._count.followers * 0.4 +
-    completedCount * 10 * 0.3 +
-    totalLikes(u.posts) * 0.15 +
-    (avgRating(u.artistCommissions) / 5) * 100 * 0.15
-  const quality = 0.8 + contentQuality(u.posts) * 0.3
-  return base * quality
+/** Rising Star score: followers and likes gained per day since joining, plus rating. */
+function scoreRisingStar(artist: ScoredCandidate): number {
+  const accountAgeDays = Math.max(1, (Date.now() - artist.createdAt.getTime()) / 86_400_000)
+  const followersPerDay = artist._count.followers / accountAgeDays
+  const likesPerDay = totalLikes(artist.posts) / accountAgeDays
+  const ratingScore = avgRating(artist.artistCommissions) / 5
+  const baseScore = followersPerDay * 0.4 + likesPerDay * 0.35 + ratingScore * 0.25
+  return baseScore * qualityMultiplier(artist.posts)
 }
 
-function toArtistCard(u: ScoredCandidate) {
+/** Spotlight score: total followers, completed commissions, likes and rating. */
+function scoreSpotlight(artist: ScoredCandidate): number {
+  const completedCommissions = artist.artistCommissions.length
+  const baseScore =
+    artist._count.followers * 0.4 +
+    completedCommissions * 10 * 0.3 +
+    totalLikes(artist.posts) * 0.15 +
+    (avgRating(artist.artistCommissions) / 5) * 100 * 0.15
+  return baseScore * qualityMultiplier(artist.posts)
+}
+
+/** The small artist object the UI cards need. */
+function toArtistCard(artist: ScoredCandidate) {
   return {
-    id: u.id,
-    username: u.username,
-    name: u.name,
-    image: u.image,
-    commissionStatus: u.commissionStatus,
-    followerCount: u._count.followers,
+    id: artist.id,
+    username: artist.username,
+    name: artist.name,
+    image: artist.image,
+    commissionStatus: artist.commissionStatus,
+    followerCount: artist._count.followers,
   }
 }
 
@@ -164,7 +161,7 @@ export const discoveryRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       const viewerId = ctx.session?.user?.id
-      const hiddenUserIds = await getBlockedIds(ctx.prisma, viewerId)
+      const hiddenUserIds = await getBlockedUserIds(ctx.prisma, viewerId)
       if (input.excludeFollowed && viewerId) {
         hiddenUserIds.add(viewerId)
         const alreadyFollowing = await ctx.prisma.follow.findMany({
@@ -200,7 +197,7 @@ export const discoveryRouter = router({
   spotlight: publicProcedure
     .input(z.object({ limit: z.number().int().min(1).max(50).default(15) }))
     .query(async ({ ctx, input }) => {
-      const blockedIds = await getBlockedIds(ctx.prisma, ctx.session?.user?.id)
+      const blockedIds = await getBlockedUserIds(ctx.prisma, ctx.session?.user?.id)
       const ninetyDaysAgo = new Date(Date.now() - DISCOVERY_WINDOW_MS)
 
       const candidates = await ctx.prisma.user.findMany({
@@ -225,58 +222,66 @@ export const discoveryRouter = router({
       return { items, total: candidates.length }
     }),
 
+  /**
+   * "You Might Like": recent posts from people the viewer doesn't follow,
+   * ranked by likes per hour (recent posts with fast engagement win).
+   * Excludes the viewer, blocked users, banned users and AI-flagged EXPLICIT posts.
+   */
   forYou: publicProcedure
     .input(z.object({
       limit: z.number().int().min(1).max(50).default(9),
     }))
     .query(async ({ ctx, input }) => {
-      const userId = ctx.session?.user?.id
-      const blockedIds = await getBlockedIds(ctx.prisma, userId)
+      const viewerId = ctx.session?.user?.id
+      const blockedIds = await getBlockedUserIds(ctx.prisma, viewerId)
 
-      const followedIds = userId
+      const followedIds = viewerId
         ? (await ctx.prisma.follow.findMany({
-            where: { followerId: userId },
+            where: { followerId: viewerId },
             select: { followingId: true },
-          })).map(f => f.followingId)
+          })).map((follow) => follow.followingId)
         : []
 
-      const excludeIds = [
-        ...followedIds,
-        ...(userId ? [userId] : []),
-        ...blockedIds,
-      ]
+      const excludedAuthorIds = [...followedIds, ...(viewerId ? [viewerId] : []), ...blockedIds]
+      const CANDIDATES_PER_RESULT = 6
 
-      const where = {
-        status: "PUBLISHED" as const,
-        user: { username: { not: null }, bannedUntil: null },
-        ...(excludeIds.length > 0 ? { userId: { notIn: excludeIds } } : {}),
-      }
-
+      // Rank a pool of recent posts WITHOUT images (they're large), then load
+      // images only for the few posts actually returned.
       const candidates = await ctx.prisma.post.findMany({
-        where: { ...where, aiVerdict: { not: "EXPLICIT" } },
+        where: {
+          status: "PUBLISHED",
+          user: { username: { not: null }, bannedUntil: null },
+          ...(excludedAuthorIds.length > 0 ? { userId: { notIn: excludedAuthorIds } } : {}),
+          aiVerdict: { not: "EXPLICIT" },
+        },
         select: {
           id: true,
-          image: true,
           description: true,
           createdAt: true,
           user: { select: { username: true } },
           _count: { select: { likes: true } },
         },
         orderBy: { createdAt: "desc" },
-        take: input.limit * 6,
+        take: input.limit * CANDIDATES_PER_RESULT,
       })
 
-      // Rank by engagement velocity: likes / hoursOld^1.5 (favours recent high-engagement posts)
-      const scored = candidates
-        .map(p => {
-          const hoursOld = Math.max(1, (Date.now() - p.createdAt.getTime()) / 3_600_000)
-          const score = p._count.likes / Math.pow(hoursOld + 2, 1.5)
-          return { p, score }
+      const topPosts = candidates
+        .map((post) => {
+          const hoursOld = Math.max(1, (Date.now() - post.createdAt.getTime()) / 3_600_000)
+          return { post, score: post._count.likes / Math.pow(hoursOld + 2, 1.5) }
         })
         .sort((a, b) => b.score - a.score)
         .slice(0, input.limit)
-        .map(({ p }) => p)
+        .map(({ post }) => post)
 
-      return { items: scored }
+      const images = topPosts.length > 0
+        ? await ctx.prisma.post.findMany({
+            where: { id: { in: topPosts.map((post) => post.id) } },
+            select: { id: true, image: true },
+          })
+        : []
+      const imageByPostId = new Map(images.map((post) => [post.id, post.image]))
+
+      return { items: topPosts.map((post) => ({ ...post, image: imageByPostId.get(post.id) ?? "" })) }
     }),
 })

@@ -14,8 +14,8 @@ import { z } from "zod"
 import bcrypt from "bcryptjs"
 import { router, publicProcedure, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
-import type { PrismaClient } from "@prisma/client"
 import { scanAvatar } from "@/lib/ai-scan"
+import { getBlockedUserIds, excludeIds } from "@/server/lib/blocks"
 import { REMOVAL_GRACE_CUTOFF } from "@/lib/removal"
 
 const PASSWORD_HASH_ROUNDS = 12
@@ -55,16 +55,6 @@ const OWN_ACCOUNT_FIELDS = {
   commissionFeatureDisabled: true,
 } as const
 
-/** Ids of everyone who blocked the viewer or whom the viewer blocked. */
-async function getBlockedUserIds(prisma: PrismaClient, viewerId: string | undefined): Promise<string[]> {
-  if (!viewerId) return []
-  const blocks = await prisma.block.findMany({
-    where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
-    select: { blockerId: true, blockedId: true },
-  })
-  return blocks.map((block) => (block.blockerId === viewerId ? block.blockedId : block.blockerId))
-}
-
 export const userRouter = router({
   /** The logged-in user's own account (Settings page). */
   me: protectedProcedure.query(async ({ ctx }) => {
@@ -86,7 +76,7 @@ export const userRouter = router({
             { name: { contains: input.query, mode: "insensitive" } },
           ],
           username: { not: null },
-          ...(blockedUserIds.length > 0 ? { id: { notIn: blockedUserIds } } : {}),
+          ...excludeIds("id", blockedUserIds),
         },
         select: { id: true, username: true, name: true, image: true },
         take: 20,
