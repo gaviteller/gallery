@@ -1,13 +1,70 @@
+/**
+ * POSTS — `trpc.post.*`
+ *
+ * Creating/deleting/pinning posts, the home feed, profile post grids, and
+ * community reports. Post statuses:
+ *   PUBLISHED       → visible to everyone
+ *   PENDING_REVIEW  → hidden from others (AI flag or 3 community reports); owner still sees it
+ *   REMOVED         → hidden; owner sees it for 15 days with the reason + appeal link
+ */
 import { z } from "zod"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { checkNotBanned } from "@/server/lib/ban"
-import { ReportReason } from "@prisma/client"
+import { ReportReason, type PrismaClient } from "@prisma/client"
 import { sendPostFlaggedEmail } from "@/lib/email"
 import { scanPost } from "@/lib/ai-scan"
+import { REMOVAL_GRACE_CUTOFF } from "@/lib/removal"
 import { after } from "next/server"
 
+const MAX_PINNED_POSTS = 3
+const REPORTS_UNTIL_REVIEW = 3
+
+/** "#Fantasy art #fantasy" → ["fantasy"] — unique lowercase tags without the "#". */
+function extractHashtags(caption: string | undefined): string[] {
+  const matches = (caption ?? "").match(/#([a-zA-Z0-9_]+)/g) ?? []
+  return [...new Set(matches.map((hashtag) => hashtag.slice(1).toLowerCase()))]
+}
+
+/** Throws NOT_FOUND / FORBIDDEN unless the post exists and belongs to `userId`. Loads only the owner id. */
+async function assertPostOwner(prisma: PrismaClient, postId: string, userId: string) {
+  const post = await prisma.post.findUnique({ where: { id: postId }, select: { userId: true } })
+  if (!post) throw new TRPCError({ code: "NOT_FOUND" })
+  if (post.userId !== userId) throw new TRPCError({ code: "FORBIDDEN" })
+}
+
+/**
+ * Which posts a viewer may see on someone's profile: everyone sees PUBLISHED;
+ * the owner also sees posts under review and posts removed in the last 15 days.
+ */
+function visiblePostsFilter(profileUserId: string, viewerIsOwner: boolean) {
+  return viewerIsOwner
+    ? {
+        userId: profileUserId,
+        OR: [
+          { status: { in: ["PUBLISHED" as const, "PENDING_REVIEW" as const] } },
+          { status: "REMOVED" as const, removedAt: { gte: REMOVAL_GRACE_CUTOFF() } },
+        ],
+      }
+    : { userId: profileUserId, status: "PUBLISHED" as const }
+}
+
+/** Finds a user's id by username (case-insensitive), or throws NOT_FOUND. */
+async function getUserIdByUsername(prisma: PrismaClient, username: string): Promise<string> {
+  const user = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+    select: { id: true },
+  })
+  if (!user) throw new TRPCError({ code: "NOT_FOUND" })
+  return user.id
+}
+
 export const postRouter = router({
+  /**
+   * Publishes a post. Hashtags in the caption are saved and linked.
+   * The image is AI-scanned before returning, so a post the AI rejects is
+   * already hidden or removed by the time the page refreshes.
+   */
   create: protectedProcedure
     .input(z.object({
       image: z.string().min(1),
@@ -16,31 +73,23 @@ export const postRouter = router({
       isCommission: z.boolean().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      const tags = [
-        ...new Set(
-          (input.description ?? "")
-            .match(/#([a-zA-Z0-9_]+)/g)
-            ?.map((t) => t.slice(1).toLowerCase()) ?? []
-        ),
-      ]
+      const authorId = ctx.session.user.id
+      await checkNotBanned(ctx.prisma, authorId)
+      const hashtags = extractHashtags(input.description)
       const post = await ctx.prisma.post.create({
         data: {
-          userId: ctx.session.user.id,
+          userId: authorId,
           image: input.image,
           description: input.description ?? null,
           isAiGenerated: input.isAiGenerated ?? false,
           isCommission: input.isCommission ?? false,
-          hashtags: tags.length > 0 ? {
-            connectOrCreate: tags.map((tag) => ({
-              where: { tag },
-              create: { tag },
-            })),
-          } : undefined,
+          hashtags: hashtags.length > 0
+            ? { connectOrCreate: hashtags.map((tag) => ({ where: { tag }, create: { tag } })) }
+            : undefined,
         },
       })
 
-      await scanPost(ctx.prisma, post.id, ctx.session.user.id, input.image)
+      await scanPost(ctx.prisma, post.id, authorId, input.image)
 
       return post
     }),
@@ -181,44 +230,43 @@ export const postRouter = router({
       }
     }),
 
+  /**
+   * A profile's post grid, pinned posts first. Visitors see PUBLISHED posts only;
+   * the owner also sees posts under review and posts removed in the last 15 days.
+   *
+   * Ownership is decided from the login session. `viewerUserId` is still accepted
+   * so older callers don't break, but it's ignored — trusting it let anyone view
+   * another user's hidden posts.
+   */
   getByUsername: publicProcedure
     .input(z.object({ username: z.string(), viewerUserId: z.string().optional() }))
     .query(async ({ ctx, input }) => {
-      const user = await ctx.prisma.user.findFirst({
-        where: { username: { equals: input.username, mode: "insensitive" } },
-      })
-      if (!user) throw new TRPCError({ code: "NOT_FOUND" })
-
-      const isOwner = input.viewerUserId === user.id
-      const graceCutoff = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
-
+      const profileUserId = await getUserIdByUsername(ctx.prisma, input.username)
       return ctx.prisma.post.findMany({
-        where: isOwner
-          ? {
-              userId: user.id,
-              OR: [
-                { status: { in: ["PUBLISHED", "PENDING_REVIEW"] } },
-                { status: "REMOVED", removedAt: { gte: graceCutoff } },
-              ],
-            }
-          : { userId: user.id, status: "PUBLISHED" },
+        where: visiblePostsFilter(profileUserId, ctx.session?.user?.id === profileUserId),
         orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       })
     }),
 
+  /** Posts the user marked as commission work, newest first (same visibility rules as the grid). */
   getCommissionsByUsername: publicProcedure
     .input(z.object({ username: z.string() }))
     .query(async ({ ctx, input }) => {
-      const user = await ctx.prisma.user.findFirst({
-        where: { username: { equals: input.username, mode: "insensitive" } },
-      })
-      if (!user) throw new TRPCError({ code: "NOT_FOUND" })
+      const profileUserId = await getUserIdByUsername(ctx.prisma, input.username)
       return ctx.prisma.post.findMany({
-        where: { userId: user.id, isCommission: true },
+        where: {
+          ...visiblePostsFilter(profileUserId, ctx.session?.user?.id === profileUserId),
+          isCommission: true,
+        },
         orderBy: { createdAt: "desc" },
       })
     }),
 
+  /**
+   * One post with its author and hashtags (post detail page).
+   * Hidden posts (under review / removed) look "not found" to everyone except
+   * their owner, who can still open them within the 15-day removal window.
+   */
   getOne: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -230,48 +278,56 @@ export const postRouter = router({
         },
       })
       if (!post) throw new TRPCError({ code: "NOT_FOUND" })
+
+      const viewerIsOwner = ctx.session?.user?.id === post.userId
+      const ownerCanStillSee =
+        post.status === "PENDING_REVIEW" ||
+        (post.status === "REMOVED" && !!post.removedAt && post.removedAt >= REMOVAL_GRACE_CUTOFF())
+      if (post.status !== "PUBLISHED" && !(viewerIsOwner && ownerCanStillSee)) {
+        throw new TRPCError({ code: "NOT_FOUND" })
+      }
       return post
     }),
 
+  /** Deletes the viewer's own post. */
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await checkNotBanned(ctx.prisma, ctx.session.user.id)
-      const post = await ctx.prisma.post.findUnique({ where: { id: input.id } })
-      if (!post) throw new TRPCError({ code: "NOT_FOUND" })
-      if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      await assertPostOwner(ctx.prisma, input.id, ctx.session.user.id)
       return ctx.prisma.post.delete({ where: { id: input.id } })
     }),
 
+  /** Pins one of the viewer's posts to the top of their profile (max 3). */
   pin: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const post = await ctx.prisma.post.findUnique({ where: { id: input.id } })
-      if (!post) throw new TRPCError({ code: "NOT_FOUND" })
-      if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      const ownerId = ctx.session.user.id
+      await assertPostOwner(ctx.prisma, input.id, ownerId)
 
+      // Count and update in one transaction so two quick clicks can't pin a 4th post.
       return ctx.prisma.$transaction(async (tx) => {
-        // Enforce max 3 pinned posts (inside transaction to prevent race condition)
-        const pinnedCount = await tx.post.count({
-          where: { userId: ctx.session.user.id, pinned: true },
-        })
-        if (pinnedCount >= 3) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "You can only pin up to 3 posts." })
+        const pinnedCount = await tx.post.count({ where: { userId: ownerId, pinned: true } })
+        if (pinnedCount >= MAX_PINNED_POSTS) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `You can only pin up to ${MAX_PINNED_POSTS} posts.` })
         }
-
         return tx.post.update({ where: { id: input.id }, data: { pinned: true } })
       })
     }),
 
+  /** Unpins one of the viewer's posts. */
   unpin: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const post = await ctx.prisma.post.findUnique({ where: { id: input.id } })
-      if (!post) throw new TRPCError({ code: "NOT_FOUND" })
-      if (post.userId !== ctx.session.user.id) throw new TRPCError({ code: "FORBIDDEN" })
+      await assertPostOwner(ctx.prisma, input.id, ctx.session.user.id)
       return ctx.prisma.post.update({ where: { id: input.id }, data: { pinned: false } })
     }),
 
+  /**
+   * Community report. Each user can report a post once. If the post was never
+   * AI-scanned, a scan runs in the background. At 3 reports a PUBLISHED post is
+   * hidden for review and the owner is notified (in-app + email).
+   */
   report: protectedProcedure
     .input(z.object({
       postId: z.string(),
@@ -279,9 +335,8 @@ export const postRouter = router({
       notes: z.string().max(500).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const callerId = ctx.session.user.id
+      const reporterId = ctx.session.user.id
 
-      // 1. Verify post exists and caller is not the owner
       const post = await ctx.prisma.post.findUnique({
         where: { id: input.postId },
         select: {
@@ -295,42 +350,40 @@ export const postRouter = router({
         },
       })
       if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found." })
-      if (post.userId === callerId) {
+      if (post.userId === reporterId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You cannot report your own post." })
       }
 
-      // 2. Create Report row (unique constraint will throw on duplicate)
+      // The database allows one report per (post, reporter); a duplicate fails with P2002.
       try {
         await ctx.prisma.report.create({
           data: {
             postId: input.postId,
-            reporterId: callerId,
+            reporterId,
             reason: input.reason,
             notes: input.notes ?? null,
           },
         })
-      } catch (e: unknown) {
-        // Prisma unique constraint violation = P2002
-        if ((e as { code?: string })?.code === "P2002") {
+      } catch (error: unknown) {
+        if ((error as { code?: string })?.code === "P2002") {
           throw new TRPCError({ code: "CONFLICT", message: "You have already reported this post." })
         }
-        throw e
+        throw error
       }
 
-      // If post hasn't been AI-scanned yet, scan it now so the mod queue can prioritise it
+      // Never scanned → scan now (after the response is sent) so moderators see a score.
       if (!post.aiVerdict) {
         after(() => scanPost(ctx.prisma, post.id, post.userId, post.image))
       }
 
-      // 3. Increment reportCount atomically and check threshold
-      const updated = await ctx.prisma.post.update({
+      // Atomic increment so simultaneous reports are all counted.
+      const afterReport = await ctx.prisma.post.update({
         where: { id: input.postId },
         data: { reportCount: { increment: 1 } },
         select: { reportCount: true, status: true },
       })
 
-      // 4. If threshold reached and post is still PUBLISHED, move to PENDING_REVIEW
-      if (updated.reportCount >= 3 && updated.status === "PUBLISHED") {
+      if (afterReport.reportCount >= REPORTS_UNTIL_REVIEW && afterReport.status === "PUBLISHED") {
         await ctx.prisma.$transaction(async (tx) => {
           await tx.post.update({
             where: { id: input.postId },
@@ -340,7 +393,7 @@ export const postRouter = router({
               flagReason: "Reached community report threshold",
             },
           })
-          // Notify post owner — system notification (no human sender)
+          // System notification (no human sender).
           await tx.notification.create({
             data: {
               userId: post.userId,
@@ -350,7 +403,7 @@ export const postRouter = router({
           })
         })
 
-        // Send flagged email after transaction commits
+        // Email only after the transaction succeeded.
         if (post.user.email) {
           void sendPostFlaggedEmail(post.user.email, {
             username: post.user.username ?? "there",
@@ -361,21 +414,26 @@ export const postRouter = router({
       return { success: true }
     }),
 
+  /** Stats for the artist dashboard: totals, average likes, top post, and every post's counts. */
   getMyPostStats: protectedProcedure.query(async ({ ctx }) => {
-    const me = ctx.session.user.id
-
     const posts = await ctx.prisma.post.findMany({
-      where: { userId: me },
+      where: { userId: ctx.session.user.id },
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true,
+        image: true,
+        description: true,
+        createdAt: true,
+        isAiGenerated: true,
+        isCommission: true,
         _count: { select: { likes: true, comments: true } },
       },
     })
 
-    const totalLikes = posts.reduce((sum, p) => sum + p._count.likes, 0)
-    const totalComments = posts.reduce((sum, p) => sum + p._count.comments, 0)
+    const totalLikes = posts.reduce((sum, post) => sum + post._count.likes, 0)
+    const totalComments = posts.reduce((sum, post) => sum + post._count.comments, 0)
     const topPost = posts.reduce<typeof posts[0] | null>(
-      (best, p) => (!best || p._count.likes > best._count.likes ? p : best),
+      (best, post) => (!best || post._count.likes > best._count.likes ? post : best),
       null
     )
 
@@ -385,15 +443,15 @@ export const postRouter = router({
       totalComments,
       avgLikes: posts.length > 0 ? Math.round((totalLikes / posts.length) * 10) / 10 : 0,
       topPostId: topPost?.id ?? null,
-      posts: posts.map(p => ({
-        id: p.id,
-        image: p.image,
-        description: p.description,
-        createdAt: p.createdAt,
-        likes: p._count.likes,
-        comments: p._count.comments,
-        isAiGenerated: p.isAiGenerated,
-        isCommission: p.isCommission,
+      posts: posts.map((post) => ({
+        id: post.id,
+        image: post.image,
+        description: post.description,
+        createdAt: post.createdAt,
+        likes: post._count.likes,
+        comments: post._count.comments,
+        isAiGenerated: post.isAiGenerated,
+        isCommission: post.isCommission,
       })),
     }
   }),

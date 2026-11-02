@@ -12,12 +12,30 @@ import { router, publicProcedure, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { sendDmcaCounterNoticeEmail } from "@/lib/email"
 
+/**
+ * Pulls the post id out of a link to a post. Accepts the real post URL format
+ * "/@username/<postId>" (with or without the "@") and the older "/posts/<postId>".
+ * Returns null if the link isn't a post link.
+ */
+export function extractPostIdFromUrl(postUrl: string): string | null {
+  let path: string
+  try {
+    path = new URL(postUrl).pathname
+  } catch {
+    return null
+  }
+  const segments = path.split("/").filter(Boolean)
+  if (segments.length === 2 && segments[0] === "posts") return segments[1]
+  if (segments.length === 2 && /^@?[A-Za-z0-9_]+$/.test(segments[0]) && /^[A-Za-z0-9]+$/.test(segments[1])) {
+    return segments[1]
+  }
+  return null
+}
+
 export const dmcaRouter = router({
   /**
    * Records a takedown request. Anyone can submit (no login needed).
-   * ⚠️ KNOWN ISSUE: the post id is only detected in URLs shaped like "/posts/<id>",
-   * but real post URLs are "/@username/<id>", so `postId` is usually left empty.
-   * Left as-is pending a decision.
+   * The post is linked only if the id from the URL belongs to a real post.
    */
   submit: publicProcedure
     .input(z.object({
@@ -27,13 +45,16 @@ export const dmcaRouter = router({
       description: z.string().min(50).max(5000),
     }))
     .mutation(async ({ ctx, input }) => {
-      const postIdMatch = input.postUrl.match(/\/posts\/([a-z0-9]+)/i)
+      const candidatePostId = extractPostIdFromUrl(input.postUrl)
+      const linkedPost = candidatePostId
+        ? await ctx.prisma.post.findUnique({ where: { id: candidatePostId }, select: { id: true } })
+        : null
 
       await ctx.prisma.dmcaRequest.create({
         data: {
           claimantName: input.claimantName,
           claimantEmail: input.claimantEmail,
-          postId: postIdMatch ? postIdMatch[1] : null,
+          postId: linkedPost?.id ?? null,
           postUrl: input.postUrl,
           description: input.description,
         },

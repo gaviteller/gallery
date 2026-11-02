@@ -25,17 +25,14 @@ export const hashtagRouter = router({
       })
     }),
 
-  /**
-   * The 50 newest posts with this tag, for the /hashtag/[tag] page.
-   * ⚠️ KNOWN ISSUE: does not filter by post status, so removed or under-review
-   * posts can appear here. Left as-is pending a decision.
-   */
+  /** The 50 newest published posts with this tag, for the /hashtag/[tag] page. */
   getPosts: publicProcedure
     .input(z.object({ tag: z.string() }))
     .query(async ({ ctx, input }) => {
       return ctx.prisma.post.findMany({
         where: {
           hashtags: { some: { tag: normalizeTag(input.tag) } },
+          status: "PUBLISHED",
           user: { username: { not: null } },
         },
         orderBy: { createdAt: "desc" },
