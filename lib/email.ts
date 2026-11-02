@@ -252,6 +252,6 @@ export async function sendShopSaleEmail({
     `<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Hi ${artistName},</p>
      <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">You made a sale! <a href="${GALLERY_URL}/@${buyerUsername}" style="color:#b044f8;">@${buyerUsername}</a> purchased <strong style="color:#fff;">${itemTitle}</strong>.</p>
      <p style="margin:0 0 20px;font-size:15px;line-height:1.65;color:rgba(255,255,255,0.7);">Your payout of <strong style="color:#fff;">$${sellerPayout.toFixed(2)}</strong> will be transferred to your connected Stripe account.</p>
-     <a href="${GALLERY_URL}/dashboard" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View your dashboard →</a>`
+     <a href="${GALLERY_URL}/professional-profile" style="display:inline-block;padding:12px 24px;background:rgba(176,68,248,0.15);border:1px solid rgba(176,68,248,0.4);border-radius:6px;color:#b044f8;font-size:14px;font-weight:600;text-decoration:none;">View your dashboard →</a>`
   ))
 }

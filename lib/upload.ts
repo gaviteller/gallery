@@ -1,11 +1,11 @@
 /**
- * Uploads a base64 data URL to Cloudinary via the /api/upload route.
- * Returns the Cloudinary HTTPS URL.
+ * Sends an image (base64 data URL) to the /api/upload route and returns the URL to save.
  *
- * ⚠️ KNOWN GAP (2026-10-05): the /api/upload route does not exist yet and no
- * Cloudinary keys are configured, so this always throws. Callers catch the error
- * and fall back to saving the image as base64 inside the database.
- * Plan to finish this: docs/superpowers/plans/2026-06-05-cloudinary-image-storage.md
+ * Right now /api/upload only validates the image (logged in, not banned, ≤10 MB) and
+ * returns it unchanged, so images are stored as base64 inside the database.
+ * When Cloudinary is set up, only app/api/upload/route.ts needs to change — it will
+ * upload the file and return a Cloudinary URL instead; callers stay the same.
+ * Plan: docs/superpowers/plans/2026-06-05-cloudinary-image-storage.md
  */
 export async function uploadImage(base64: string, folder: "posts" | "avatars" | "banners" | "stories" | "commissions" | "shop-previews"): Promise<string> {
   const res = await fetch("/api/upload", {

@@ -1,3 +1,10 @@
+/**
+ * POST /api/upload — image upload endpoint used by lib/upload.ts.
+ *
+ * Checks the uploader is logged in and not banned, and that the image is a
+ * base64 data URL under ~10 MB. Currently returns the same data URL, which is
+ * then stored in the database. Swap the last step for a Cloudinary upload later.
+ */
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
