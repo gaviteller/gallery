@@ -54,8 +54,8 @@ function DMThread({ id, userId }: { id: string; userId: string }) {
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { data: convos } = trpc.dm.getConversations.useQuery()
-  const convo = convos?.find(c => c.id === id)
+  // Just this conversation's header info (other person + banner), not the whole inbox.
+  const { data: convo } = trpc.dm.getConversation.useQuery({ conversationId: id }, { retry: 0 })
 
   const { data: messages, isLoading, isError } = trpc.dm.getMessages.useQuery(
     { conversationId: id },
