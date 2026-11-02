@@ -1271,3 +1271,85 @@ body { overflow-x: hidden; }
     padding-top: 12px !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   LAYOUT FIX (functional, keep last): compact desktop sidebar (768–1162px).
+   The compact block near the top only sets sizes; the structural rules (icon
+   beside label, colors, active state, badge, panel) lived only in the
+   ≥1163px block, so links fell back to unstyled text in this range.
+   Sizes still come from the compact block; this adds everything else.
+   -------------------------------------------------------------------------- */
+@media (min-width:768px) and (max-width:1162px) {
+  .gallery-shell-nav-list { display:flex; flex-direction:column; }
+
+  .gallery-shell-nav-item {
+    display:flex;
+    align-items:center;
+    position:relative;
+    border:1px solid transparent;
+    color:#c9c0de;
+    background:transparent;
+    text-decoration:none;
+    font-weight:500;
+    cursor:pointer;
+    transition:background .14s ease,border-color .14s ease,color .14s ease;
+  }
+  button.gallery-shell-nav-item { font:inherit; font-size:13px; text-align:left; }
+  .gallery-shell-nav-item svg { flex:0 0 auto; color:#b8a7e8; }
+  .gallery-shell-nav-item:hover { color:#fff; background:rgba(118,77,169,.08); }
+  .gallery-shell-nav-item.is-active {
+    color:#fff;
+    background:linear-gradient(90deg,rgba(255,40,183,.34),rgba(78,57,143,.14));
+    border-color:#4d3563;
+    box-shadow:0 0 22px rgba(255,40,183,.07), inset 0 1px rgba(255,255,255,.018);
+  }
+  .gallery-shell-nav-item.is-active svg { color:#fff; }
+
+  .gallery-shell-icon-wrap { width:25px; height:25px; display:inline-grid; place-items:center; position:relative; flex:0 0 auto; }
+  .gallery-shell-icon-wrap > i {
+    position:absolute; top:-4px; right:-8px;
+    min-width:15px; height:15px; padding:0 3px;
+    display:grid; place-items:center; border-radius:999px;
+    background:var(--gallery-pink); color:white;
+    font-size:8px; font-style:normal; font-weight:800;
+    border:2px solid var(--gallery-bg);
+  }
+
+  .gallery-shell-notification-wrap { position:relative; }
+  .gallery-shell-notification-panel {
+    position:fixed;
+    left:calc(var(--gallery-compact-edge) + var(--gallery-compact-side));
+    top:var(--gallery-compact-header);
+    width:300px;
+    max-height:calc(100vh - var(--gallery-compact-header) - 20px);
+    overflow:hidden; z-index:205;
+    border:1px solid var(--gallery-line); border-radius:0 16px 16px 0;
+    background:#0d0e19; box-shadow:18px 18px 55px rgba(0,0,0,.42);
+  }
+  .gallery-shell-notification-head { height:52px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; border-bottom:1px solid var(--gallery-line); }
+  .gallery-shell-notification-head strong { font-family:"Playfair Display",Georgia,serif; font-size:15px; }
+  .gallery-shell-notification-head button { border:0; background:none; color:var(--gallery-muted); font-size:23px; cursor:pointer; }
+  .gallery-shell-notification-list { max-height:calc(100vh - var(--gallery-compact-header) - 72px); overflow-y:auto; }
+  .gallery-shell-notification-list > p { padding:28px 14px; text-align:center; color:var(--gallery-muted); font-size:12px; }
+  .gallery-shell-notification-list > button { width:100%; display:flex; align-items:center; gap:10px; padding:11px 14px; border:0; border-bottom:1px solid #1d1b2a; background:transparent; color:var(--gallery-text); text-align:left; cursor:pointer; }
+  .gallery-shell-notification-list > button.is-unread { background:rgba(131,77,178,.1); }
+  .gallery-shell-notification-list > button > span:last-child { font-size:11px; line-height:1.35; }
+  .gallery-system-avatar { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; background:var(--gallery-gradient); font-weight:800; flex:0 0 auto; }
+
+  .gallery-shell-nav-divider { height:1px; background:#292537; }
+  .gallery-shell-create-post {
+    border-radius:15px;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--gallery-gradient); color:white; text-decoration:none;
+    font-weight:750; box-shadow:0 13px 30px rgba(58,103,255,.16);
+  }
+  .gallery-shell-create-post span { font-size:22px; font-weight:300; line-height:1; }
+
+  .gallery-shell-user-avatar {
+    position:absolute; width:44px; height:44px; border-radius:50%;
+    display:grid; place-items:center; overflow:hidden;
+    background:var(--gallery-gradient); color:#15111c; text-decoration:none;
+    font-size:13px; font-weight:800; box-shadow:0 0 18px rgba(130,78,255,.15);
+  }
+  .gallery-shell-user-avatar img { width:100%; height:100%; object-fit:cover; }
+}
