@@ -79,3 +79,6 @@ html body:has(.gx) .auth-route-frame, html body:has(.gx) .auth-route-frame-inner
 /* Messages: initials avatars sized like the design's images. */
 .gx-messages .conversation > .gx-avatar-fallback, .gx-messages .thread-header > .gx-avatar-fallback, .gx-messages .contact-list .gx-avatar-fallback { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; }
 .gx-messages .message-thread > .thread-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+
+/* Stop the layout's top margin (space for the fixed header) leaking out of .gx and making the page 150px too tall. */
+.gx { display: flow-root; }
