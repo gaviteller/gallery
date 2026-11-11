@@ -90,6 +90,12 @@ function FeedColumn() {
   const shownPosts = mostLovedFirst ? [...posts].sort((a, b) => b._count.likes - a._count.likes) : posts
   const feedAds = useAds("FEED")
   const adEvery = Math.max(3, feedAds[0]?.frequency ?? 8)
+  // Ad goes after every `adEvery` posts. A short feed still gets one, after the 2nd post (or the last).
+  const adSlots = new Map<number, number>() // post index → which ad to show before it
+  if (feedAds.length) {
+    if (shownPosts.length > adEvery) for (let i = adEvery, n = 0; i < shownPosts.length; i += adEvery, n++) adSlots.set(i, n % feedAds.length)
+    else if (shownPosts.length) adSlots.set(Math.min(2, shownPosts.length), 0)
+  }
 
   return (
     <main className="feed">
@@ -106,7 +112,7 @@ function FeedColumn() {
         )}
         {shownPosts.map((post, index) => (
           <Fragment key={post.id}>
-          {feedAds.length > 0 && index > 0 && index % adEvery === 0 && <AdCard ad={feedAds[(index / adEvery - 1) % feedAds.length]} />}
+          {adSlots.has(index) && <AdCard ad={feedAds[adSlots.get(index)!]} />}
           <FeedPost
             post={post}
             onLike={() => toggleLike.mutate({ postId: post.id })}
@@ -115,6 +121,7 @@ function FeedColumn() {
           />
           </Fragment>
         ))}
+        {adSlots.has(shownPosts.length) && <AdCard ad={feedAds[adSlots.get(shownPosts.length)!]} />}
         <div ref={sentinelRef} />
         {isFetchingNextPage && <div className="end-note">Loading more…</div>}
         {!hasNextPage && posts.length > 0 && <div className="end-note">You’re all caught up. Go make something beautiful. ✦</div>}

@@ -20,7 +20,7 @@ const LABELS = { ARTIST_SPOTLIGHT: "Featured artist", PARTNER: "Sponsored", GALL
 
 /** Active ads for one spot on the site. */
 export function useAds(placement: "FEED" | "SIGNUP" | "SIDEBAR" | "EXPLORE" | "SHOP") {
-  const { data } = trpc.ad.getForPlacement.useQuery({ placement }, { staleTime: 5 * 60_000 })
+  const { data } = trpc.ad.getForPlacement.useQuery({ placement }, { staleTime: 60_000 })
   return (data ?? []) as AdData[]
 }
 
