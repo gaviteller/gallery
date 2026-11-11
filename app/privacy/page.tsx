@@ -148,6 +148,7 @@ export default function PrivacyPage() {
           <p style={headingStyle}>6. Cookies</p>
           <p style={bodyStyle}>Gallery uses cookies to keep you signed in, remember your preferences, and deliver advertisements. Some cookies are essential for the platform to work and cannot be turned off. Non-essential cookies — such as advertising and analytics — can be managed from Settings.</p>
           <p style={bodyStyle}>To understand how Gallery is used, we count page visits. This does not use cookies: each visit is recorded with the page address, any search you typed on Explore, the website that linked you here, and an anonymous visitor code made from your connection and browser details plus the date. The code changes every day and cannot be used to identify you. If you are signed in, the visit is linked to your account.</p>
+          <p style={bodyStyle}>To keep Gallery safe, the text of comments, direct messages, and commission chats, along with posted images, profile pictures, and shop listings, is checked automatically by an AI service. If something looks like it breaks our rules, it is held back until a Gallery moderator reviews it; the AI never removes content or penalises accounts on its own. Files sent in messages are not checked automatically.</p>
         </div>
 
         {/* 7. Data retention */}

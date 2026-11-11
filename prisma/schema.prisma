@@ -411,6 +411,9 @@ model ProfessionalMessage {
   fileUrl      String?
   createdAt    DateTime   @default(now())
   isSystem     Boolean    @default(false)
+  /// Set by the AI chat check (lib/ai-scan.ts) — hidden from the other person until a moderator decides.
+  hidden       Boolean    @default(false)
+  hiddenReason String?
   commission   Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
   sender       User       @relation("SentProfessionalMessages", fields: [senderId], references: [id], onDelete: Cascade)
 
@@ -476,6 +479,9 @@ model DirectMessage {
   senderId       String
   text           String
   createdAt      DateTime     @default(now())
+  /// Set by the AI chat check (lib/ai-scan.ts) — hidden from the other person until a moderator decides.
+  hidden         Boolean      @default(false)
+  hiddenReason   String?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation("SentDirectMessages", fields: [senderId], references: [id], onDelete: Cascade)
 

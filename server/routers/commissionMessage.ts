@@ -5,6 +5,8 @@
  * Reading the thread happens in commission.ts; this file only sends messages.
  */
 import { z } from "zod"
+import { after } from "next/server"
+import { scanChatMessage } from "@/lib/ai-scan"
 import { router, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 
@@ -49,6 +51,11 @@ export const commissionMessageRouter = router({
           fileUrl: input.fileUrl ?? null,
         },
       })
+      // Check the text for safety after replying (hidden from the other person if flagged).
+      if (message.text) {
+        const prisma = ctx.prisma
+        after(() => scanChatMessage(prisma, "COMMISSION", message.id).then(() => undefined))
+      }
       // The notification type carries the commission id so the bell can link to the thread.
       await ctx.prisma.notification.create({
         data: {

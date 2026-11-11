@@ -116,7 +116,7 @@ function Thread({ id, userId }: { id: string; userId: string }) {
         {isLoading && <div className="thread-empty"><p>Loading…</p></div>}
         {messages && messages.length === 0 && <div className="thread-empty"><MessageCircle size={24} /><p>Send a message to start the conversation.</p></div>}
         {messages?.map((m) => (
-          <div className={`message ${m.senderId === userId ? "message-own" : ""}`} key={m.id}><p>{m.text}</p><span>{timeShort(m.createdAt)}</span></div>
+          <div className={`message ${m.senderId === userId ? "message-own" : ""}`} key={m.id}><p>{m.text}</p><span>{timeShort(m.createdAt)}{m.hidden && " · Under review — not delivered yet"}</span></div>
         ))}
         <div ref={endRef} />
       </div>

@@ -374,6 +374,8 @@ export const commissionRouter = router({
           buyer: { select: { id: true, username: true, name: true, image: true, bannerImage: true, buyerCancellationCount: true } },
           artist: { select: { id: true, username: true, name: true, image: true, bannerImage: true } },
           messages: {
+            // Messages held by the AI chat check are only shown to their sender.
+            where: { OR: [{ hidden: false }, { senderId: ctx.session.user.id }] },
             include: {
               sender: { select: { id: true, username: true, image: true } },
             },

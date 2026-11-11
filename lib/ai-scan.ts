@@ -12,8 +12,9 @@
  *   scanShopItem  → new shop listings         (server/routers/shop.ts)
  *   scanAvatar    → profile photos & banners  (server/routers/user.ts)
  *   scanComment   → new comments              (server/routers/interaction.ts)
- * Commission reference photos and DM attachments are intentionally NOT scanned
- * (private content — report-only).
+ *   scanChatMessage → direct messages and commission chat text (server/routers/dm.ts, commissionMessage.ts)
+ * Commission reference photos and DM/commission file attachments are intentionally NOT scanned
+ * (private content — report-only). Chat TEXT is checked for safety (hidden for review if flagged).
  *
  * Image outcome (posts & shop items) — the label records how sure the AI was:
  *   any category 10  → held for review, action PENDING_REVIEW_ZERO_TOLERANCE
@@ -500,4 +501,43 @@ export async function scanPost(
   } catch (err) {
     console.error("[ai-scan] DB update failed:", err)
   }
+}
+
+/**
+ * Checks a chat message's text (direct message or commission thread) with the same rules as
+ * comments. If flagged it's hidden from the other person until a moderator decides (admin →
+ * AI holds). Returns true when the message is fine to deliver (so the caller can send the push).
+ */
+export async function scanChatMessage(
+  prisma: PrismaClient,
+  kind: "DM" | "COMMISSION",
+  messageId: string,
+): Promise<boolean> {
+  if (!process.env.OPENROUTER_API_KEY) return true
+
+  const message = kind === "DM"
+    ? await prisma.directMessage.findUnique({ where: { id: messageId }, select: { text: true } })
+    : await prisma.professionalMessage.findUnique({ where: { id: messageId }, select: { text: true } })
+  if (!message?.text?.trim()) return true
+
+  let scores: CommentScores
+  try {
+    scores = await scoreCommentWithAI(message.text)
+  } catch (err) {
+    console.error("[ai-scan] chat scan failed:", err)
+    return true
+  }
+  if (scores.verdict !== "REMOVE") return true
+
+  const hiddenReason = `AI scan (${scores.combined}/100): ${scores.reason}`
+  try {
+    if (kind === "DM") await prisma.directMessage.update({ where: { id: messageId }, data: { hidden: true, hiddenReason } })
+    else await prisma.professionalMessage.update({ where: { id: messageId }, data: { hidden: true, hiddenReason } })
+    await prisma.aIScanLog.create({
+      data: { contentType: kind === "DM" ? "DM_MESSAGE" : "COMMISSION_MESSAGE", contentId: messageId, scores: scores as object, verdict: scores.verdict, action: "HIDDEN_FOR_REVIEW" },
+    })
+  } catch (err) {
+    console.error("[ai-scan] chat hide failed:", err)
+  }
+  return false
 }

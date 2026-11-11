@@ -9,6 +9,8 @@
  * Commission chats are separate — see commissionMessage.ts / professional DMs.
  */
 import { z } from "zod"
+import { after } from "next/server"
+import { scanChatMessage } from "@/lib/ai-scan"
 import { router, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import type { PrismaClient } from "@prisma/client"
@@ -96,6 +98,8 @@ export const dmRouter = router({
         messages: {
           orderBy: { createdAt: "desc" },
           take: 1,
+          // Messages held by the AI chat check are hidden from the other person.
+          where: { OR: [{ hidden: false }, { senderId: viewerId }] },
           select: { text: true, createdAt: true, senderId: true },
         },
       },
@@ -134,9 +138,10 @@ export const dmRouter = router({
       const { viewerIsA, viewerLastReadAt } = await getConversationForParticipant(ctx.prisma, input.conversationId, viewerId)
 
       const messages = await ctx.prisma.directMessage.findMany({
-        where: { conversationId: input.conversationId },
+        // Messages held by the AI chat check are only shown to their sender (marked "under review").
+        where: { conversationId: input.conversationId, OR: [{ hidden: false }, { senderId: viewerId }] },
         orderBy: { createdAt: "asc" },
-        select: { id: true, text: true, senderId: true, createdAt: true },
+        select: { id: true, text: true, senderId: true, createdAt: true, hidden: true },
       })
 
       const hasUnreadFromOther = messages.some(
@@ -186,12 +191,19 @@ export const dmRouter = router({
       const preview = input.text.length > PUSH_PREVIEW_MAX_CHARS
         ? input.text.slice(0, PUSH_PREVIEW_MAX_CHARS - 3) + "…"
         : input.text
-      sendPushToUser(ctx.prisma, otherUserId, {
-        title: senderName,
-        body: preview,
-        url: `/messages/${input.conversationId}`,
-        tag: `dm-${input.conversationId}`,
-      }).catch(() => { /* push failures must not fail the send */ })
+      // Check the text after replying, then send the push only if it wasn't flagged.
+      const prisma = ctx.prisma
+      const messageId = message.id
+      after(async () => {
+        const deliver = await scanChatMessage(prisma, "DM", messageId)
+        if (!deliver) return
+        sendPushToUser(prisma, otherUserId, {
+          title: senderName,
+          body: preview,
+          url: `/messages/${input.conversationId}`,
+          tag: `dm-${input.conversationId}`,
+        }).catch(() => { /* push failures must not fail the send */ })
+      })
 
       return message
     }),
@@ -210,7 +222,7 @@ export const dmRouter = router({
         lastReadAtB: true,
         // Only the newest message from the other person is needed to decide "unread".
         messages: {
-          where: { senderId: { not: viewerId } },
+          where: { senderId: { not: viewerId }, hidden: false },
           orderBy: { createdAt: "desc" },
           take: 1,
           select: { createdAt: true },
