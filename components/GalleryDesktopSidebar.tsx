@@ -21,7 +21,8 @@ function Icon({ type }: { type: NavIcon }) {
   return <svg {...props}><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.8 3.4-7 8-7s7.2 2.2 8 7"/></svg>
 }
 
-function NotificationPanel({ onClose }: { onClose: () => void }) {
+/** Dropdown list of the viewer's notifications. Opening it marks them all read. */
+export function NotificationPanel({ onClose }: { onClose: () => void }) {
   const { data: notifications } = trpc.notification.getAll.useQuery()
   const markAllRead = trpc.notification.markAllRead.useMutation()
   const utils = trpc.useUtils()

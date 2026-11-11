@@ -1,0 +1,48 @@
+/*
+ * Hand-written glue for the redesigned pages (the per-page files next to this
+ * one are generated — don't edit those). Hides the old site frame on pages that
+ * use <RedesignShell>, and adapts shared real-data pieces to the new look.
+ */
+
+/* Old frame off: the redesign brings its own header, sidebar and bottom bar. */
+html body:has(.gx) .main-layout {
+  max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important;
+  min-height: 0 !important; height: auto !important; overflow: visible !important; display: block !important;
+}
+html body:has(.gx) .main-layout > footer,
+html body:has(.gx) .mobile-topnav,
+html body:has(.gx) .mobile-bottomnav,
+html body:has(.gx) .desktop-sidenav:not(.sidebar),
+html body:has(.gx) .gallery-desktop-header,
+html body:has(.gx) .gallery-feed-mobile-topnav { display: none !important; }
+html body:has(.gx) { background: #090b16; overflow-x: hidden; }
+
+.gx { min-height: 100vh; }
+.gx a { color: inherit; text-decoration: none; }
+
+/* Initials circle for people without a photo. */
+.gx .gx-avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--gradient); color: #fff; font-weight: 700; font-size: 14px; }
+.gx .story-ring > .gx-avatar-fallback, .gx .story-ring > img { width: 100%; height: 100%; border-radius: 50%; border: 3px solid #121320; display: flex; object-fit: cover; }
+
+/* Links styled like the design's buttons. */
+.gx .post-menu a { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 10px; }
+.gx .tags a { font-size: 9px; padding: 5px 8px; border-radius: 4px; background: #211a30; color: #b494ce; }
+.gx .artist-row > a:nth-child(2) { min-width: 0; flex: 1; }
+.gx .right-rail footer a { color: inherit; }
+.gx .artwork-label:empty { display: none; }
+.gx .artwork-wrap img { display: block; width: 100%; height: auto; }
+
+/* Real notification list inside the design's popover. */
+.gx .gx-notifications { padding: 0; min-width: 300px; max-height: 70vh; overflow: hidden; }
+.gx .gx-notifications .gallery-shell-notification-panel { position: static !important; width: auto !important; max-height: 70vh; border: 0; border-radius: 12px; box-shadow: none; background: transparent; display: block; }
+.gx .gx-notifications .gallery-shell-notification-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.gx .gx-notifications .gallery-shell-notification-list { max-height: calc(70vh - 52px); overflow-y: auto; }
+.gx .gx-notifications .gallery-shell-notification-list > button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #1d1b2a; text-align: left; font-size: 11px; }
+.gx .gx-notifications .gallery-shell-notification-list > p { padding: 24px 14px; text-align: center; color: var(--muted); font-size: 12px; margin: 0; }
+.gx .gx-notifications .gallery-system-avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--gradient); font-weight: 800; flex: 0 0 auto; }
+.gx .gx-profile-menu a, .gx .gx-profile-menu button { display: block; color: #e592d3; font-size: 11px; margin-top: 10px; }
+.gx .popover { z-index: 60; }
+
+.gx .gx-empty-note { font-size: 10px; color: var(--muted); margin: 14px 0; line-height: 1.6; }
+.gx .gx-error { color: #f58fa8; }
+.gx .composer-tools button:nth-child(2) svg { color: #a07ce4; }
