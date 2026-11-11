@@ -1,383 +1,192 @@
 "use client"
-
-import { useState, useEffect } from "react"
+/**
+ * ONBOARDING (Codex redesign). Styling: app/redesign/onboarding.css (generated).
+ * Steps: 1 username (only for Google sign-ups without one) / welcome, 2 role, 3 interests, 4 follow artists.
+ * Saves via user.changeUsername and user.completeOnboarding({ sellingEnabled }); follows are real.
+ */
+import "../redesign/onboarding.css"
+import "../redesign/shell.css"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import Link from "next/link"
+import { AtSign, CheckCircle2, LoaderCircle, AlertCircle, Sparkles, Users, Paintbrush, ArrowRight, ArrowLeft, ShieldCheck, Check, Plus, Castle, Moon, UserRound, Mountain, Grid2X2, PenTool, Orbit, Flower2, Rocket, Shapes, BookOpen } from "lucide-react"
 import { trpc } from "@/components/providers"
+import GalleryLogo from "@/components/redesign/GalleryLogo"
+import GalleryPaintDrips from "@/components/redesign/GalleryPaintDrips"
+import { galleryThemes, getActiveTheme } from "@/components/redesign/galleryThemes"
+import { Avatar } from "@/components/redesign/RedesignShell"
 
-const ART_STYLES = [
-  "Fantasy", "Anime", "Dark Art", "Portrait", "Concept Art",
-  "Pixel Art", "Illustration", "Surreal", "Watercolor", "Sci-Fi",
-  "Abstract", "Manga",
-]
-
-function Dots({ total, active }: { total: number; active: number }) {
-  return (
-    <div style={{ display: "flex", gap: 5, justifyContent: "center", paddingTop: 14 }}>
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} style={i === active ? {
-          width: 16, height: 5, borderRadius: 3,
-          background: "linear-gradient(90deg, #FF3CAC, #2B86C5)",
-        } : {
-          width: 5, height: 5, borderRadius: "50%",
-          background: "var(--border)",
-        }} />
-      ))}
-    </div>
-  )
-}
-
-type Step = "loading" | "username" | "welcome" | "role" | "styles" | "follow"
+const INTERESTS = [
+  ["Fantasy", Castle], ["Anime", Sparkles], ["Dark Art", Moon], ["Portrait", UserRound], ["Concept Art", Mountain], ["Pixel Art", Grid2X2],
+  ["Illustration", PenTool], ["Surreal", Orbit], ["Watercolor", Flower2], ["Sci-Fi", Rocket], ["Abstract", Shapes], ["Manga", BookOpen],
+] as const
+const STAGES = ["Identity", "Role", "Interests", "Artists"]
 
 export default function OnboardingPage() {
   const router = useRouter()
   const { data: session, update, status } = useSession()
-  const [step, setStep] = useState<Step>("loading")
-
-  // username step (OAuth users)
+  const [theme, setTheme] = useState(galleryThemes[0])
+  const [step, setStep] = useState(1)
   const [username, setUsername] = useState("")
   const [agreedToTerms, setAgreedToTerms] = useState(false)
-
-  // role step
   const [role, setRole] = useState<"artist" | "collector" | null>(null)
+  const [interests, setInterests] = useState<string[]>([])
+  const [following, setFollowing] = useState<string[]>([])
+  const [pending, setPending] = useState<string[]>([])
+  const [error, setError] = useState("")
 
-  // styles step
-  const [selectedStyles, setSelectedStyles] = useState<Set<string>>(new Set())
+  useEffect(() => { setTheme(getActiveTheme()) }, [])
+  useEffect(() => { if (status === "unauthenticated") router.push("/signin") }, [status, router])
+  const hasUsername = !!session?.user?.username
 
-  // follow step
-  const [following, setFollowing] = useState<Set<string>>(new Set())
+  const usernameValid = /^[a-zA-Z0-9_]{3,30}$/.test(username)
+  const { data: usernameCheck, isFetching: checkingUsername } = trpc.user.checkUsername.useQuery({ username }, { enabled: !hasUsername && usernameValid })
+  const usernameStatus = !usernameValid ? "idle" : checkingUsername ? "checking" : usernameCheck?.available ? "available" : usernameCheck ? "unavailable" : "idle"
 
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/signin")
-    if (status === "authenticated") {
-      setStep(session?.user?.username ? "welcome" : "username")
-    }
-  }, [status, session?.user?.username, router])
-
-  const { data: usernameCheck, isFetching: checkingUsername } = trpc.user.checkUsername.useQuery(
-    { username },
-    { enabled: username.length >= 3 }
-  )
-  const usernameValid = /^[a-zA-Z0-9_]+$/.test(username) && username.length >= 3 && username.length <= 30
-  const usernameAvailable = usernameValid && usernameCheck?.available === true
-
-  const changeUsername = trpc.user.changeUsername.useMutation({
-    onSuccess: async () => { await update(); setStep("welcome") },
-  })
-
-  const completeOnboarding = trpc.user.completeOnboarding.useMutation({
-    onSuccess: async () => { await update(); router.push("/") },
-  })
-
+  const changeUsername = trpc.user.changeUsername.useMutation({ onSuccess: async () => { await update(); setStep(2) }, onError: (e) => setError(e.message) })
+  const completeOnboarding = trpc.user.completeOnboarding.useMutation({ onSuccess: async () => { await update(); router.push("/") }, onError: (e) => setError(e.message) })
   const followMutation = trpc.follow.follow.useMutation()
+  const unfollowMutation = trpc.follow.unfollow.useMutation()
+  const { data: risingStars, isLoading: artistsLoading } = trpc.discovery.risingStars.useQuery({}, { enabled: step === 4 })
+  const artists = risingStars?.items.slice(0, 6) ?? []
 
-  const { data: risingStars } = trpc.discovery.risingStars.useQuery({}, {
-    enabled: step === "follow",
-  })
-  const suggestedArtists = risingStars?.items
-
-  function toggleStyle(s: string) {
-    setSelectedStyles(prev => {
-      const next = new Set(prev)
-      if (next.has(s)) next.delete(s); else next.add(s)
-      return next
-    })
+  async function toggleFollow(id: string, handle: string | null) {
+    if (!handle || pending.includes(id)) return
+    const shouldFollow = !following.includes(id)
+    setPending((v) => [...v, id]); setError("")
+    try {
+      if (shouldFollow) await followMutation.mutateAsync({ username: handle })
+      else await unfollowMutation.mutateAsync({ username: handle })
+      setFollowing((v) => shouldFollow ? [...v, id] : v.filter((x) => x !== id))
+    } catch { setError("We couldn’t update this follow. Please try again.") }
+    finally { setPending((v) => v.filter((x) => x !== id)) }
   }
 
-  function handleFollow(userId: string, username: string | null) {
-    if (following.has(userId) || !username) return
-    setFollowing(prev => new Set(prev).add(userId))
-    followMutation.mutate({ username })
+  const saving = changeUsername.isPending || completeOnboarding.isPending
+  function next() {
+    setError("")
+    if (step === 1) { if (hasUsername) setStep(2); else changeUsername.mutate({ username }) }
+    else if (step === 2 && role) setStep(3)
+    else if (step === 3) setStep(4)
+    else if (step === 4) completeOnboarding.mutate({ sellingEnabled: role === "artist" })
+  }
+  const invalid = step === 1 ? !hasUsername && (usernameStatus !== "available" || !agreedToTerms) : step === 2 ? !role : step === 4 && pending.length > 0
+
+  if (status !== "authenticated") {
+    return <div className="gx gx-onboarding"><main className="onboarding-main"><div className="loading-panel" role="status"><LoaderCircle className="spinner" size={24} />Getting your Gallery ready…</div></main></div>
   }
 
-  // gradient border style for selected cards
-  const selectedCardStyle: React.CSSProperties = {
-    borderWidth: "1.5px",
-    borderStyle: "solid",
-    borderColor: "transparent",
-    backgroundImage: "linear-gradient(var(--surface), var(--surface)), linear-gradient(90deg, #FF3CAC, #2B86C5)",
-    backgroundOrigin: "border-box",
-    backgroundClip: "padding-box, border-box",
-    background: "var(--surface)",
-  }
-  const unselectedCardStyle: React.CSSProperties = {
-    border: "1.5px solid var(--border)",
-    background: "transparent",
-  }
+  const heading = step === 1 ? (hasUsername ? "Welcome to Gallery." : "Choose your Gallery name.") : step === 2 ? "What brings you here?" : step === 3 ? "What kind of art inspires you?" : "Start with artists you’ll love."
+  const sub = step === 1 ? (hasUsername ? "Let’s personalize what you discover first." : "This is how artists and collectors will find you.") : step === 2 ? "You can always change this later." : step === 3 ? "Pick as many as you like." : "Follow a few creators to bring your new feed to life."
+  const reassurance = step === 1 ? (hasUsername ? "A few small choices. A more personal Gallery." : "Your username must be unique.") : step === 2 ? "You can update this later in Settings." : step === 3 ? "A little inspiration, picked by you." : "You can discover and follow more artists anytime."
 
-  const gradBtn: React.CSSProperties = {
-    width: "100%", padding: "12px 0", borderRadius: 10,
-    background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)",
-    color: "white", fontSize: 13, fontWeight: 600,
-    border: "none", cursor: "pointer",
-  }
+  return (
+    <div className="gx gx-onboarding">
+      <header className="onboarding-header">
+        <GalleryPaintDrips theme={theme} />
+        <Link href="/" className="gallery-brand" aria-label="Gallery"><GalleryLogo theme={theme} /></Link>
+        <span className="header-note">A little setup. A world of possibility.</span>
+      </header>
+      <main className="onboarding-main">
+        <section className="onboarding-panel">
+          <div className="panel-top"><span>SET UP YOUR GALLERY</span><span>STEP {step} OF 4</span></div>
+          <ol className="onboarding-progress" aria-label="Onboarding progress">
+            {STAGES.map((name, i) => (
+              <li className={i + 1 < step ? "complete" : i + 1 === step ? "current" : ""} key={name} aria-current={i + 1 === step ? "step" : undefined}>
+                <span className="progress-marker">{i + 1 < step ? <Check size={15} /> : i + 1}</span><span>{name}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="step-content" key={step}>
+            <div className="step-heading"><h1>{heading}</h1><p>{sub}</p></div>
 
-  // ── LOADING ──
-  if (step === "loading") {
-    return (
-      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--border)", borderTopColor: "#784BA0" }} />
-      </div>
-    )
-  }
+            {step === 1 && (hasUsername ? (
+              <div className="welcome-benefits">
+                {[{ icon: Sparkles, text: "A feed shaped around your interests" }, { icon: Users, text: "Artists selected for your taste" }, { icon: Paintbrush, text: "Tools that match how you use Gallery" }].map(({ icon: Icon, text }) => <div key={text}><span><Icon size={19} /></span><p>{text}</p></div>)}
+              </div>
+            ) : (
+              <div className="identity-fields">
+                <label htmlFor="username">Username</label>
+                <div className={`username-input ${usernameStatus === "available" ? "valid" : ""}`}>
+                  <AtSign size={20} />
+                  <input id="username" value={username} autoComplete="username" maxLength={30} placeholder="your_gallery_name" aria-invalid={usernameStatus === "unavailable"} onChange={(e) => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "")); setError("") }} />
+                  {usernameStatus === "checking" ? <LoaderCircle className="spinner" size={19} /> : usernameStatus === "available" ? <CheckCircle2 size={19} /> : null}
+                </div>
+                <div className="username-feedback">
+                  <p>Letters, numbers, and underscores · 3–30 characters</p>
+                  <span role="status" className={usernameStatus}>{usernameStatus === "checking" ? "Checking…" : usernameStatus === "available" ? "Available" : usernameStatus === "unavailable" ? "Already taken" : ""}</span>
+                </div>
+                <label className="identity-note" style={{ cursor: "pointer" }}>
+                  <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} />
+                  <p>I agree to Gallery’s <Link href="/terms" target="_blank">Terms of Service</Link> and confirm I am at least 13 years old.</p>
+                </label>
+              </div>
+            ))}
 
-  // ── USERNAME (OAuth users only) ──
-  if (step === "username") {
-    return (
-      <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px", background: "var(--bg)" }}>
-        <div style={{ width: "100%", maxWidth: 400, background: "var(--bg)", border: "1.5px solid var(--border)", borderRadius: 16, padding: "32px 24px" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: "var(--text)", textAlign: "center", marginBottom: 6 }}>One last thing</div>
-          <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginBottom: 24 }}>Pick a username for your Gallery profile</div>
-
-          <div style={{ display: "flex", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
-            <span style={{ padding: "10px 0 10px 12px", fontSize: 12, color: "rgba(240,235,248,0.3)" }}>@</span>
-            <input
-              type="text"
-              placeholder="username"
-              value={username}
-              onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-              maxLength={30}
-              style={{ flex: 1, background: "transparent", border: "none", padding: "10px 12px 10px 4px", fontSize: 12, color: "var(--text)", outline: "none", fontFamily: "Inter, sans-serif" }}
-            />
-            {username.length >= 3 && (
-              <span style={{ paddingRight: 10, fontSize: 11, color: checkingUsername ? "var(--muted)" : usernameAvailable ? "#48C878" : "#f87171" }}>
-                {checkingUsername ? "…" : usernameAvailable ? "✓" : "✗"}
-              </span>
-            )}
-          </div>
-
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 20 }}>
-            <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2, accentColor: "#784BA0" }} />
-            <span style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}>
-              I agree to Gallery's{" "}
-              <Link href="/terms" target="_blank" style={{ color: "#2B86C5", textDecoration: "underline" }}>Terms of Service</Link>
-              . I confirm I am at least 13 years old.
-            </span>
-          </label>
-
-          {changeUsername.error && (
-            <div style={{ fontSize: 11, color: "#f87171", textAlign: "center", marginBottom: 12 }}>{changeUsername.error.message}</div>
-          )}
-
-          <button
-            onClick={() => changeUsername.mutate({ username })}
-            disabled={!usernameAvailable || !agreedToTerms || changeUsername.isPending}
-            style={{ ...gradBtn, opacity: !usernameAvailable || !agreedToTerms ? 0.4 : 1 }}
-          >
-            {changeUsername.isPending ? "Saving…" : "Continue"}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ── SCREEN 1: WELCOME ──
-  if (step === "welcome") {
-    return (
-      <div style={{ flex: "1 0 auto", background: "linear-gradient(180deg, #1A1030 0%, var(--bg) 55%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>
-          <Dots total={4} active={0} />
-          <div style={{ textAlign: "center", padding: "32px 0 0" }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 38, fontWeight: 700, letterSpacing: "0.08em", background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 10 }}>
-              Gallery
-            </div>
-            <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 26 }}>
-              Art that moves you.<br />A home for artists and collectors.
-            </div>
-
-            {/* Art strip */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
-              <div style={{ flex: 1, height: 90, borderRadius: 7, background: "linear-gradient(135deg, #2A1838, #3A2050)" }} />
-              <div style={{ flex: 1, height: 90, borderRadius: 7, background: "linear-gradient(135deg, #1E2838, #2A3858)" }} />
-              <div style={{ flex: 1, height: 90, borderRadius: 7, background: "linear-gradient(135deg, #2A1818, #3A2028)" }} />
-              <div style={{ flex: 1, height: 90, borderRadius: 7, background: "linear-gradient(135deg, #181E28, #283040)" }} />
-            </div>
-
-            <button onClick={() => setStep("role")} style={gradBtn}>Get started</button>
-            <Link
-              href="/signin"
-              style={{ display: "block", marginTop: 10, padding: "11px 0", borderRadius: 10, border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 500, textAlign: "center", textDecoration: "none" }}
-            >
-              I have an account
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ── SCREEN 2: ROLE ──
-  if (step === "role") {
-    return (
-      <div style={{ flex: "1 0 auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>
-          <Dots total={4} active={1} />
-          <div style={{ paddingTop: 28 }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "var(--text)", lineHeight: 1.2, marginBottom: 6 }}>
-              What brings<br />you here?
-            </div>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 22 }}>You can always change this later.</div>
-
-            <button
-              onClick={() => setRole("artist")}
-              style={{ width: "100%", textAlign: "left", padding: "16px", borderRadius: 10, marginBottom: 12, cursor: "pointer", ...(role === "artist" ? selectedCardStyle : unselectedCardStyle) }}
-            >
-              <div style={{ fontSize: 24, marginBottom: 6 }}>🎨</div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>I'm an Artist</div>
-              <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}>Share your work, take commissions, sell prints and digital files.</div>
-            </button>
-
-            <button
-              onClick={() => setRole("collector")}
-              style={{ width: "100%", textAlign: "left", padding: "16px", borderRadius: 10, marginBottom: 24, cursor: "pointer", ...(role === "collector" ? selectedCardStyle : unselectedCardStyle) }}
-            >
-              <div style={{ fontSize: 24, marginBottom: 6 }}>✦</div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>I'm a Collector</div>
-              <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}>Discover new artists, follow their work, buy pieces you love.</div>
-            </button>
-
-            <button
-              onClick={() => role && setStep("styles")}
-              disabled={!role}
-              style={{ ...gradBtn, opacity: role ? 1 : 0.4, cursor: role ? "pointer" : "not-allowed" }}
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ── SCREEN 3: STYLES ──
-  if (step === "styles") {
-    return (
-      <div style={{ flex: "1 0 auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>
-          <Dots total={4} active={2} />
-          <div style={{ paddingTop: 28 }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "var(--text)", lineHeight: 1.2, marginBottom: 6 }}>
-              What styles<br />speak to you?
-            </div>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 18 }}>Pick as many as you like.</div>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-              {ART_STYLES.map(s => {
-                const on = selectedStyles.has(s)
-                return (
-                  <button
-                    key={s}
-                    onClick={() => toggleStyle(s)}
-                    style={{
-                      fontSize: 11, fontWeight: 500, padding: "6px 14px",
-                      borderRadius: 99, cursor: "pointer",
-                      ...(on ? {
-                        borderWidth: "1px", borderStyle: "solid", borderColor: "transparent",
-                        backgroundImage: "linear-gradient(var(--bg), var(--bg)), linear-gradient(90deg, #FF3CAC, #2B86C5)",
-                        backgroundOrigin: "border-box", backgroundClip: "padding-box, border-box",
-                        background: "var(--bg)", color: "var(--text)",
-                      } : {
-                        border: "1px solid var(--border)", background: "transparent", color: "var(--muted)",
-                      }),
-                    }}
-                  >
-                    {s}
+            {step === 2 && (
+              <div className="role-grid" role="radiogroup" aria-label="How will you use Gallery?">
+                {(["artist", "collector"] as const).map((r) => (
+                  <button key={r} className={`role-card ${role === r ? "selected" : ""}`} role="radio" aria-checked={role === r} onClick={() => setRole(r)}>
+                    <span className="selection-check">{role === r && <Check size={13} />}</span>
+                    {r === "artist" ? <Paintbrush size={40} strokeWidth={1.4} /> : <Sparkles size={40} strokeWidth={1.4} />}
+                    <strong>{r === "artist" ? "I’m an Artist" : "I’m a Collector"}</strong>
+                    <p>{r === "artist" ? "Share your work, take commissions, and sell prints or digital files." : "Discover artists, follow their work, and collect pieces you love."}</p>
                   </button>
-                )
-              })}
-            </div>
-
-            {selectedStyles.size > 0 && (
-              <div style={{ fontSize: 10, color: "var(--muted)", textAlign: "center", marginBottom: 16 }}>
-                {selectedStyles.size} selected
+                ))}
               </div>
             )}
 
-            <button onClick={() => setStep("follow")} style={gradBtn}>Continue</button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ── SCREEN 4: FOLLOW ──
-  const artists = suggestedArtists?.slice(0, 5) ?? []
-
-  return (
-    <div style={{ flex: "1 0 auto", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-      <div style={{ width: "100%", maxWidth: 400 }}>
-        <Dots total={4} active={3} />
-        <div style={{ paddingTop: 28 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 700, color: "var(--text)", lineHeight: 1.2, marginBottom: 6 }}>
-            Artists you<br />might love
-          </div>
-          <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 20 }}>Based on your taste.</div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
-            {artists.length === 0 ? (
-              // placeholders while loading
-              Array.from({ length: 4 }, (_, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--border)", flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ width: 100, height: 10, borderRadius: 5, background: "var(--border)", marginBottom: 5 }} />
-                    <div style={{ width: 70, height: 8, borderRadius: 5, background: "var(--border)" }} />
-                  </div>
-                  <div style={{ width: 60, height: 28, borderRadius: 6, background: "var(--border)" }} />
+            {step === 3 && (
+              <>
+                <div className="interest-count" aria-live="polite"><span>{interests.length} selected</span><p>A little inspiration, picked by you</p></div>
+                <div className="interests-grid">
+                  {INTERESTS.map(([name, Icon]) => {
+                    const on = interests.includes(name)
+                    return <button key={name} className={`interest-card ${on ? "selected" : ""}`} aria-pressed={on} onClick={() => setInterests(on ? interests.filter((x) => x !== name) : [...interests, name])}><Icon size={21} /><span>{name}</span><i>{on && <Check size={12} />}</i></button>
+                  })}
                 </div>
-              ))
-            ) : (
-              artists.map(a => {
-                const isFollowing = following.has(a.id)
-                return (
-                  <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    {/* gradient ring avatar */}
-                    <Link href={`/@${a.username}`} style={{ padding: 2, background: "linear-gradient(135deg, #FF3CAC, #784BA0, #2B86C5)", borderRadius: "50%", flexShrink: 0, display: "block" }}>
-                      {a.image ? (
-                        <img src={a.image} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", display: "block" }} />
-                      ) : (
-                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700 }}>
-                          {(a.name ?? a.username ?? "?")[0].toUpperCase()}
-                        </div>
-                      )}
-                    </Link>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {a.name ?? a.username}
-                      </div>
-                      <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 1 }}>@{a.username}</div>
-                    </div>
-                    <button
-                      onClick={() => handleFollow(a.id, a.username)}
-                      style={{
-                        fontSize: 10, fontWeight: 600, padding: "5px 12px", borderRadius: 6, flexShrink: 0, cursor: "pointer",
-                        ...(isFollowing
-                          ? { background: "linear-gradient(90deg, #FF3CAC, #784BA0, #2B86C5)", color: "white", border: "none" }
-                          : { background: "transparent", color: "var(--muted)", border: "1px solid var(--border)" }),
-                      }}
-                    >
-                      {isFollowing ? "Following" : "Follow"}
-                    </button>
-                  </div>
-                )
-              })
+              </>
             )}
+
+            {step === 4 && (
+              <>
+                <div className="artist-count"><span>{following.length} following</span><p>Rising artists on Gallery</p></div>
+                <div className="artist-grid">
+                  {artistsLoading && <div className="loading-panel" role="status"><LoaderCircle className="spinner" size={20} />Finding artists…</div>}
+                  {!artistsLoading && artists.length === 0 && <p>No suggestions yet — you can find artists in Explore.</p>}
+                  {artists.map((a) => {
+                    const isFollowing = following.includes(a.id)
+                    return (
+                      <article key={a.id} className={`suggested-artist ${isFollowing ? "following" : ""}`}>
+                        <Avatar src={a.image} name={a.name ?? a.username ?? "?"} className="" />
+                        <div><strong>{a.name ?? a.username}</strong><span>@{a.username}</span></div>
+                        <button className="follow-button" aria-pressed={isFollowing} disabled={pending.includes(a.id)} onClick={() => toggleFollow(a.id, a.username)}>
+                          {pending.includes(a.id) ? <LoaderCircle size={13} className="spinner" /> : isFollowing ? <Check size={13} /> : <Plus size={13} />}<span>{isFollowing ? "Following" : "Follow"}</span>
+                        </button>
+                      </article>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+
+            {error && <div className="inline-error" role="alert"><AlertCircle size={17} /><span>{error}</span></div>}
+
+            <div className="step-footer">
+              <div className="step-actions">
+                {step > 1 && <button className="back-button" onClick={() => setStep(step - 1)} disabled={saving}><ArrowLeft size={16} />Back</button>}
+                <button className="continue-button" onClick={next} disabled={invalid || saving} aria-busy={saving}>
+                  {saving ? <><LoaderCircle size={17} className="spinner" />Saving your Gallery…</> : <>{step === 4 ? "Enter Gallery" : step === 1 && hasUsername ? "Start Personalizing" : "Continue"}<ArrowRight size={17} /></>}
+                </button>
+              </div>
+              <p>{reassurance}</p>
+              {step === 4 && <button className="skip-button" disabled={saving} onClick={next}>Skip for now</button>}
+            </div>
           </div>
-
-          {completeOnboarding.error && (
-            <div style={{ fontSize: 11, color: "#f87171", textAlign: "center", marginBottom: 12 }}>{completeOnboarding.error.message}</div>
-          )}
-
-          <button
-            onClick={() => completeOnboarding.mutate({ sellingEnabled: role === "artist" })}
-            disabled={completeOnboarding.isPending}
-            style={{ ...gradBtn, opacity: completeOnboarding.isPending ? 0.5 : 1 }}
-          >
-            {completeOnboarding.isPending ? "Setting up…" : "Enter Gallery →"}
-          </button>
-        </div>
-      </div>
+        </section>
+        <div className="onboarding-below"><p><ShieldCheck size={12} /> You can change all of this later in Settings.</p></div>
+      </main>
     </div>
   )
 }
