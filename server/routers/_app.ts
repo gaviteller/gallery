@@ -26,8 +26,10 @@ import { authRouter } from "./auth"
 import { blockRouter } from "./block"
 import { searchRouter } from "./search"
 import { discoveryRouter } from "./discovery"
+import { adRouter } from "./ad"
 
 export const appRouter = router({
+  ad: adRouter,                               // in-site ads (made in the admin Ads page)
   user: userRouter,                           // profiles, settings, onboarding, username checks
   post: postRouter,                           // creating posts, home feed, profile posts
   follow: followRouter,                       // follow / unfollow, follower lists

@@ -590,3 +590,47 @@ enum AppealStatus {
   APPROVED
   DENIED
 }
+
+/// One page visit, recorded by app/api/track. visitorId is a hash of IP + browser + the date,
+/// so it counts unique visitors per day without cookies and can't be traced back to a person.
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  search    String?
+  visitorId String
+  userId    String?
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path, createdAt])
+}
+
+enum AdPreset {
+  ARTIST_SPOTLIGHT
+  PARTNER
+  GALLERY_PROMO
+}
+
+/// In-site ad, managed from the admin panel's Ads page.
+/// placements: any of FEED, SIGNUP, SIDEBAR, EXPLORE, SHOP. frequency: in the feed, one ad every N posts.
+model Ad {
+  id         String    @id @default(cuid())
+  preset     AdPreset
+  headline   String
+  body       String?
+  imageUrl   String?
+  postId     String?
+  linkUrl    String
+  placements String[]  @default([])
+  frequency  Int       @default(8)
+  startsAt   DateTime  @default(now())
+  endsAt     DateTime?
+  active     Boolean   @default(true)
+  views      Int       @default(0)
+  clicks     Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([active, startsAt])
+}

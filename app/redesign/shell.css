@@ -103,3 +103,19 @@ html body:has(.gx) .auth-route-frame, html body:has(.gx) .auth-route-frame-inner
 .gx .right-rail.gx-rail-collapsed { padding: 14px 0; align-items: center; overflow: hidden; }
 .gx .right-rail.gx-rail-hidden { padding: 0; border: 0; overflow: visible; width: 0; }
 .gx .right-rail.gx-rail-hidden .gx-rail-toggle { position: fixed; right: 6px; top: calc(var(--header, 150px) + 12px); z-index: 20; opacity: .7; }
+
+/* In-site ads (components/redesign/AdCard.tsx). */
+.gx .gx-ad { display: flex; flex-direction: column; overflow: hidden; margin: 0 0 18px; border: 1px solid var(--line, #272637); border-radius: 14px; background: var(--panel, #111320); color: var(--text, #f2effa); text-decoration: none; transition: border-color .15s; }
+.gx .gx-ad:hover { border-color: #6b4a86; }
+.gx .gx-ad img { display: block; width: 100%; max-height: 360px; object-fit: cover; }
+.gx .gx-ad-copy { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; }
+.gx .gx-ad-label { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted, #8f8ba6); }
+.gx .gx-ad-partner .gx-ad-label { color: #e0b65a; }
+.gx .gx-ad-artist_spotlight .gx-ad-label { color: #f263bd; }
+.gx .gx-ad-copy strong { font-size: 15px; font-weight: 600; }
+.gx .gx-ad-body { font-size: 12px; line-height: 1.5; color: var(--muted, #8f8ba6); }
+.gx .gx-ad-cta { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; font-size: 12px; color: #e592d3; }
+.gx .gx-ad-banner { flex-direction: row; align-items: stretch; margin: 0 0 22px; }
+.gx .gx-ad-banner img { width: 38%; max-height: 190px; }
+.gx .gx-ad-banner .gx-ad-copy { justify-content: center; padding: 18px 22px; }
+@media (max-width: 640px) { .gx .gx-ad-banner { flex-direction: column; } .gx .gx-ad-banner img { width: 100%; } }

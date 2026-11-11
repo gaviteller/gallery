@@ -9,6 +9,7 @@ import ProtectedArtwork from "@/components/ProtectedArtwork"
 import StoryViewer from "@/components/StoryViewer"
 import { useShell, Avatar } from "./RedesignShell"
 import GalleryPaintDrips from "./GalleryPaintDrips"
+import AdCard, { useAds } from "./AdCard"
 
 export type FeedPostData = {
   id: string
@@ -160,6 +161,7 @@ export function FeedRightRail() {
   const [showAll, setShowAll] = useState(false)
   const { data: suggested } = trpc.discovery.risingStars.useQuery({ limit: showAll ? 8 : 3, excludeFollowed: true })
   const { data: trending } = trpc.discovery.trendingTags.useQuery({ limit: 5 })
+  const sidebarAd = useAds("SIDEBAR")[0]
   // The viewer can shrink the rail to a thin strip or remove it; remembered on this device.
   const railRef = useRef<HTMLElement>(null)
   const [mode, setMode] = useState<"open" | "collapsed" | "hidden">("open")
@@ -201,6 +203,7 @@ export function FeedRightRail() {
           </Link>
         ))}
       </section>
+      {sidebarAd && <AdCard ad={sidebarAd} />}
       <section className="promo panel">
         <GalleryPaintDrips theme={theme} small />
         <span className="promo-caption">THAT IDEA IN YOUR HEAD?</span>

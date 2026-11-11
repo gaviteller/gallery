@@ -18,6 +18,7 @@ import { isAtLeast13 } from "@/lib/age"
 import GalleryLogo from "./GalleryLogo"
 import GalleryPaintDrips from "./GalleryPaintDrips"
 import { galleryThemes, getActiveTheme } from "./galleryThemes"
+import { useAds, type AdData } from "./AdCard"
 
 type Mode = "signin" | "signup" | "forgot"
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -302,10 +303,33 @@ function ForgotPasswordPanel() {
   )
 }
 
-/** Left-hand spotlight: real recent artwork, rotating every 7 seconds. */
+/**
+ * Left-hand spotlight: real recent artwork, rotating every 7 seconds. Ads placed on the
+ * "Sign-up page" spot (admin Ads page) are mixed in as their own slides, labelled as such.
+ */
+type SpotlightSlide =
+  | { kind: "art"; id: string; image: string; alt: string; username: string | null }
+  | { kind: "ad"; id: string; ad: AdData }
+
+const AD_SLIDE_LABEL = { ARTIST_SPOTLIGHT: "FEATURED ARTIST", PARTNER: "SPONSORED", GALLERY_PROMO: "FROM GALLERY" } as const
+
 function SpotlightCarousel() {
   const { data } = trpc.discovery.forYou.useQuery({ limit: 5 })
-  const slides = data?.items ?? []
+  const ads = useAds("SIGNUP")
+  const recordView = trpc.ad.recordView.useMutation()
+  const recordClick = trpc.ad.recordClick.useMutation()
+  const viewedAds = useRef(new Set<string>())
+
+  const art: SpotlightSlide[] = (data?.items ?? []).map((p) => ({ kind: "art", id: p.id, image: p.image, alt: p.description ?? `Artwork by @${p.user.username}`, username: p.user.username }))
+  // An ad after every second artwork (or on its own if there's no artwork yet).
+  const slides: SpotlightSlide[] = []
+  let adIndex = 0
+  art.forEach((slide, i) => {
+    slides.push(slide)
+    if (i % 2 === 1 && adIndex < ads.length) slides.push({ kind: "ad", id: `ad-${ads[adIndex].id}`, ad: ads[adIndex++] })
+  })
+  while (adIndex < ads.length) slides.push({ kind: "ad", id: `ad-${ads[adIndex].id}`, ad: ads[adIndex++] })
+
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   useEffect(() => {
@@ -315,24 +339,40 @@ function SpotlightCarousel() {
   }, [paused, slides.length])
   const slide = slides[index % Math.max(slides.length, 1)]
 
+  const shownAdId = slide?.kind === "ad" ? slide.ad.id : null
+  useEffect(() => {
+    if (shownAdId && !viewedAds.current.has(shownAdId)) { viewedAds.current.add(shownAdId); recordView.mutate({ id: shownAdId }) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownAdId])
+
+  const adExternal = slide?.kind === "ad" && !slide.ad.linkUrl.startsWith("/")
+
   return (
     <section className="spotlight" aria-label="Gallery Spotlight" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="spotlight-label"><span><Sparkles size={13} /> GALLERY SPOTLIGHT</span><span className="curated-label">A WORLD OF ORIGINALS</span></div>
       <div className="spotlight-slide">
-        <div className="slide-category"><span>FEATURED ARTWORK</span></div>
-        <h1>Where imagination finds a home.</h1>
-        <p className="slide-description">Discover new work from artists across Gallery.</p>
-        {slide && (
+        <div className="slide-category"><span>{slide?.kind === "ad" ? AD_SLIDE_LABEL[slide.ad.preset] : "FEATURED ARTWORK"}</span></div>
+        <h1>{slide?.kind === "ad" ? slide.ad.headline : "Where imagination finds a home."}</h1>
+        <p className="slide-description">{slide?.kind === "ad" ? slide.ad.body ?? "" : "Discover new work from artists across Gallery."}</p>
+        {slide && (slide.kind === "art" || slide.ad.imageUrl) && (
           <div className="spotlight-art">
-            <img src={slide.image} alt={slide.description ?? `Artwork by @${slide.user.username}`} />
+            <img src={slide.kind === "art" ? slide.image : slide.ad.imageUrl!} alt={slide.kind === "art" ? slide.alt : ""} />
             <span className="art-frame-corner" aria-hidden="true">✧</span>
-            <span className="artwork-index">ORIGINAL PERSPECTIVES</span>
+            <span className="artwork-index">{slide.kind === "ad" ? AD_SLIDE_LABEL[slide.ad.preset] : "ORIGINAL PERSPECTIVES"}</span>
           </div>
         )}
-        {slide && (
+        {slide?.kind === "art" && (
           <div className="slide-footer">
-            <div className="attribution"><span className="attribution-dot" /><span>Artwork by @{slide.user.username}</span></div>
-            <Link className="spotlight-action" href={`/@${slide.user.username}/${slide.id}`}>View artwork<ArrowUpRight size={16} /></Link>
+            <div className="attribution"><span className="attribution-dot" /><span>Artwork by @{slide.username}</span></div>
+            <Link className="spotlight-action" href={`/@${slide.username}/${slide.id}`}>View artwork<ArrowUpRight size={16} /></Link>
+          </div>
+        )}
+        {slide?.kind === "ad" && (
+          <div className="slide-footer">
+            <div className="attribution"><span className="attribution-dot" /><span>{slide.ad.preset === "PARTNER" ? "Sponsored" : slide.ad.preset === "ARTIST_SPOTLIGHT" ? "Featured artist" : "From Gallery"}</span></div>
+            <a className="spotlight-action" href={slide.ad.linkUrl} target={adExternal ? "_blank" : undefined}
+              rel={adExternal ? (slide.ad.preset === "PARTNER" ? "sponsored noopener noreferrer" : "noopener noreferrer") : undefined}
+              onClick={() => recordClick.mutate({ id: slide.ad.id })}>Take a look<ArrowUpRight size={16} /></a>
           </div>
         )}
       </div>
@@ -343,7 +383,7 @@ function SpotlightCarousel() {
             <button aria-label="Next spotlight" onClick={() => setIndex((i) => (i + 1) % slides.length)}><ArrowRight size={17} /></button>
           </div>
           <div className="position-dots">{slides.map((s, i) => <button key={s.id} onClick={() => setIndex(i)} aria-label={`Go to slide ${i + 1}`} aria-pressed={i === index} className={i === index ? "active" : ""} />)}</div>
-          <div className="carousel-position"><span>0{index + 1}<i>/ 0{slides.length}</i></span></div>
+          <div className="carousel-position"><span>{String(index + 1).padStart(2, "0")}<i>/ {String(slides.length).padStart(2, "0")}</i></span></div>
         </div>
       )}
       <p className="spotlight-note">For the makers. The dreamers. The beautifully curious. <span>✦</span></p>

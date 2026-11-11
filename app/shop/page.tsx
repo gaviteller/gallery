@@ -9,6 +9,7 @@ import "../redesign/shop.css"
 import "../redesign/shell.css"
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import AdCard, { useAds } from "@/components/redesign/AdCard"
 import { ShoppingBag, X, ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Star, Plus, Trash2 } from "lucide-react"
 import { trpc } from "@/components/providers"
 import { useCart } from "@/lib/cart"
@@ -62,6 +63,7 @@ function ShopMain() {
     .filter((seller) => seller.listings.length >= 3 || (sellerFilter === seller.username && seller.listings.length > 0))
   const catalog = filtered.filter((listing) => !shopGroups.some((group) => group.username === listing.user.username))
   const featured = listings.slice(0, 5)
+  const shopAd = useAds("SHOP")[0]
 
   function addToCart(listing: Listing) {
     if (cart.items.some((item) => item.id === listing.id)) { toast("Already in your cart."); return }
@@ -84,6 +86,7 @@ function ShopMain() {
         {CATEGORIES.map((c) => <button key={c} aria-pressed={category === c} className={category === c ? "selected" : ""} onClick={() => setCategory(c)}>{c}</button>)}
       </div>
 
+      {shopAd && <AdCard ad={shopAd} variant="banner" />}
       {featured.length > 0 && <FeaturedCarousel listings={featured} index={slide} onIndex={setSlide} onOpen={setOpenListing} />}
 
       {sellers.length > 0 && (

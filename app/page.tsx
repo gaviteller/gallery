@@ -7,13 +7,14 @@ import "./redesign/feed.css"
 import "./redesign/shell.css"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { ArrowDownWideNarrow, Sparkles } from "lucide-react"
 import { trpc } from "@/components/providers"
 import PostModal from "@/components/PostModal"
 import ReportModal from "@/components/ReportModal"
 import RedesignShell, { GallerySidebar } from "@/components/redesign/RedesignShell"
 import { StoriesPanel, FeedPost, FeedRightRail, type FeedPostData } from "@/components/redesign/FeedParts"
+import AdCard, { useAds } from "@/components/redesign/AdCard"
 
 export default function FeedPage() {
   const { data: session, status } = useSession()
@@ -87,6 +88,8 @@ function FeedColumn() {
 
   const posts = (data?.pages.flatMap((page) => page.posts) ?? []) as FeedPostData[]
   const shownPosts = mostLovedFirst ? [...posts].sort((a, b) => b._count.likes - a._count.likes) : posts
+  const feedAds = useAds("FEED")
+  const adEvery = Math.max(3, feedAds[0]?.frequency ?? 8)
 
   return (
     <main className="feed">
@@ -101,14 +104,16 @@ function FeedColumn() {
         {!isLoading && !error && posts.length === 0 && (
           <div className="empty panel"><Sparkles /><h2>No artwork yet.</h2><p>Follow artists from Explore to fill your feed.</p></div>
         )}
-        {shownPosts.map((post) => (
+        {shownPosts.map((post, index) => (
+          <Fragment key={post.id}>
+          {feedAds.length > 0 && index > 0 && index % adEvery === 0 && <AdCard ad={feedAds[(index / adEvery - 1) % feedAds.length]} />}
           <FeedPost
-            key={post.id}
             post={post}
             onLike={() => toggleLike.mutate({ postId: post.id })}
             onOpen={() => setOpenPost(post)}
             onReport={() => setReportingPostId(post.id)}
           />
+          </Fragment>
         ))}
         <div ref={sentinelRef} />
         {isFetchingNextPage && <div className="end-note">Loading more…</div>}

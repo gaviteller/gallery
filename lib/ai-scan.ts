@@ -2,7 +2,10 @@
  * AI CONTENT MODERATION.
  *
  * Sends uploaded images and comments to an AI model (Llama 4 Scout via OpenRouter)
- * that scores them against Gallery's rules, then acts on the score automatically.
+ * that scores them against Gallery's rules. THE AI ONLY FLAGS: it holds content for a
+ * human moderator and never removes, strikes, or bans on its own. The moderator's decision
+ * is written back to AIScanLog (see "Human decisions" below) so the AI's accuracy can be
+ * measured and its rules tuned over time.
  *
  * What gets scanned (and by which function):
  *   scanPost      → new posts                 (called from server/routers/post.ts)
@@ -12,19 +15,23 @@
  * Commission reference photos and DM attachments are intentionally NOT scanned
  * (private content — report-only).
  *
- * Image outcome ladder (posts & shop items):
- *   any category 10  → removed + ZERO_TOLERANCE strike
- *   any category 9   → removed + SEVERE strike
- *   clothing/violence/self-harm ≥ 7 → hidden for human review + MODERATE strike
- *   pose ≥ 7 only    → hidden for human review, no strike
+ * Image outcome (posts & shop items) — the label records how sure the AI was:
+ *   any category 10  → held for review, action PENDING_REVIEW_ZERO_TOLERANCE
+ *   any category 9   → held for review, action PENDING_REVIEW_SEVERE
+ *   clothing/violence/self-harm ≥ 7 → held for review, action PENDING_REVIEW_EXPLICIT
+ *   pose ≥ 7 only    → held for review, action PENDING_REVIEW_POSE
  *   otherwise        → published normally
+ * Profile photos / banners flagged SUGGESTIVE or worse are taken down until a moderator
+ * restores them (the image link is kept in the log). Flagged comments are hidden.
  * Every scan (including errors) is written to the AIScanLog table, visible in the admin panel.
- * After any strike, server/lib/autoBan.ts checks whether the user has now earned a ban.
+ *
+ * Human decisions (written by the admin panel): overriddenAt/overriddenBy = when and who
+ * reviewed it; overridden = true means the moderator disagreed with the AI (content restored),
+ * false with overriddenAt set means the moderator agreed.
  *
  * If OPENROUTER_API_KEY is missing, every scan is skipped and content is published unscanned.
  */
-import { PrismaClient, StrikeLevel, StrikeViolation } from "@prisma/client"
-import { applyAutomaticBan } from "@/server/lib/autoBan"
+import { PrismaClient } from "@prisma/client"
 
 const AI_MODEL = "meta-llama/llama-4-scout"
 const AI_REQUEST_TIMEOUT_MS = 30_000
@@ -182,14 +189,6 @@ async function scoreImageWithAI(imageDataUrl: string): Promise<ScanScores> {
   }
 }
 
-/** Picks which strike type to issue, based on whichever category scored highest. */
-function pickViolation(scores: ScanScores): StrikeViolation {
-  if (scores.violence >= scores.clothing && scores.violence >= scores.selfHarm) {
-    return StrikeViolation.GORE
-  }
-  if (scores.selfHarm >= scores.clothing) return StrikeViolation.SELF_HARM_CONTENT
-  return StrikeViolation.EXPLICIT_SEXUAL
-}
 
 /** Instructions + scoring rubric sent to the AI with every comment. */
 const COMMENT_MODERATION_PROMPT = `You are a content moderator for Gallery, an art platform.
@@ -266,6 +265,9 @@ export async function scanComment(
         where: { id: commentId },
         data: { hidden: true, hiddenReason: `AI scan (${scores.combined}/100): ${scores.reason}` },
       })
+      await prisma.aIScanLog.create({
+        data: { contentType: "COMMENT", contentId: commentId, scores: scores as object, verdict: scores.verdict, action: "HIDDEN_FOR_REVIEW" },
+      })
     } catch (err) {
       console.error("[ai-scan] comment hide failed:", err)
     }
@@ -274,7 +276,7 @@ export async function scanComment(
 
 /**
  * Scans a new shop listing's preview image and applies the outcome ladder
- * (see top of file): may remove or hide the listing, issue a strike, notify the seller.
+ * (see top of file): may hold the listing for human review and notify the seller.
  */
 export async function scanShopItem(
   prisma: PrismaClient,
@@ -309,24 +311,16 @@ export async function scanShopItem(
 
   let action: string
   let newStatus: string | null = null
-  let strikeLevel: StrikeLevel | null = null
-  let violation: StrikeViolation | null = null
 
   if (isZeroTolerance) {
-    action = "REMOVED_ZERO_TOLERANCE"
-    newStatus = "REMOVED"
-    strikeLevel = StrikeLevel.ZERO_TOLERANCE
-    violation = pickViolation(scores)
+    action = "PENDING_REVIEW_ZERO_TOLERANCE"
+    newStatus = "PENDING_REVIEW"
   } else if (isSevere) {
-    action = "REMOVED_SEVERE"
-    newStatus = "REMOVED"
-    strikeLevel = StrikeLevel.SEVERE
-    violation = pickViolation(scores)
+    action = "PENDING_REVIEW_SEVERE"
+    newStatus = "PENDING_REVIEW"
   } else if (isExplicit) {
     action = "PENDING_REVIEW_EXPLICIT"
     newStatus = "PENDING_REVIEW"
-    strikeLevel = StrikeLevel.MODERATE
-    violation = pickViolation(scores)
   } else if (isPoseOnly) {
     action = "PENDING_REVIEW_POSE"
     newStatus = "PENDING_REVIEW"
@@ -345,25 +339,8 @@ export async function scanShopItem(
         },
       })
 
-      if (strikeLevel && violation) {
-        await tx.strike.create({
-          data: {
-            userId,
-            aiIssued: true,
-            level: strikeLevel,
-            violation,
-            contentId: itemId,
-            contentType: "SHOP_ITEM",
-            notes: `AI scan ${scores.combined}/100: ${scores.reason}`,
-          },
-        })
-      }
 
-      if (newStatus === "REMOVED") {
-        await tx.notification.create({
-          data: { userId, fromUserId: null, type: "post_removed_tos" },
-        })
-      } else if (newStatus === "PENDING_REVIEW") {
+      if (newStatus === "PENDING_REVIEW") {
         await tx.notification.create({
           data: { userId, fromUserId: null, type: "post_pending_review" },
         })
@@ -379,14 +356,13 @@ export async function scanShopItem(
         },
       })
     })
-    if (strikeLevel) await applyAutomaticBan(prisma, userId)
   } catch (err) {
     console.error("[ai-scan] DB update failed (shop):", err)
   }
 }
 
-// Avatar and banner images are public everywhere — revert on anything SUGGESTIVE or worse.
-// EXPLICIT also issues a zero-tolerance strike.
+// Avatar and banner images are public everywhere — taken down on anything SUGGESTIVE or worse
+// until a moderator reviews it. The image link is kept in the log so it can be restored.
 export async function scanAvatar(
   prisma: PrismaClient,
   userId: string,
@@ -410,45 +386,27 @@ export async function scanAvatar(
 
   if (scores.verdict === "SAFE") return
 
-  const isExplicit = scores.verdict === "EXPLICIT"
-  const action = isExplicit ? "AVATAR_REMOVED_EXPLICIT" : "AVATAR_REMOVED_SUGGESTIVE"
+  const action = scores.verdict === "EXPLICIT" ? "AVATAR_HELD_EXPLICIT" : "AVATAR_HELD_SUGGESTIVE"
 
   try {
     await prisma.$transaction(async (tx) => {
-      // Revert the image to null
+      // Take the image down until a moderator reviews it
       await tx.user.update({
         where: { id: userId },
         data: { [field]: null },
       })
 
-      if (isExplicit) {
-        await tx.strike.create({
-          data: {
-            userId,
-            aiIssued: true,
-            level: StrikeLevel.ZERO_TOLERANCE,
-            violation: StrikeViolation.EXPLICIT_SEXUAL,
-            contentId: userId,
-            contentType: "AVATAR",
-            notes: `AI scan ${scores.combined}/100: ${scores.reason}`,
-          },
-        })
-        await tx.notification.create({
-          data: { userId, fromUserId: null, type: "post_removed_tos" },
-        })
-      }
 
       await tx.aIScanLog.create({
         data: {
           contentType: "AVATAR",
           contentId: userId,
-          scores: scores as object,
+          scores: { ...scores, heldImage: imageDataUrl, field } as object,
           verdict: scores.verdict,
           action,
         },
       })
     })
-    if (isExplicit) await applyAutomaticBan(prisma, userId)
   } catch (err) {
     console.error("[ai-scan] DB update failed (avatar):", err)
   }
@@ -456,7 +414,7 @@ export async function scanAvatar(
 
 /**
  * Scans a new post's image and applies the outcome ladder (see top of file):
- * may remove the post or hold it for review, issue a strike, and notify the artist.
+ * may hold the post for human review and notify the artist.
  * Also re-run by the report flow when a reported post was never scanned.
  */
 export async function scanPost(
@@ -491,25 +449,17 @@ export async function scanPost(
     !isZeroTolerance && !isSevere && !isExplicitNonPose && scores.pose >= 7
 
   let action: string
-  let newStatus: "PUBLISHED" | "PENDING_REVIEW" | "REMOVED" | null = null
-  let strikeLevel: StrikeLevel | null = null
-  let violation: StrikeViolation | null = null
+  let newStatus: "PENDING_REVIEW" | null = null
 
   if (isZeroTolerance) {
-    action = "REMOVED_ZERO_TOLERANCE"
-    newStatus = "REMOVED"
-    strikeLevel = StrikeLevel.ZERO_TOLERANCE
-    violation = pickViolation(scores)
+    action = "PENDING_REVIEW_ZERO_TOLERANCE"
+    newStatus = "PENDING_REVIEW"
   } else if (isSevere) {
-    action = "REMOVED_SEVERE"
-    newStatus = "REMOVED"
-    strikeLevel = StrikeLevel.SEVERE
-    violation = pickViolation(scores)
+    action = "PENDING_REVIEW_SEVERE"
+    newStatus = "PENDING_REVIEW"
   } else if (isExplicitNonPose) {
     action = "PENDING_REVIEW_EXPLICIT"
     newStatus = "PENDING_REVIEW"
-    strikeLevel = StrikeLevel.MODERATE
-    violation = pickViolation(scores)
   } else if (isPoseHighOnly) {
     action = "PENDING_REVIEW_POSE"
     newStatus = "PENDING_REVIEW"
@@ -524,33 +474,14 @@ export async function scanPost(
         data: {
           aiVerdict: scores.verdict,
           aiScores: scores as object,
-          ...(newStatus === "REMOVED"
-            ? { status: "REMOVED", removedAt: new Date(), removalReason: `AI scan: ${scores.reason}` }
-            : newStatus === "PENDING_REVIEW"
-              ? { status: "PENDING_REVIEW", pendingAt: new Date(), flagReason: `AI scan: ${scores.reason}` }
-              : {}),
+          ...(newStatus === "PENDING_REVIEW"
+            ? { status: "PENDING_REVIEW", pendingAt: new Date(), flagReason: `AI scan: ${scores.reason}` }
+            : {}),
         },
       })
 
-      if (strikeLevel && violation) {
-        await tx.strike.create({
-          data: {
-            userId,
-            aiIssued: true,
-            level: strikeLevel,
-            violation,
-            contentId: postId,
-            contentType: "POST",
-            notes: `AI scan ${scores.combined}/100: ${scores.reason}`,
-          },
-        })
-      }
 
-      if (newStatus === "REMOVED") {
-        await tx.notification.create({
-          data: { userId, fromUserId: null, type: "post_removed_tos" },
-        })
-      } else if (newStatus === "PENDING_REVIEW") {
+      if (newStatus === "PENDING_REVIEW") {
         await tx.notification.create({
           data: { userId, fromUserId: null, type: "post_pending_review" },
         })
@@ -566,7 +497,6 @@ export async function scanPost(
         },
       })
     })
-    if (strikeLevel) await applyAutomaticBan(prisma, userId)
   } catch (err) {
     console.error("[ai-scan] DB update failed:", err)
   }

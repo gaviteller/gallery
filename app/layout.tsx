@@ -11,6 +11,8 @@ import BottomNav from "@/components/BottomNav"
 import PushInit from "@/components/PushInit"
 import BanBanner from "@/components/BanBanner"
 import CookieConsent from "@/components/CookieConsent"
+import PageViewTracker from "@/components/PageViewTracker"
+import { Suspense } from "react"
 import Link from "next/link"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -32,6 +34,7 @@ export default function RootLayout({
         <Providers>
           <BanBanner />
           <CookieConsent />
+          <Suspense fallback={null}><PageViewTracker /></Suspense>
           <PushInit />
           <Navbar />
           {/* Fills the height left under the header (see body/.main-layout in globals.css).

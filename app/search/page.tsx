@@ -16,6 +16,7 @@ import { SlidersHorizontal, X, ArrowDownWideNarrow, ArrowRight, ArrowUpRight, He
 import { trpc } from "@/components/providers"
 import ProtectedArtwork from "@/components/ProtectedArtwork"
 import RedesignShell, { GallerySidebar, Avatar } from "@/components/redesign/RedesignShell"
+import AdCard, { useAds } from "@/components/redesign/AdCard"
 import { FeedRightRail } from "@/components/redesign/FeedParts"
 
 const CATEGORIES = ["All", "Digital", "Traditional", "Pixel Art", "3D", "Anime/Manga", "Sketch", "Watercolor", "Comics"] as const
@@ -86,12 +87,14 @@ function ExploreMain() {
 }
 
 function Discover() {
+  const exploreAd = useAds("EXPLORE")[0]
   const { data: risingStars } = trpc.discovery.risingStars.useQuery({ limit: 12 })
   const { data: forYou, isLoading } = trpc.discovery.forYou.useQuery({ limit: 24 })
   const artworks = forYou?.items ?? []
   return (
     <>
       <ArtistRow title="Rising Stars" subtitle="A little ahead of the curve. A lot worth following." artists={risingStars?.items ?? []} />
+      {exploreAd && <AdCard ad={exploreAd} variant="banner" />}
       <ArtworkGrid title="Highlights" subtitle="Extraordinary work. Fresh perspectives." artworks={artworks.slice(0, 4)} loading={isLoading} />
       <ArtworkGrid title="For You" subtitle={`${Math.max(artworks.length - 4, 0)} discoveries to spark your next idea`} artworks={artworks.slice(4)} loading={isLoading} />
     </>

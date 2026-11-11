@@ -147,6 +147,7 @@ export default function PrivacyPage() {
         <div style={sectionStyle}>
           <p style={headingStyle}>6. Cookies</p>
           <p style={bodyStyle}>Gallery uses cookies to keep you signed in, remember your preferences, and deliver advertisements. Some cookies are essential for the platform to work and cannot be turned off. Non-essential cookies — such as advertising and analytics — can be managed from Settings.</p>
+          <p style={bodyStyle}>To understand how Gallery is used, we count page visits. This does not use cookies: each visit is recorded with the page address, any search you typed on Explore, the website that linked you here, and an anonymous visitor code made from your connection and browser details plus the date. The code changes every day and cannot be used to identify you. If you are signed in, the visit is linked to your account.</p>
         </div>
 
         {/* 7. Data retention */}
