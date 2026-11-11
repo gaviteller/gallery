@@ -82,3 +82,7 @@ html body:has(.gx) .auth-route-frame, html body:has(.gx) .auth-route-frame-inner
 
 /* Stop the layout's top margin (space for the fixed header) leaking out of .gx and making the page 150px too tall. */
 .gx { display: flow-root; }
+
+/* Profile: let the + New / more menus show outside the header (it clipped them). */
+.gx-profile .profile-hero { overflow: visible; }
+.gx-profile .profile-cover { width: 100%; }

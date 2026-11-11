@@ -124,7 +124,7 @@ function ProfileBody({ username }: { username: string }) {
   return (
     <main className="profile-main">
       <header className="profile-hero">
-        <div className="concept-art profile-cover" style={{ aspectRatio: "1194 / 179", background: pu.bannerImage ? `center / cover no-repeat url(${JSON.stringify(pu.bannerImage)})` : "linear-gradient(135deg, #3a2650, #1f2a44 55%, #4a2a3e)" }} role="img" aria-label={`${displayName}'s banner`} />
+        <div className="concept-art profile-cover" style={{ height: "clamp(190px, 24vw, 340px)", background: pu.bannerImage ? `center / cover no-repeat url(${JSON.stringify(pu.bannerImage)})` : "linear-gradient(135deg, #3a2650, #1f2a44 55%, #4a2a3e)" }} role="img" aria-label={`${displayName}'s banner`} />
         <div className="profile-details">
           <button
             className="concept-art profile-portrait"
