@@ -162,7 +162,7 @@ function FeaturedCarousel({ listings, index, onIndex, onOpen }: { listings: List
       <div className="featured-banner"
         onTouchStart={(e) => { touchStart.current = e.touches[0].clientX }}
         onTouchEnd={(e) => { if (touchStart.current !== null) { const dx = e.changedTouches[0].clientX - touchStart.current; if (Math.abs(dx) > 45) move(dx < 0 ? 1 : -1); touchStart.current = null } }}>
-        <ProtectedArtwork className="featured-art" src={listing.image} alt={listing.title} />
+        <img className="featured-art" src={listing.image} alt={listing.title} draggable={false} onContextMenu={(e) => e.preventDefault()} />
         <div className="featured-shade" />
         <div className="featured-copy">
           <span className="new-drop"><Star size={13} fill="currentColor" /> NEW DROP</span>

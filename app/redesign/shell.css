@@ -86,3 +86,20 @@ html body:has(.gx) .auth-route-frame, html body:has(.gx) .auth-route-frame-inner
 /* Profile: let the + New / more menus show outside the header (it clipped them). */
 .gx-profile .profile-hero { overflow: visible; }
 .gx-profile .profile-cover { width: 100%; }
+
+/* Sidebar: spread the nav items down the full height; no duplicate profile card. */
+.gx .sidebar { display: flex; flex-direction: column; }
+.gx .sidebar nav { flex: 1 1 auto; justify-content: space-evenly; gap: 4px !important; max-height: 720px; }
+.gx .sidebar .sidebar-user { display: none !important; }
+
+/* Right rail: promo + footer pinned to the bottom; shrink / remove controls. */
+.gx .right-rail { display: flex; flex-direction: column; }
+.gx .right-rail > .promo { margin-top: auto; }
+.gx .gx-rail-controls { display: flex; justify-content: flex-end; gap: 4px; margin: -6px 0 8px; }
+.gx .gx-rail-controls button, .gx .gx-rail-toggle { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line, #272637); background: var(--panel, #111320); color: var(--muted, #8f8ba6); cursor: pointer; }
+.gx .gx-rail-controls button:hover, .gx .gx-rail-toggle:hover { color: var(--text, #f2effa); }
+.gx.rail-collapsed { --right: 52px; }
+.gx.rail-hidden { --right: 0px; }
+.gx .right-rail.gx-rail-collapsed { padding: 14px 0; align-items: center; overflow: hidden; }
+.gx .right-rail.gx-rail-hidden { padding: 0; border: 0; overflow: visible; width: 0; }
+.gx .right-rail.gx-rail-hidden .gx-rail-toggle { position: fixed; right: 6px; top: calc(var(--header, 150px) + 12px); z-index: 20; opacity: .7; }

@@ -1,8 +1,8 @@
 "use client"
 /** Pieces of the redesigned Feed page (Codex design), each wired to real data. */
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { Heart, MessageCircle, Send, MoreHorizontal, Check, Flag, Link as LinkIcon, Plus, ArrowRight, ArrowUpRight, Image as ImageIcon, Sparkles, Eye } from "lucide-react"
+import { Heart, MessageCircle, Send, MoreHorizontal, Check, Flag, Link as LinkIcon, Plus, ArrowRight, ArrowUpRight, Image as ImageIcon, Sparkles, Eye, ChevronsRight, ChevronsLeft, X } from "lucide-react"
 import { trpc } from "@/components/providers"
 import MentionText from "@/components/MentionText"
 import ProtectedArtwork from "@/components/ProtectedArtwork"
@@ -160,9 +160,32 @@ export function FeedRightRail() {
   const [showAll, setShowAll] = useState(false)
   const { data: suggested } = trpc.discovery.risingStars.useQuery({ limit: showAll ? 8 : 3, excludeFollowed: true })
   const { data: trending } = trpc.discovery.trendingTags.useQuery({ limit: 5 })
+  // The viewer can shrink the rail to a thin strip or remove it; remembered on this device.
+  const railRef = useRef<HTMLElement>(null)
+  const [mode, setMode] = useState<"open" | "collapsed" | "hidden">("open")
+  useEffect(() => { try { const saved = localStorage.getItem("gx.rightRail"); if (saved === "collapsed" || saved === "hidden") setMode(saved) } catch {} }, [])
+  useEffect(() => {
+    const root = railRef.current?.closest(".gx")
+    root?.classList.toggle("rail-collapsed", mode === "collapsed")
+    root?.classList.toggle("rail-hidden", mode === "hidden")
+    try { localStorage.setItem("gx.rightRail", mode) } catch {}
+    return () => { root?.classList.remove("rail-collapsed", "rail-hidden") }
+  }, [mode])
+
+  if (mode !== "open") {
+    return (
+      <aside ref={railRef} className={`right-rail gx-rail-${mode}`}>
+        <button className="gx-rail-toggle" onClick={() => setMode("open")} aria-label="Show suggestions sidebar" title="Show sidebar"><ChevronsLeft size={16} /></button>
+      </aside>
+    )
+  }
 
   return (
-    <aside className="right-rail">
+    <aside ref={railRef} className="right-rail">
+      <div className="gx-rail-controls">
+        <button onClick={() => setMode("collapsed")} aria-label="Shrink sidebar" title="Shrink"><ChevronsRight size={15} /></button>
+        <button onClick={() => setMode("hidden")} aria-label="Remove sidebar" title="Remove"><X size={15} /></button>
+      </div>
       <section className="suggested">
         <div className="section-heading"><h2>Suggested for you</h2><button onClick={() => setShowAll(!showAll)}>{showAll ? "Show less" : "See All"}</button></div>
         {!suggested?.items.length && <p className="gx-empty-note">New artists will show up here.</p>}
