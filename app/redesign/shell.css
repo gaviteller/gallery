@@ -75,3 +75,7 @@ html body:has(.gx) .auth-route-frame, html body:has(.gx) .auth-route-frame-inner
 .gx .gx-sheet-row .avatar, .gx .gx-sheet-row img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
 .gx .gx-sheet-row span { display: flex; flex-direction: column; font-size: 12px; }
 .gx .gx-sheet-row small { opacity: .65; }
+
+/* Messages: initials avatars sized like the design's images. */
+.gx-messages .conversation > .gx-avatar-fallback, .gx-messages .thread-header > .gx-avatar-fallback, .gx-messages .contact-list .gx-avatar-fallback { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; }
+.gx-messages .message-thread > .thread-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
