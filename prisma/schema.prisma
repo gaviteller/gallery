@@ -630,6 +630,8 @@ model Ad {
   imageUrl   String?
   postId     String?
   linkUrl    String
+  /// Look of the ad, set in the admin ad maker: { font, size, fit } (see components/redesign/AdCard.tsx).
+  style      Json?
   placements String[]  @default([])
   frequency  Int       @default(8)
   startsAt   DateTime  @default(now())

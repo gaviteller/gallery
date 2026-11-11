@@ -18,7 +18,7 @@ import { isAtLeast13 } from "@/lib/age"
 import GalleryLogo from "./GalleryLogo"
 import GalleryPaintDrips from "./GalleryPaintDrips"
 import { galleryThemes, getActiveTheme } from "./galleryThemes"
-import { useAds, type AdData } from "./AdCard"
+import { useAds, adStyle, AD_FONTS, AD_SIZES, type AdData } from "./AdCard"
 
 type Mode = "signin" | "signup" | "forgot"
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -303,6 +303,26 @@ function ForgotPasswordPanel() {
   )
 }
 
+/** An ad in the spotlight: the picture fills the whole panel and the text sits on top of it. */
+function SpotlightAd({ ad, external, onClick }: { ad: AdData; external: boolean; onClick: () => void }) {
+  const look = adStyle(ad.style)
+  return (
+    <a className={`spotlight-slide spotlight-ad fit-${look.fit}`} href={ad.linkUrl} onClick={onClick}
+      target={external ? "_blank" : undefined}
+      rel={external ? (ad.preset === "PARTNER" ? "sponsored noopener noreferrer" : "noopener noreferrer") : undefined}>
+      {ad.imageUrl && look.fit === "whole" && <img className="spotlight-ad-backdrop" src={ad.imageUrl} alt="" aria-hidden="true" />}
+      {ad.imageUrl && <img className="spotlight-ad-image" src={ad.imageUrl} alt="" />}
+      <span className="spotlight-ad-shade" aria-hidden="true" />
+      <span className="spotlight-ad-copy">
+        <span className="spotlight-ad-label">{AD_SLIDE_LABEL[ad.preset]}</span>
+        <span className="spotlight-ad-headline" style={{ fontFamily: AD_FONTS[look.font], fontSize: `calc(clamp(30px, 3.2vw, 52px) * ${AD_SIZES[look.size]})` }}>{ad.headline}</span>
+        {ad.body && <span className="spotlight-ad-body">{ad.body}</span>}
+        <span className="spotlight-action">Take a look<ArrowUpRight size={16} /></span>
+      </span>
+    </a>
+  )
+}
+
 /**
  * Left-hand spotlight: real recent artwork, rotating every 7 seconds. Ads placed on the
  * "Sign-up page" spot (admin Ads page) are mixed in as their own slides, labelled as such.
@@ -348,34 +368,30 @@ function SpotlightCarousel() {
   const adExternal = slide?.kind === "ad" && !slide.ad.linkUrl.startsWith("/")
 
   return (
-    <section className="spotlight" aria-label="Gallery Spotlight" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <section className={`spotlight ${slide?.kind === "ad" ? "has-ad" : ""}`} aria-label="Gallery Spotlight" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="spotlight-label"><span><Sparkles size={13} /> GALLERY SPOTLIGHT</span><span className="curated-label">A WORLD OF ORIGINALS</span></div>
-      <div className="spotlight-slide">
-        <div className="slide-category"><span>{slide?.kind === "ad" ? AD_SLIDE_LABEL[slide.ad.preset] : "FEATURED ARTWORK"}</span></div>
-        <h1>{slide?.kind === "ad" ? slide.ad.headline : "Where imagination finds a home."}</h1>
-        <p className="slide-description">{slide?.kind === "ad" ? slide.ad.body ?? "" : "Discover new work from artists across Gallery."}</p>
-        {slide && (slide.kind === "art" || slide.ad.imageUrl) && (
-          <div className="spotlight-art">
-            <img src={slide.kind === "art" ? slide.image : slide.ad.imageUrl!} alt={slide.kind === "art" ? slide.alt : ""} />
-            <span className="art-frame-corner" aria-hidden="true">✧</span>
-            <span className="artwork-index">{slide.kind === "ad" ? AD_SLIDE_LABEL[slide.ad.preset] : "ORIGINAL PERSPECTIVES"}</span>
-          </div>
-        )}
-        {slide?.kind === "art" && (
-          <div className="slide-footer">
-            <div className="attribution"><span className="attribution-dot" /><span>Artwork by @{slide.username}</span></div>
-            <Link className="spotlight-action" href={`/@${slide.username}/${slide.id}`}>View artwork<ArrowUpRight size={16} /></Link>
-          </div>
-        )}
-        {slide?.kind === "ad" && (
-          <div className="slide-footer">
-            <div className="attribution"><span className="attribution-dot" /><span>{slide.ad.preset === "PARTNER" ? "Sponsored" : slide.ad.preset === "ARTIST_SPOTLIGHT" ? "Featured artist" : "From Gallery"}</span></div>
-            <a className="spotlight-action" href={slide.ad.linkUrl} target={adExternal ? "_blank" : undefined}
-              rel={adExternal ? (slide.ad.preset === "PARTNER" ? "sponsored noopener noreferrer" : "noopener noreferrer") : undefined}
-              onClick={() => recordClick.mutate({ id: slide.ad.id })}>Take a look<ArrowUpRight size={16} /></a>
-          </div>
-        )}
-      </div>
+      {slide?.kind === "ad" ? (
+        <SpotlightAd ad={slide.ad} external={adExternal} onClick={() => recordClick.mutate({ id: slide.ad.id })} />
+      ) : (
+        <div className="spotlight-slide">
+          <div className="slide-category"><span>FEATURED ARTWORK</span></div>
+          <h1>Where imagination finds a home.</h1>
+          <p className="slide-description">Discover new work from artists across Gallery.</p>
+          {slide && (
+            <div className="spotlight-art">
+              <img src={slide.image} alt={slide.alt} />
+              <span className="art-frame-corner" aria-hidden="true">✧</span>
+              <span className="artwork-index">ORIGINAL PERSPECTIVES</span>
+            </div>
+          )}
+          {slide && (
+            <div className="slide-footer">
+              <div className="attribution"><span className="attribution-dot" /><span>Artwork by @{slide.username}</span></div>
+              <Link className="spotlight-action" href={`/@${slide.username}/${slide.id}`}>View artwork<ArrowUpRight size={16} /></Link>
+            </div>
+          )}
+        </div>
+      )}
       {slides.length > 1 && (
         <div className="carousel-controls">
           <div className="slide-arrows">

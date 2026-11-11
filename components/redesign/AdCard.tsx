@@ -15,6 +15,28 @@ export type AdData = {
   imageUrl: string | null
   linkUrl: string
   frequency: number
+  style?: unknown
+}
+
+/** Look of an ad, chosen in the admin ad maker. The admin app keeps a copy of these options. */
+export type AdStyle = { font: keyof typeof AD_FONTS; size: keyof typeof AD_SIZES; fit: "fill" | "whole" }
+export const AD_FONTS = {
+  classic: "Georgia, 'Times New Roman', serif",
+  modern: "Inter, 'Segoe UI', Arial, sans-serif",
+  display: "var(--font-playfair), 'Playfair Display', Georgia, serif",
+  handwritten: "'Segoe Print', 'Comic Sans MS', cursive",
+} as const
+/** Headline size multiplier. */
+export const AD_SIZES = { small: 0.75, medium: 1, large: 1.3, huge: 1.65 } as const
+
+/** Reads an ad's saved style, falling back to the defaults for anything missing or unknown. */
+export function adStyle(raw: unknown): AdStyle {
+  const s = (raw ?? {}) as Partial<Record<keyof AdStyle, string>>
+  return {
+    font: s.font && s.font in AD_FONTS ? (s.font as AdStyle["font"]) : "classic",
+    size: s.size && s.size in AD_SIZES ? (s.size as AdStyle["size"]) : "medium",
+    fit: s.fit === "whole" ? "whole" : "fill",
+  }
 }
 const LABELS = { ARTIST_SPOTLIGHT: "Featured artist", PARTNER: "Sponsored", GALLERY_PROMO: "From Gallery" } as const
 
@@ -47,6 +69,7 @@ export default function AdCard({ ad, variant = "card" }: { ad: AdData; variant?:
   }, [ad.id])
 
   const external = !ad.linkUrl.startsWith("/")
+  const look = adStyle(ad.style)
   return (
     <a
       ref={ref}
@@ -56,10 +79,10 @@ export default function AdCard({ ad, variant = "card" }: { ad: AdData; variant?:
       rel={external ? (ad.preset === "PARTNER" ? "sponsored noopener noreferrer" : "noopener noreferrer") : undefined}
       onClick={() => recordClick.mutate({ id: ad.id })}
     >
-      {ad.imageUrl && <img src={ad.imageUrl} alt="" draggable={false} />}
+      {ad.imageUrl && <img src={ad.imageUrl} alt="" draggable={false} style={look.fit === "whole" ? { objectFit: "contain", background: "#0b0c16" } : undefined} />}
       <span className="gx-ad-copy">
         <span className="gx-ad-label">{LABELS[ad.preset]}</span>
-        <strong>{ad.headline}</strong>
+        <strong style={{ fontFamily: AD_FONTS[look.font], fontSize: 15 * AD_SIZES[look.size] }}>{ad.headline}</strong>
         {ad.body && <span className="gx-ad-body">{ad.body}</span>}
         <span className="gx-ad-cta">Take a look <ArrowUpRight size={14} /></span>
       </span>

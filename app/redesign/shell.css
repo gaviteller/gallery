@@ -119,3 +119,33 @@ html body:has(.gx) .auth-route-frame, html body:has(.gx) .auth-route-frame-inner
 .gx .gx-ad-banner img { width: 38%; max-height: 190px; }
 .gx .gx-ad-banner .gx-ad-copy { justify-content: center; padding: 18px 22px; }
 @media (max-width: 640px) { .gx .gx-ad-banner { flex-direction: column; } .gx .gx-ad-banner img { width: 100%; } }
+
+
+/* Sign-up / sign-in spotlight ad: the picture fills the whole left panel, text on top. */
+.gx-auth .spotlight-ad { position: relative; display: block; overflow: hidden; height: clamp(380px, calc(100dvh - 330px), 680px); border: 1px solid #6e4a73; border-radius: 16px; background: #0d0e1a; color: #f3e8f5; text-decoration: none; box-shadow: 0 13px 45px #04040a66; }
+.gx-auth .spotlight-ad img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.gx-auth .spotlight-ad-image { object-fit: cover; }
+.gx-auth .spotlight-ad.fit-whole .spotlight-ad-image { object-fit: contain; }
+.gx-auth .spotlight-ad-backdrop { object-fit: cover; filter: blur(28px) brightness(.55) saturate(1.2); transform: scale(1.15); }
+.gx-auth .spotlight-ad-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9,10,20,.15) 0%, rgba(9,10,20,.05) 35%, rgba(9,10,20,.82) 78%, rgba(9,10,20,.94) 100%); }
+.gx-auth .spotlight-ad-copy { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 28px 30px 28px; }
+.gx-auth .spotlight-ad-label { font-size: 10px; letter-spacing: 2.4px; color: #e7b8ea; background: rgba(9,10,20,.55); border: 1px solid #6e4a7388; border-radius: 20px; padding: 4px 10px; }
+.gx-auth .spotlight-ad-headline { line-height: 1.06; letter-spacing: -1px; max-width: 16ch; text-wrap: balance; color: #fbf1fb; text-shadow: 0 2px 18px rgba(0,0,0,.55); }
+.gx-auth .spotlight-ad-body { max-width: 48ch; font-size: 14px; line-height: 1.5; color: #dccbe4; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
+.gx-auth .spotlight-ad .spotlight-action { margin-top: 6px; background: rgba(9,10,20,.55); }
+.gx-auth .spotlight-ad:hover { border-color: #a26aa9; }
+/* Narrow screens: the sign-in / sign-up form comes first, the spotlight below it. */
+@media (max-width: 760px) {
+  .gx-auth .signin-column { order: -1 !important; }
+  .gx-auth .spotlight-ad { height: 420px; }
+  .gx-auth .spotlight-ad-copy { padding: 20px; }
+}
+
+/* When an ad is showing, it takes over the WHOLE left column; label and slide controls sit on top. */
+.gx-auth .spotlight.has-ad { align-self: stretch; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 0; min-height: 520px; border-radius: 18px; overflow: hidden; }
+.gx-auth .spotlight.has-ad .spotlight-ad { position: absolute; inset: 0; height: auto; border-radius: 18px; animation: appear .45s ease-out; }
+.gx-auth .spotlight.has-ad .spotlight-label { position: relative; z-index: 2; margin: 0; padding: 22px 26px 40px; background: linear-gradient(180deg, rgba(9,10,20,.7), transparent); pointer-events: none; }
+.gx-auth .spotlight.has-ad .spotlight-ad-copy { padding: 30px 30px 112px; }
+.gx-auth .spotlight.has-ad .carousel-controls { position: relative; z-index: 2; margin: 0; padding: 18px 26px 22px; border-top: 0; background: linear-gradient(0deg, rgba(9,10,20,.9), rgba(9,10,20,.55)); }
+.gx-auth .spotlight.has-ad .spotlight-note { display: none; }
+@media (max-width: 760px) { .gx-auth .spotlight.has-ad { min-height: 540px; } }

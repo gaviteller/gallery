@@ -22,7 +22,7 @@ export const adRouter = router({
         },
         orderBy: { createdAt: "desc" },
         take: 10,
-        select: { id: true, preset: true, headline: true, body: true, imageUrl: true, linkUrl: true, frequency: true },
+        select: { id: true, preset: true, headline: true, body: true, imageUrl: true, linkUrl: true, frequency: true, style: true },
       })
     }),
 
