@@ -90,7 +90,7 @@ function ShopMain() {
         <section className="rising-artists">
           <div className="shop-section-heading">
             <div><h2>Rising Stars <span>✧</span></h2><p>Small shops. Big creative energy.</p></div>
-            <button onClick={(e) => e.currentTarget.closest("section")?.querySelector(".rising-highlight-row")?.scrollBy({ left: 350, behavior: "smooth" })}>See All <ArrowRight size={13} /></button>
+            <Link href="/search" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>See All <ArrowRight size={13} /></Link>
           </div>
           <div className="rising-highlight-row">
             {sellers.map((seller) => (
