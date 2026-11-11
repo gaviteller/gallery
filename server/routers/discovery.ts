@@ -118,7 +118,7 @@ export const discoveryRouter = router({
    * Shown in the sidebar "Trending" box.
    */
   trendingTags: publicProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(30).default(6) }))
+    .input(z.object({ limit: z.number().int().min(1).max(5).default(5) }))
     .query(async ({ ctx, input }) => {
       const rank = async (since?: Date) => {
         const tags = await ctx.prisma.hashtag.findMany({

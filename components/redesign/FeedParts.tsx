@@ -194,7 +194,7 @@ export function FeedRightRail() {
       <section className="trending">
         <div className="section-heading"><h2><Sparkles size={16} /> Trending now</h2><span className="eyebrow">THIS MONTH</span></div>
         {!trending?.items.length && <p className="gx-empty-note">Add #tags to your captions to start a trend.</p>}
-        {trending?.items.map((item, index) => (
+        {trending?.items.slice(0, 5).map((item, index) => (
           <Link className="trend-row" key={item.tag} href={`/search?q=${encodeURIComponent("#" + item.tag)}`}>
             <span className="trend-number">0{index + 1}</span><strong>#{item.tag}</strong>
             <span>{item.count}<ArrowUpRight size={11} /></span>

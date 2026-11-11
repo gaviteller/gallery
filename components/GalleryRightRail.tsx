@@ -44,7 +44,7 @@ export function GalleryPromoCard() {
 
 export default function GalleryRightRail({ variant = "combined", showPromo = true }: { variant?: Variant; showPromo?: boolean }) {
   const { data: suggested } = trpc.discovery.risingStars.useQuery({ limit: 5, excludeFollowed: true })
-  const { data: trending } = trpc.discovery.trendingTags.useQuery({ limit: 6 })
+  const { data: trending } = trpc.discovery.trendingTags.useQuery({ limit: 5 })
 
   const suggestedBlock = (
     <>
