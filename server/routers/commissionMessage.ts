@@ -51,10 +51,10 @@ export const commissionMessageRouter = router({
           fileUrl: input.fileUrl ?? null,
         },
       })
-      // Check the text for safety after replying (hidden from the other person if flagged).
+      // Let the AI look at the text after replying; it only informs the team (admin → AI flags).
       if (message.text) {
         const prisma = ctx.prisma
-        after(() => scanChatMessage(prisma, "COMMISSION", message.id).then(() => undefined))
+        after(() => scanChatMessage(prisma, "COMMISSION", message.id))
       }
       // The notification type carries the commission id so the bell can link to the thread.
       await ctx.prisma.notification.create({

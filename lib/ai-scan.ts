@@ -1,36 +1,33 @@
 /**
- * AI CONTENT MODERATION.
+ * AI CONTENT MODERATION — TEACHING PHASE: THE AI ONLY INFORMS THE TEAM.
  *
- * Sends uploaded images and comments to an AI model (Llama 4 Scout via OpenRouter)
- * that scores them against Gallery's rules. THE AI ONLY FLAGS: it holds content for a
- * human moderator and never removes, strikes, or bans on its own. The moderator's decision
- * is written back to AIScanLog (see "Human decisions" below) so the AI's accuracy can be
- * measured and its rules tuned over time.
+ * Sends new images and text to an AI model (Llama 4 Scout via OpenRouter) that scores them
+ * against Gallery's rules. While the AI is still being taught it NEVER blocks anything:
+ * no removing, hiding, holding for review, taking down, strikes, or bans. Content stays live.
+ * It only writes a flag to the AIScanLog table; the team sees it in the admin panel
+ * (Moderation → AI flags), does any moderation themselves, and answers
+ * "was the AI right? yes/no" with a reason. That answer is the AI's training feedback.
  *
  * What gets scanned (and by which function):
- *   scanPost      → new posts                 (called from server/routers/post.ts)
- *   scanShopItem  → new shop listings         (server/routers/shop.ts)
- *   scanAvatar    → profile photos & banners  (server/routers/user.ts)
- *   scanComment   → new comments              (server/routers/interaction.ts)
- *   scanChatMessage → direct messages and commission chat text (server/routers/dm.ts, commissionMessage.ts)
- * Commission reference photos and DM/commission file attachments are intentionally NOT scanned
- * (private content — report-only). Chat TEXT is checked for safety (hidden for review if flagged).
+ *   scanPost        → new posts                 (server/routers/post.ts)
+ *   scanShopItem    → new shop listings         (server/routers/shop.ts)
+ *   scanAvatar      → profile photos & banners  (server/routers/user.ts)
+ *   scanComment     → new comments              (server/routers/interaction.ts)
+ *   scanChatMessage → direct messages and commission chat text (dm.ts, commissionMessage.ts)
+ * Commission reference photos and DM/commission file attachments are intentionally NOT
+ * scanned (private content — report-only).
  *
- * Image outcome (posts & shop items) — the label records how sure the AI was:
- *   any category 10  → held for review, action PENDING_REVIEW_ZERO_TOLERANCE
- *   any category 9   → held for review, action PENDING_REVIEW_SEVERE
- *   clothing/violence/self-harm ≥ 7 → held for review, action PENDING_REVIEW_EXPLICIT
- *   pose ≥ 7 only    → held for review, action PENDING_REVIEW_POSE
- *   otherwise        → published normally
- * Profile photos / banners flagged SUGGESTIVE or worse are taken down until a moderator
- * restores them (the image link is kept in the log). Flagged comments are hidden.
- * Every scan (including errors) is written to the AIScanLog table, visible in the admin panel.
+ * Flag labels (AIScanLog.action) record how sure the AI was:
+ *   images: any category 10 → FLAGGED_ZERO_TOLERANCE · any 9 → FLAGGED_SEVERE
+ *           clothing/violence/self-harm ≥ 7 → FLAGGED_EXPLICIT · pose ≥ 7 only → FLAGGED_POSE
+ *   profile pictures: SUGGESTIVE or worse → FLAGGED_SUGGESTIVE / FLAGGED_EXPLICIT
+ *   text (comments, chat): AI verdict REMOVE → FLAGGED
+ *   otherwise NONE (still logged for images, so the AI's "looks fine" calls can be audited too).
  *
- * Human decisions (written by the admin panel): overriddenAt/overriddenBy = when and who
- * reviewed it; overridden = true means the moderator disagreed with the AI (content restored),
- * false with overriddenAt set means the moderator agreed.
+ * Team feedback (written by the admin panel): overriddenAt/overriddenBy = reviewed when/by whom,
+ * overridden = true when the AI was WRONG, reviewNote = the reviewer's reason.
  *
- * If OPENROUTER_API_KEY is missing, every scan is skipped and content is published unscanned.
+ * If OPENROUTER_API_KEY is missing, every scan is skipped.
  */
 import { PrismaClient } from "@prisma/client"
 
@@ -242,302 +239,94 @@ async function scoreCommentWithAI(commentText: string): Promise<CommentScores> {
   }
 }
 
-/** Scans a saved comment; if the AI says REMOVE, the comment is hidden (not deleted) with the reason. */
-export async function scanComment(
-  prisma: PrismaClient,
-  commentId: string,
-): Promise<void> {
-  if (!process.env.OPENROUTER_API_KEY) return
-
-  const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { text: true } })
-  if (!comment) return
-
-  let scores: CommentScores
-  try {
-    scores = await scoreCommentWithAI(comment.text)
-  } catch (err) {
-    console.error("[ai-scan] comment scan failed:", err)
-    return
-  }
-
-  if (scores.verdict === "REMOVE") {
-    try {
-      await prisma.comment.update({
-        where: { id: commentId },
-        data: { hidden: true, hiddenReason: `AI scan (${scores.combined}/100): ${scores.reason}` },
-      })
-      await prisma.aIScanLog.create({
-        data: { contentType: "COMMENT", contentId: commentId, scores: scores as object, verdict: scores.verdict, action: "HIDDEN_FOR_REVIEW" },
-      })
-    } catch (err) {
-      console.error("[ai-scan] comment hide failed:", err)
-    }
-  }
+/** Picks the flag label for an image from its scores (see top of file). */
+function imageFlag(scores: ScanScores): string {
+  const values = [scores.clothing, scores.pose, scores.violence, scores.selfHarm]
+  if (values.includes(10)) return "FLAGGED_ZERO_TOLERANCE"
+  if (values.includes(9)) return "FLAGGED_SEVERE"
+  if (scores.clothing >= 7 || scores.violence >= 7 || scores.selfHarm >= 7) return "FLAGGED_EXPLICIT"
+  if (scores.pose >= 7) return "FLAGGED_POSE"
+  return "NONE"
 }
 
-/**
- * Scans a new shop listing's preview image and applies the outcome ladder
- * (see top of file): may hold the listing for human review and notify the seller.
- */
-export async function scanShopItem(
-  prisma: PrismaClient,
-  itemId: string,
-  userId: string,
-  imageDataUrl: string,
-): Promise<void> {
+async function logScanError(prisma: PrismaClient, contentType: string, contentId: string, err: unknown) {
+  console.error(`[ai-scan] ${contentType} scan failed:`, err)
+  try {
+    await prisma.aIScanLog.create({ data: { contentType, contentId, scores: {}, verdict: "ERROR", action: `SCAN_ERROR: ${String(err)}` } })
+  } catch {}
+}
+
+/** Scores a new comment. If the AI thinks it breaks the rules, the team is informed. */
+export async function scanComment(prisma: PrismaClient, commentId: string): Promise<void> {
   if (!process.env.OPENROUTER_API_KEY) return
+  const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { text: true } })
+  if (!comment) return
+  let scores: CommentScores
+  try { scores = await scoreCommentWithAI(comment.text) } catch (err) { return logScanError(prisma, "COMMENT", commentId, err) }
+  if (scores.verdict !== "REMOVE") return
+  await prisma.aIScanLog.create({
+    data: { contentType: "COMMENT", contentId: commentId, scores: scores as object, verdict: scores.verdict, action: "FLAGGED" },
+  }).catch((err) => console.error("[ai-scan] comment log failed:", err))
+}
 
+/** Scores a chat message's text (direct message or commission thread). Informs the team only. */
+export async function scanChatMessage(prisma: PrismaClient, kind: "DM" | "COMMISSION", messageId: string): Promise<void> {
+  if (!process.env.OPENROUTER_API_KEY) return
+  const message = kind === "DM"
+    ? await prisma.directMessage.findUnique({ where: { id: messageId }, select: { text: true } })
+    : await prisma.professionalMessage.findUnique({ where: { id: messageId }, select: { text: true } })
+  if (!message?.text?.trim()) return
+  const contentType = kind === "DM" ? "DM_MESSAGE" : "COMMISSION_MESSAGE"
+  let scores: CommentScores
+  try { scores = await scoreCommentWithAI(message.text) } catch (err) { return logScanError(prisma, contentType, messageId, err) }
+  if (scores.verdict !== "REMOVE") return
+  await prisma.aIScanLog.create({
+    data: { contentType, contentId: messageId, scores: scores as object, verdict: scores.verdict, action: "FLAGGED" },
+  }).catch((err) => console.error("[ai-scan] chat log failed:", err))
+}
+
+/** Scores a new shop listing's preview image and records the AI's opinion. Informs the team only. */
+export async function scanShopItem(prisma: PrismaClient, itemId: string, _userId: string, imageDataUrl: string): Promise<void> {
+  if (!process.env.OPENROUTER_API_KEY) return
   let scores: ScanScores
+  try { scores = await scoreImageWithAI(imageDataUrl) } catch (err) { return logScanError(prisma, "SHOP_ITEM", itemId, err) }
   try {
-    scores = await scoreImageWithAI(imageDataUrl)
-  } catch (err) {
-    console.error("[ai-scan] OpenRouter call failed (shop):", err)
-    try {
-      await prisma.aIScanLog.create({
-        data: { contentType: "SHOP_ITEM", contentId: itemId, scores: {}, verdict: "ERROR", action: `SCAN_ERROR: ${String(err)}` },
-      })
-    } catch {}
-    return
-  }
-
-  const isZeroTolerance =
-    scores.clothing === 10 || scores.pose === 10 || scores.violence === 10 || scores.selfHarm === 10
-  const isSevere =
-    !isZeroTolerance &&
-    (scores.clothing === 9 || scores.pose === 9 || scores.violence === 9 || scores.selfHarm === 9)
-  const isExplicit =
-    !isZeroTolerance && !isSevere && (scores.clothing >= 7 || scores.violence >= 7 || scores.selfHarm >= 7)
-  const isPoseOnly =
-    !isZeroTolerance && !isSevere && !isExplicit && scores.pose >= 7
-
-  let action: string
-  let newStatus: string | null = null
-
-  if (isZeroTolerance) {
-    action = "PENDING_REVIEW_ZERO_TOLERANCE"
-    newStatus = "PENDING_REVIEW"
-  } else if (isSevere) {
-    action = "PENDING_REVIEW_SEVERE"
-    newStatus = "PENDING_REVIEW"
-  } else if (isExplicit) {
-    action = "PENDING_REVIEW_EXPLICIT"
-    newStatus = "PENDING_REVIEW"
-  } else if (isPoseOnly) {
-    action = "PENDING_REVIEW_POSE"
-    newStatus = "PENDING_REVIEW"
-  } else {
-    action = "NONE"
-  }
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.shopItem.update({
-        where: { id: itemId },
-        data: {
-          aiVerdict: scores.verdict,
-          aiScores: scores as object,
-          ...(newStatus ? { status: newStatus } : {}),
-        },
-      })
-
-
-      if (newStatus === "PENDING_REVIEW") {
-        await tx.notification.create({
-          data: { userId, fromUserId: null, type: "post_pending_review" },
-        })
-      }
-
-      await tx.aIScanLog.create({
-        data: {
-          contentType: "SHOP_ITEM",
-          contentId: itemId,
-          scores: scores as object,
-          verdict: scores.verdict,
-          action,
-        },
-      })
-    })
+    await prisma.shopItem.update({ where: { id: itemId }, data: { aiVerdict: scores.verdict, aiScores: scores as object } })
+    await prisma.aIScanLog.create({ data: { contentType: "SHOP_ITEM", contentId: itemId, scores: scores as object, verdict: scores.verdict, action: imageFlag(scores) } })
   } catch (err) {
     console.error("[ai-scan] DB update failed (shop):", err)
   }
 }
 
-// Avatar and banner images are public everywhere — taken down on anything SUGGESTIVE or worse
-// until a moderator reviews it. The image link is kept in the log so it can be restored.
-export async function scanAvatar(
-  prisma: PrismaClient,
-  userId: string,
-  field: "image" | "bannerImage",
-  imageDataUrl: string,
-): Promise<void> {
+/** Scores a new profile photo / banner. The picture stays up; the team is informed if it's flagged. */
+export async function scanAvatar(prisma: PrismaClient, userId: string, field: "image" | "bannerImage", imageDataUrl: string): Promise<void> {
   if (!process.env.OPENROUTER_API_KEY) return
-
   let scores: ScanScores
-  try {
-    scores = await scoreImageWithAI(imageDataUrl)
-  } catch (err) {
-    console.error("[ai-scan] OpenRouter call failed (avatar):", err)
-    try {
-      await prisma.aIScanLog.create({
-        data: { contentType: "AVATAR", contentId: userId, scores: {}, verdict: "ERROR", action: `SCAN_ERROR: ${String(err)}` },
-      })
-    } catch {}
-    return
-  }
-
+  try { scores = await scoreImageWithAI(imageDataUrl) } catch (err) { return logScanError(prisma, "AVATAR", userId, err) }
   if (scores.verdict === "SAFE") return
-
-  const action = scores.verdict === "EXPLICIT" ? "AVATAR_HELD_EXPLICIT" : "AVATAR_HELD_SUGGESTIVE"
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      // Take the image down until a moderator reviews it
-      await tx.user.update({
-        where: { id: userId },
-        data: { [field]: null },
-      })
-
-
-      await tx.aIScanLog.create({
-        data: {
-          contentType: "AVATAR",
-          contentId: userId,
-          scores: { ...scores, heldImage: imageDataUrl, field } as object,
-          verdict: scores.verdict,
-          action,
-        },
-      })
-    })
-  } catch (err) {
-    console.error("[ai-scan] DB update failed (avatar):", err)
-  }
+  await prisma.aIScanLog.create({
+    data: {
+      contentType: "AVATAR",
+      contentId: userId,
+      scores: { ...scores, image: imageDataUrl, field } as object,
+      verdict: scores.verdict,
+      action: scores.verdict === "EXPLICIT" ? "FLAGGED_EXPLICIT" : "FLAGGED_SUGGESTIVE",
+    },
+  }).catch((err) => console.error("[ai-scan] avatar log failed:", err))
 }
 
 /**
- * Scans a new post's image and applies the outcome ladder (see top of file):
- * may hold the post for human review and notify the artist.
+ * Scores a new post's image and records the AI's opinion. Informs the team only.
  * Also re-run by the report flow when a reported post was never scanned.
  */
-export async function scanPost(
-  prisma: PrismaClient,
-  postId: string,
-  userId: string,
-  imageDataUrl: string,
-): Promise<void> {
+export async function scanPost(prisma: PrismaClient, postId: string, _userId: string, imageDataUrl: string): Promise<void> {
   if (!process.env.OPENROUTER_API_KEY) return
-
   let scores: ScanScores
+  try { scores = await scoreImageWithAI(imageDataUrl) } catch (err) { return logScanError(prisma, "POST", postId, err) }
   try {
-    scores = await scoreImageWithAI(imageDataUrl)
+    await prisma.post.update({ where: { id: postId }, data: { aiVerdict: scores.verdict, aiScores: scores as object } })
+    await prisma.aIScanLog.create({ data: { contentType: "POST", contentId: postId, scores: scores as object, verdict: scores.verdict, action: imageFlag(scores) } })
   } catch (err) {
-    console.error("[ai-scan] OpenRouter call failed:", err)
-    try {
-      await prisma.aIScanLog.create({
-        data: { contentType: "POST", contentId: postId, scores: {}, verdict: "ERROR", action: `SCAN_ERROR: ${String(err)}` },
-      })
-    } catch {}
-    return
+    console.error("[ai-scan] DB update failed (post):", err)
   }
-
-  const isZeroTolerance =
-    scores.clothing === 10 || scores.pose === 10 || scores.violence === 10 || scores.selfHarm === 10
-  const isSevere =
-    !isZeroTolerance &&
-    (scores.clothing === 9 || scores.pose === 9 || scores.violence === 9 || scores.selfHarm === 9)
-  const isExplicitNonPose =
-    !isZeroTolerance && !isSevere && (scores.clothing >= 7 || scores.violence >= 7 || scores.selfHarm >= 7)
-  const isPoseHighOnly =
-    !isZeroTolerance && !isSevere && !isExplicitNonPose && scores.pose >= 7
-
-  let action: string
-  let newStatus: "PENDING_REVIEW" | null = null
-
-  if (isZeroTolerance) {
-    action = "PENDING_REVIEW_ZERO_TOLERANCE"
-    newStatus = "PENDING_REVIEW"
-  } else if (isSevere) {
-    action = "PENDING_REVIEW_SEVERE"
-    newStatus = "PENDING_REVIEW"
-  } else if (isExplicitNonPose) {
-    action = "PENDING_REVIEW_EXPLICIT"
-    newStatus = "PENDING_REVIEW"
-  } else if (isPoseHighOnly) {
-    action = "PENDING_REVIEW_POSE"
-    newStatus = "PENDING_REVIEW"
-  } else {
-    action = "NONE"
-  }
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.post.update({
-        where: { id: postId },
-        data: {
-          aiVerdict: scores.verdict,
-          aiScores: scores as object,
-          ...(newStatus === "PENDING_REVIEW"
-            ? { status: "PENDING_REVIEW", pendingAt: new Date(), flagReason: `AI scan: ${scores.reason}` }
-            : {}),
-        },
-      })
-
-
-      if (newStatus === "PENDING_REVIEW") {
-        await tx.notification.create({
-          data: { userId, fromUserId: null, type: "post_pending_review" },
-        })
-      }
-
-      await tx.aIScanLog.create({
-        data: {
-          contentType: "POST",
-          contentId: postId,
-          scores: scores as object,
-          verdict: scores.verdict,
-          action,
-        },
-      })
-    })
-  } catch (err) {
-    console.error("[ai-scan] DB update failed:", err)
-  }
-}
-
-/**
- * Checks a chat message's text (direct message or commission thread) with the same rules as
- * comments. If flagged it's hidden from the other person until a moderator decides (admin →
- * AI holds). Returns true when the message is fine to deliver (so the caller can send the push).
- */
-export async function scanChatMessage(
-  prisma: PrismaClient,
-  kind: "DM" | "COMMISSION",
-  messageId: string,
-): Promise<boolean> {
-  if (!process.env.OPENROUTER_API_KEY) return true
-
-  const message = kind === "DM"
-    ? await prisma.directMessage.findUnique({ where: { id: messageId }, select: { text: true } })
-    : await prisma.professionalMessage.findUnique({ where: { id: messageId }, select: { text: true } })
-  if (!message?.text?.trim()) return true
-
-  let scores: CommentScores
-  try {
-    scores = await scoreCommentWithAI(message.text)
-  } catch (err) {
-    console.error("[ai-scan] chat scan failed:", err)
-    return true
-  }
-  if (scores.verdict !== "REMOVE") return true
-
-  const hiddenReason = `AI scan (${scores.combined}/100): ${scores.reason}`
-  try {
-    if (kind === "DM") await prisma.directMessage.update({ where: { id: messageId }, data: { hidden: true, hiddenReason } })
-    else await prisma.professionalMessage.update({ where: { id: messageId }, data: { hidden: true, hiddenReason } })
-    await prisma.aIScanLog.create({
-      data: { contentType: kind === "DM" ? "DM_MESSAGE" : "COMMISSION_MESSAGE", contentId: messageId, scores: scores as object, verdict: scores.verdict, action: "HIDDEN_FOR_REVIEW" },
-    })
-  } catch (err) {
-    console.error("[ai-scan] chat hide failed:", err)
-  }
-  return false
 }

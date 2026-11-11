@@ -191,19 +191,16 @@ export const dmRouter = router({
       const preview = input.text.length > PUSH_PREVIEW_MAX_CHARS
         ? input.text.slice(0, PUSH_PREVIEW_MAX_CHARS - 3) + "…"
         : input.text
-      // Check the text after replying, then send the push only if it wasn't flagged.
+      sendPushToUser(ctx.prisma, otherUserId, {
+        title: senderName,
+        body: preview,
+        url: `/messages/${input.conversationId}`,
+        tag: `dm-${input.conversationId}`,
+      }).catch(() => { /* push failures must not fail the send */ })
+
+      // Let the AI look at the text after replying; it only informs the team (admin → AI flags).
       const prisma = ctx.prisma
-      const messageId = message.id
-      after(async () => {
-        const deliver = await scanChatMessage(prisma, "DM", messageId)
-        if (!deliver) return
-        sendPushToUser(prisma, otherUserId, {
-          title: senderName,
-          body: preview,
-          url: `/messages/${input.conversationId}`,
-          tag: `dm-${input.conversationId}`,
-        }).catch(() => { /* push failures must not fail the send */ })
-      })
+      after(() => scanChatMessage(prisma, "DM", message.id))
 
       return message
     }),

@@ -239,6 +239,8 @@ model AIScanLog {
   overridden   Boolean   @default(false)
   overriddenBy String?
   overriddenAt DateTime?
+  /// The team member's reason when answering "was the AI right?" (training feedback).
+  reviewNote   String?
   createdAt    DateTime  @default(now())
 
   @@index([contentType, contentId])
