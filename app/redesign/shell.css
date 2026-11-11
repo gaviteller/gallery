@@ -46,3 +46,12 @@ html body:has(.gx) { background: #090b16; overflow-x: hidden; }
 .gx .gx-empty-note { font-size: 10px; color: var(--muted); margin: 14px 0; line-height: 1.6; }
 .gx .gx-error { color: #f58fa8; }
 .gx .composer-tools button:nth-child(2) svg { color: #a07ce4; }
+
+/* Feed: compact stories strip so posts get more room. */
+.gx-feed .stories-panel { padding: 10px 16px 9px; margin-bottom: 12px; }
+.gx-feed .stories-panel .section-heading { margin-bottom: 9px; }
+.gx-feed .stories-track { gap: 14px; }
+.gx-feed .story { width: 50px; gap: 6px; font-size: 8px; }
+.gx-feed .story-ring { width: 46px; height: 46px; }
+.gx-feed .story-ring i { width: 16px; height: 16px; }
+.gx-feed .feed { padding-top: 18px; }

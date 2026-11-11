@@ -13,7 +13,7 @@ import { trpc } from "@/components/providers"
 import PostModal from "@/components/PostModal"
 import ReportModal from "@/components/ReportModal"
 import RedesignShell, { GallerySidebar } from "@/components/redesign/RedesignShell"
-import { StoriesPanel, PostComposer, FeedPost, FeedRightRail, type FeedPostData } from "@/components/redesign/FeedParts"
+import { StoriesPanel, FeedPost, FeedRightRail, type FeedPostData } from "@/components/redesign/FeedParts"
 
 export default function FeedPage() {
   const { data: session, status } = useSession()
@@ -90,16 +90,8 @@ function FeedColumn() {
 
   return (
     <main className="feed">
-      <div className="feed-intro">
-        <div>
-          <span className="eyebrow">A LITTLE INSPIRATION. A LOT OF POSSIBILITY.</span>
-          <h1>Your daily dose of <em>creative.</em><Sparkles size={21} /></h1>
-        </div>
-        <span className="community-dot">THE FEED</span>
-      </div>
       <StoriesPanel />
       <div className="post-stream" aria-label="Scrollable post stream">
-        <PostComposer />
         <div className="feed-sort">
           <span>From your creative world</span>
           <button onClick={() => setMostLovedFirst(!mostLovedFirst)}><ArrowDownWideNarrow size={14} />{mostLovedFirst ? "Most loved" : "For you"}</button>
