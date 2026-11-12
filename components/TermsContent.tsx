@@ -81,12 +81,16 @@ export default function TermsContent() {
         <SectionTitle n="3" title="Content Rules" />
         <Sub title="3.1 Free Expression on Gallery">
           Gallery supports free expression. You may share any idea, opinion, belief, or religious view on Gallery, provided it is expressed calmly, non-aggressively, and non-violently. The moment expression becomes an attack on a person or group, incites violence, or crosses into hate speech as defined below, it is no longer permitted on Gallery.
+          <p className="mt-2">As a general guide, content that would normally be allowed on mainstream social platforms such as Instagram is allowed on Gallery, except where these Terms are deliberately stricter (for example, Gallery allows no nudity). Gallery judges each post as a whole: the image together with its title, caption, hashtags and any text in the image. Showing something in a story or artwork is treated very differently from promoting, selling or teaching it, and content about real, identifiable people or real events is held to a stricter standard than fiction.</p>
         </Sub>
         <Sub title="3.2 Prohibited Content">
           <p className="mb-2">The following content is strictly prohibited on Gallery:</p>
           <BulletList items={[
-            "Explicit sexual content or nudity of any kind",
-            "Sexual acts or implied sexual acts",
+            "Nudity of any kind — visible nipples, genitals or bare buttocks — including artistic, classical and figure-study nudes, and see-through clothing that shows them",
+            "Sexual acts, explicit or clearly simulated, and pornographic or fetish content",
+            "Offering or requesting sexual services, or links to adult sites",
+            "Sexual or nude images of real, identifiable people, including deepfakes and AI-generated images — Zero Tolerance",
+            "Sharing intimate images of anyone without their consent, or sextortion — Zero Tolerance",
             "Content involving minors in any sexual or violent context — Zero Tolerance",
             "Gratuitous gore with no artistic context — content that exists purely for shock value",
             "Content targeting, dehumanising, or calling for violence against any person or group",
@@ -99,12 +103,24 @@ export default function TermsContent() {
             "Doxxing — sharing another person's private real-world information without consent",
             "Impersonation of another artist, user, or public figure",
             "Blackmail or extortion",
+            "Encouraging anyone to hurt or kill themselves, self-harm presented as attractive or as instructions, and pro-eating-disorder content",
+            "Hate symbols or hate-group material used approvingly",
+            "Buying, selling or arranging the sale of drugs, weapons, ammunition, explosives, counterfeit or stolen goods, or other illegal items — in posts, messages or the shop",
+            "Instructions for making drugs, weapons or explosives, or for committing crimes",
+            "Asking to be paid outside Gallery for commissions or shop items, scams, phishing, fake giveaways, spam, bots and buying or selling likes or followers",
+            "Cruelty to real animals, and any sexual content involving animals — Zero Tolerance",
+            "Dangerous challenges likely to cause serious injury, and clearly harmful health misinformation",
+            "Swearing or offensive words in usernames, display names or bios",
           ]} />
         </Sub>
         <Sub title="3.3 Allowed Content">
           <p className="mb-2">The following content is permitted on Gallery:</p>
           <BulletList items={[
-            "Suggestive or lewd content, including revealing clothing and suggestive poses, provided no nudity or sexual acts are depicted",
+            "Revealing, provocative or fashion-forward outfits and alluring poses, provided no nudity or sexual acts are shown",
+            "Implied nudity where the person is properly covered — for example by hair, objects, fabric or shadows — with nothing explicit visible",
+            "Crime, drug use, alcohol and smoking shown as part of a story or scene, provided it is not promoted, sold or presented as aspirational",
+            "Historical, educational or critical depictions that include hate symbols, where the context is clear (Gallery may review these)",
+            "Casual swearing in posts, comments and messages that is not aimed at anyone",
             "Artistic violence and gore within a clear narrative or fictional context — including dark fantasy, horror, and manga-style action",
             "Political art and social commentary, provided it does not cross into hate speech or incitement",
             "Fan art of existing characters and IP — subject to Section 9 (Intellectual Property)",
@@ -150,7 +166,8 @@ export default function TermsContent() {
           ]} />
         </Sub>
         <Sub title="3.7 AI Art Policy">
-          <p>AI-assisted art is permitted on Gallery provided it is clearly labelled as AI-assisted. AI-generated art that replicates or is clearly derived from a specific artist&apos;s style without their consent is prohibited.</p>
+          <p>AI-assisted art is permitted on Gallery provided it is clearly labelled as AI-assisted — either with the AI switch when posting, or in the caption or hashtags (for example #ai or &ldquo;made with AI&rdquo;). AI-generated art that replicates or is clearly derived from a specific artist&apos;s style without their consent is prohibited.</p>
+          <p className="mt-2">If Gallery&apos;s systems detect possible AI use in an unlabelled post, the post stays up and you receive a notice asking you to label it, or to send evidence that it isn&apos;t AI (such as work-in-progress shots or the layered file). Only a Gallery moderator can issue a strike.</p>
           <BulletList items={[
             "Unlabelled AI art: warning first, then Minor strike for repeat offences",
             "AI art that steals another artist's style or work: Severe strike",
@@ -162,6 +179,9 @@ export default function TermsContent() {
         </Sub>
         <Sub title="3.9 Fan Art & Legal Liability">
           Fan art is permitted on Gallery. Artists are solely responsible for the legal consequences of any fan art they create or sell, including IP claims from rights holders such as Nintendo or Disney. Gallery&apos;s legal responsibility for fan art is limited to DMCA compliance. Exception: if Gallery actively uses an artist&apos;s fan art in its own marketing or advertising materials, legal responsibility for resulting IP claims shifts to Gallery.
+        </Sub>
+        <Sub title="3.10 Where Content Appears">
+          Profile photos, banners, usernames, display names and bios appear next to everything you do on Gallery, so they are held to the strictest standard. Private messages and commission chats follow the same rules, with room for normal conversation between people.
         </Sub>
       </section>
 
@@ -289,13 +309,15 @@ export default function TermsContent() {
         <SectionTitle n="7" title="Moderation & Strikes" />
         <Sub title="7.1 The Three-Layer Moderation System">
           <BulletList items={[
-            "Layer 1 — AI scan: every upload is scanned automatically on submission",
-            "Layer 2 — Community reports: users can report any post or content",
-            "Layer 3 — Account enforcement: violations accumulate as strikes",
+            "Layer 1 — Automated checks: posts, stories, shop listings, profile pictures and bios, comments, and the text of direct messages and commission chats are checked automatically by an AI system. The AI only flags possible rule breaks for Gallery's moderators; it never removes content, issues strikes or bans accounts on its own",
+            "Layer 2 — Community reports: users can report any post, comment, message or account",
+            "Layer 3 — Human review: Gallery moderators review flags and reports, and can also find and review content directly. Every removal, strike and ban is decided by a person",
+            "Layer 4 — Account enforcement: confirmed violations accumulate as strikes",
           ]} />
         </Sub>
-        <Sub title="7.2 Content Pending State">
-          When the AI flags content, it enters a Pending state visible only to the poster. The poster receives an email notification and has 14 days to challenge or self-remove the content. After 14 days, the content is automatically removed. Users may still challenge a removal after the 14-day window and Gallery may restore content if the challenge is upheld.
+        <Sub title="7.2 What Happens When Content Is Flagged">
+          <p>Content flagged by the automated checks stays up while a moderator reviews it. A post that receives several community reports may be temporarily hidden from others until it is reviewed. If a moderator decides content breaks these Terms, it is removed and you are notified with the reason.</p>
+          <p className="mt-2">Removed content is kept for review rather than deleted straight away, so if a decision is overturned on appeal, it can be restored exactly as it was. Files sent in messages are not checked automatically; they are only reviewed if someone reports them.</p>
         </Sub>
         <Sub title="7.3 Strike Levels & Consequences">
           <table className="w-full border-collapse text-xs rounded-xl overflow-hidden mt-2">
