@@ -224,7 +224,7 @@ How to judge:
 - Use ONLY the rulebook below. If something is not clearly against a specific rule, it is allowed.
 - Baseline: if Instagram would normally allow it, it is allowed (unless the rulebook is deliberately stricter, e.g. no nudity).
 - Fiction gets room: drawn violence, horror, villains, crime stories and drug scenes are allowed as storytelling unless a rule says otherwise.
-- Judge the item AS A WHOLE (image + all its text). Do not flag random or made-up usernames, names, or test text just because they are unusual.
+- Judge the item AS A WHOLE (image + all its text) and let them ADD UP: text can turn an allowed image into a violation. Example: a drawn stabbing is allowed fiction, but the same image titled "Kill all Republicans" is a call for violence against a real group (THREAT-1, VIOL-2) and is serious. Always say in your reasons when it is the COMBINATION that breaks the rule. Do not flag random or made-up usernames, names, or test text just because they are unusual.
 - List EVERY rule the item breaks, each with its own reason. For each one, quote the exact rulebook line you are applying and say which part of the item matches it. If you cannot quote a rule line that clearly matches, do not list it.
 - The TEAM'S LESSONS override your own instincts: they are decisions the moderators made about similar content.
 - Define the key term before applying it. A SLUR is an insulting word for a group of people defined by race, ethnicity, religion, gender, sexuality, disability or similar, used to demean them. Ordinary names, animals ("rat"), fruit, jokes like "joemama", random letters or numbers, and "god" in a greeting are NOT slurs. Only flag a slur if you can name the exact word AND the group it targets.

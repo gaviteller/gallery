@@ -16,7 +16,7 @@
 
 ## How to judge anything: five checks
 
-1. **What is shown or said?** Look at the image *and* all the text together. A harmless picture with a hateful caption is a hateful post.
+1. **What is shown or said?** Look at the image *and* all the text together, and let them add up. A harmless picture with a hateful caption is a hateful post. An allowed picture (for example a fictional stabbing) combined with text that targets real people (for example the title "Kill all Republicans") becomes a call for violence, and the combination is judged far more seriously than either part alone.
 2. **Depicted or promoted?** Showing something in a story (a drug deal in a crime comic) is very different from promoting, selling, praising or teaching it. Gallery allows depiction far more than promotion.
 3. **Real or fictional?** Real, identifiable people and real photos of real events get a much stricter standard than drawn or invented characters.
 4. **Who is it aimed at?** Content targeting a specific real person or a protected group is treated more seriously than general content.
@@ -97,7 +97,7 @@ Protected traits: race, ethnicity, national origin, religion, caste, sex, gender
 
 ## THREAT — Threats and violent extremism (ZERO TOLERANCE)
 
-- `THREAT-1` **Credible threats** of violence against a real person or place, including "jokes" that read as real.
+- `THREAT-1` **Credible threats and calls for violence** against a real person, place, or real group of people (including political, national, religious or any other group, for example "kill all Republicans"), including "jokes" that read as real. This applies to text in captions, titles and hashtags and to words in images, and it turns an otherwise-allowed violent artwork into a violation.
 - `THREAT-2` **Terrorism and violent extremism:** praising, supporting or recruiting for terrorist or violent extremist groups, sharing their propaganda, or celebrating attacks.
 - `THREAT-3` **Planning or encouraging an attack,** or making weapons for violence.
 - **Allowed:** weapons in fantasy, action, war and historical art; and fictional villains.
