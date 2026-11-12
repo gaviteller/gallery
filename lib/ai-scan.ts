@@ -75,6 +75,8 @@ export interface Judgement {
   secondOpinion?: string
   /** Every context factor it weighed — what made it worse, what made it better — so a decision is never one reason. */
   factors: Factor[]
+  /** Where it falls overall, 0 (clearly fine) to 100 (clearly against the rules). */
+  score: number
 }
 
 /** One piece of context the AI weighed. */
@@ -189,7 +191,11 @@ function readJudgement(raw: Record<string, unknown>, known: Set<string>): Omit<J
   // No real violation → not flagged, whatever severity it typed. A violation without a valid severity → REVIEW.
   const severity: Severity | "NONE" = violations.length === 0 ? "NONE" : (SEVERITIES as readonly string[]).includes(sev) ? (sev as Severity) : "REVIEW"
   const confidence = ["low", "medium", "high"].includes(String(raw.confidence)) ? (raw.confidence as Judgement["confidence"]) : "low"
+  const rawScore = Number(raw.score)
+  // 0-100; if it forgot to give one, fall back on what it decided.
+  const score = Number.isFinite(rawScore) ? Math.max(0, Math.min(100, Math.round(rawScore))) : severity === "NONE" ? 10 : ({ CHECK: 45, REVIEW: 65, SEVERE: 80, URGENT: 90, ZERO: 100 } as const)[severity]
   return {
+    score,
     flagged: severity !== "NONE",
     violations,
     rules: [...new Set(violations.map((v) => v.rule))],
@@ -266,8 +272,9 @@ ${image ? "The original image is attached too; check the description against it.
 ${subject.checkAiArt ? `AI ART: the artist ${subject.labelledAi ? "HAS labelled this as AI, so set aiArtSuspected=false" : "has NOT labelled it as AI. Set aiArtSuspected=true only if you see concrete signs of AI generation, and say which"}.` : "Set aiArtSuspected=false."}
 
 Reply with ONLY one JSON object:
-{"factors":[{"factor":"short name, e.g. 'drawn fictional style' or 'title targets a real group'","effect":"worse|better|neutral","why":"one sentence"}],"violations":[{"rule":"CODE-N","quote":"exact rulebook line","part":"which part of the item","why":"why that part breaks that rule"}],"severity":"NONE|CHECK|REVIEW|SEVERE|URGENT|ZERO","confidence":"low|medium|high","allowedBecause":"if nothing is broken, why it's allowed (can be several reasons)","aiArtSuspected":false,"aiArtWhy":""}
+{"score":0,"factors":[{"factor":"short name, e.g. 'drawn fictional style' or 'title targets a real group'","effect":"worse|better|neutral","why":"one sentence"}],"violations":[{"rule":"CODE-N","quote":"exact rulebook line","part":"which part of the item","why":"why that part breaks that rule"}],"severity":"NONE|CHECK|REVIEW|SEVERE|URGENT|ZERO","confidence":"low|medium|high","allowedBecause":"if nothing is broken, why it's allowed (can be several reasons)","aiArtSuspected":false,"aiArtWhy":""}
 Give at least 2 factors for every item.
+score = where the item falls overall, 0 to 100: 0-20 clearly fine, 21-40 fine but edgy, 41-60 borderline (could go either way), 61-80 likely against the rules, 81-100 clearly against the rules. It must match your decision: NONE means a score of 60 or below, and any violation means 41 or above.
 Use "violations":[] and "severity":"NONE" when nothing is broken. Severity is the most serious violation's level (ZERO/URGENT/SEVERE/REVIEW/CHECK as defined in the rulebook).`,
   }]
   if (image) content.unshift({ type: "image_url", image_url: { url: image } })
