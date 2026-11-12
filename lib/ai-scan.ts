@@ -95,9 +95,18 @@ async function imageForAi(src: string): Promise<string | null> {
 
 /** Pulls the first {...} block out of the reply and checks every field, so a sloppy answer can't break anything. */
 function readJudgement(reply: string, version: number): Judgement {
+  // Take the FIRST complete {...} object (the AI sometimes adds a second one or extra text after it).
   const start = reply.indexOf("{")
-  const end = reply.lastIndexOf("}")
-  if (start < 0 || end <= start) throw new Error(`AI reply had no JSON: ${reply.slice(0, 160)}`)
+  if (start < 0) throw new Error(`AI reply had no JSON: ${reply.slice(0, 160)}`)
+  let depth = 0, end = -1, inString = false
+  for (let i = start; i < reply.length; i++) {
+    const ch = reply[i]
+    if (inString) { if (ch === "\\") i++; else if (ch === '"') inString = false; continue }
+    if (ch === '"') inString = true
+    else if (ch === "{") depth++
+    else if (ch === "}" && --depth === 0) { end = i; break }
+  }
+  if (end < 0) throw new Error(`AI reply had unfinished JSON: ${reply.slice(0, 160)}`)
   const raw = JSON.parse(reply.slice(start, end + 1)) as Record<string, unknown>
   const sev = String(raw.severity ?? "").toUpperCase()
   const severity = (SEVERITIES as readonly string[]).includes(sev) ? (sev as Severity) : "NONE"
@@ -158,7 +167,10 @@ Use severity NONE (and rules []) when nothing in the rulebook is broken.`
 
   const content: Part[] = [{ type: "text", text: instructions }]
   if (image) content.unshift({ type: "image_url", image_url: { url: image } })
-  return readJudgement(await askOpenRouter(content), rulebook.version)
+  const judgement = readJudgement(await askOpenRouter(content), rulebook.version)
+  // Art the artist already labelled as AI is never "unlabelled AI art", and only posts/listings are checked.
+  if (!subject.checkAiArt || subject.labelledAi) judgement.aiArtSuspected = false
+  return judgement
 }
 
 // ── Recording ────────────────────────────────────────────────────────────
