@@ -256,7 +256,9 @@ Use "violations":[] and "severity":"NONE" when nothing is broken. Severity is th
 }
 
 /** Asks the AI to judge one item against the rulebook: look first, then judge, then (optionally) a second opinion. */
-export async function judgeContent(prisma: PrismaClient, subject: Subject): Promise<Judgement> {
+export async function judgeContent(prisma: PrismaClient, subject: Subject, models: { model?: string; reviewModel?: string } = {}): Promise<Judgement> {
+  const mainModel = models.model || AI_MODEL
+  const reviewModel = models.reviewModel ?? REVIEW_MODEL
   const rulebook = await getRulebook(prisma)
   if (!rulebook) throw new Error("No rulebook saved yet (admin → Moderation → Rulebook)")
   const rules = rulesOnly(rulebook.text)
@@ -265,15 +267,15 @@ export async function judgeContent(prisma: PrismaClient, subject: Subject): Prom
   const image = subject.image ? await imageForAi(subject.image) : null
   const lessons = await getLessons(prisma, image ? "IMAGE" : "TEXT")
 
-  const description = await describe(subject, image, fields, AI_MODEL)
-  let result = await judge(subject, image, fields, description, rules, lessons, known, AI_MODEL)
+  const description = await describe(subject, image, fields, mainModel)
+  let result = await judge(subject, image, fields, description, rules, lessons, known, mainModel)
   let secondOpinion: string | undefined
 
   // Second opinion: a stronger model re-checks only what the first one flagged.
-  if (result.flagged && REVIEW_MODEL) {
-    const second = await judge(subject, image, fields, description, rules, lessons, known, REVIEW_MODEL)
+  if (result.flagged && reviewModel) {
+    const second = await judge(subject, image, fields, description, rules, lessons, known, reviewModel)
     if (!second.flagged) {
-      secondOpinion = `${REVIEW_MODEL} found nothing against the rules: ${second.why}`
+      secondOpinion = `${reviewModel} found nothing against the rules: ${second.why}`
       result = { ...result, severity: "CHECK", confidence: "low" } // models disagree → low-priority check
     } else {
       result = second // the stronger model's reasons replace the first model's
@@ -282,7 +284,7 @@ export async function judgeContent(prisma: PrismaClient, subject: Subject): Prom
 
   // Art the artist already labelled as AI is never "unlabelled AI art", and only posts/listings are checked.
   if (!subject.checkAiArt || subject.labelledAi) result.aiArtSuspected = false
-  return { ...result, saw: description, rulebookVersion: rulebook.version, model: secondOpinion || !REVIEW_MODEL || !result.flagged ? AI_MODEL : REVIEW_MODEL, secondOpinion }
+  return { ...result, saw: description, rulebookVersion: rulebook.version, model: secondOpinion || !reviewModel || !result.flagged ? mainModel : reviewModel, secondOpinion }
 }
 
 // ── Recording ────────────────────────────────────────────────────────────
