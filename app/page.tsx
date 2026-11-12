@@ -15,6 +15,7 @@ import ReportModal from "@/components/ReportModal"
 import RedesignShell, { GallerySidebar } from "@/components/redesign/RedesignShell"
 import { StoriesPanel, FeedPost, FeedRightRail, type FeedPostData } from "@/components/redesign/FeedParts"
 import AdCard, { useAds } from "@/components/redesign/AdCard"
+import { useNewPosts, updateNewPost, removeNewPost } from "@/lib/new-posts"
 
 export default function FeedPage() {
   const { data: session, status } = useSession()
@@ -55,6 +56,7 @@ function FeedColumn() {
   // Likes update on screen instantly and roll back if the server rejects them.
   const toggleLike = trpc.interaction.toggleLike.useMutation({
     onMutate: async ({ postId }) => {
+      updateNewPost(postId, (post) => ({ ...post, likedByMe: !post.likedByMe, _count: { ...post._count, likes: post._count.likes + (post.likedByMe ? -1 : 1) } }))
       await utils.post.getFeed.cancel()
       const previous = utils.post.getFeed.getInfiniteData(feedQueryInput)
       utils.post.getFeed.setInfiniteData(feedQueryInput, (old) => old && {
@@ -70,7 +72,8 @@ function FeedColumn() {
       })
       return { previous }
     },
-    onError: (_error, _input, context) => {
+    onError: (_error, input, context) => {
+      updateNewPost(input.postId, (post) => ({ ...post, likedByMe: !post.likedByMe, _count: { ...post._count, likes: post._count.likes + (post.likedByMe ? -1 : 1) } }))
       if (context?.previous) utils.post.getFeed.setInfiniteData(feedQueryInput, context.previous)
     },
   })
@@ -86,8 +89,12 @@ function FeedColumn() {
     return () => observer.disconnect()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  const posts = (data?.pages.flatMap((page) => page.posts) ?? []) as FeedPostData[]
-  const shownPosts = mostLovedFirst ? [...posts].sort((a, b) => b._count.likes - a._count.likes) : posts
+  // Posts you just made sit on top until a reload; the ranked feed fills in below.
+  const newPosts = useNewPosts()
+  const newIds = new Set(newPosts.map((p) => p.id))
+  const ranked = (data?.pages.flatMap((page) => page.posts) ?? []) as FeedPostData[]
+  const posts = [...newPosts, ...ranked.filter((p) => !newIds.has(p.id))]
+  const shownPosts = mostLovedFirst ? [...newPosts, ...posts.slice(newPosts.length).sort((a, b) => b._count.likes - a._count.likes)] : posts
   const feedAds = useAds("FEED")
   const adEvery = Math.max(3, feedAds[0]?.frequency ?? 8)
   // Ad goes after every `adEvery` posts. A short feed still gets one, after the 2nd post (or the last).
@@ -141,7 +148,7 @@ function FeedColumn() {
           isOwn={openPost.isOwnPost}
           autoFocusComment
           onClose={() => setOpenPost(null)}
-          onDelete={() => { utils.post.getFeed.invalidate(); setOpenPost(null) }}
+          onDelete={(id) => { removeNewPost(id); utils.post.getFeed.invalidate(); setOpenPost(null) }}
         />
       )}
     </main>

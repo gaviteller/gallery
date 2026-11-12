@@ -5,6 +5,7 @@
  * Each page wraps its content in <RedesignShell> and places <GallerySidebar/>
  * inside its own layout grid. Styling comes from the page's scoped CSS (app/redesign/*.css).
  */
+import { addNewPost } from "@/lib/new-posts"
 import { createContext, useContext, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -242,7 +243,6 @@ function MobileBottomNav() {
  */
 function CreatePostDialog({ onClose, onStory }: { onClose: () => void; onStory: () => void }) {
   const { me, toast } = useShell()
-  const utils = trpc.useUtils()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [caption, setCaption] = useState("")
   const [image, setImage] = useState("")
@@ -270,8 +270,14 @@ function CreatePostDialog({ onClose, onStory }: { onClose: () => void; onStory: 
       let finalImage = image
       try { finalImage = await applyWatermark(image, me?.username ?? "gallery") } catch { /* post without watermark rather than fail */ }
       const imageUrl = await uploadImage(finalImage, "posts")
-      await createPost.mutateAsync({ image: imageUrl, description: caption.trim() || undefined, isAiGenerated, isCommission })
-      await utils.post.getFeed.invalidate()
+      const post = await createPost.mutateAsync({ image: imageUrl, description: caption.trim() || undefined, isAiGenerated, isCommission })
+      // Show it at the top of the feed right away; it gets ranked normally after a reload.
+      addNewPost({
+        id: post.id, image: post.image, title: post.title, description: post.description, isAiGenerated: post.isAiGenerated,
+        createdAt: post.createdAt, isFollowing: false, isOwnPost: true, likedByMe: false, viewerHasReported: false,
+        _count: { likes: 0, comments: 0 },
+        user: { id: post.userId, username: me?.username ?? null, name: me?.name ?? null, image: me?.image ?? null },
+      })
       toast("Your creation is now in the feed.")
       onClose()
     } catch (err) {
