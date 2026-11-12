@@ -73,6 +73,15 @@ export interface Judgement {
   model: string
   /** Set when the second-opinion model disagreed. */
   secondOpinion?: string
+  /** Every context factor it weighed — what made it worse, what made it better — so a decision is never one reason. */
+  factors: Factor[]
+}
+
+/** One piece of context the AI weighed. */
+export interface Factor {
+  factor: string
+  effect: "worse" | "better" | "neutral"
+  why: string
 }
 
 // ── The rulebook and the team's lessons ──────────────────────────────────
@@ -166,6 +175,11 @@ function firstJsonObject(reply: string): Record<string, unknown> {
 
 /** Checks every field of the judge's answer so a sloppy reply can't break anything. */
 function readJudgement(raw: Record<string, unknown>, known: Set<string>): Omit<Judgement, "saw" | "rulebookVersion" | "model"> {
+  const factors: Factor[] = (Array.isArray(raw.factors) ? raw.factors : [])
+    .map((f) => f as Record<string, unknown>)
+    .map((f) => ({ factor: String(f.factor ?? "").slice(0, 160), effect: (["worse", "better", "neutral"].includes(String(f.effect)) ? f.effect : "neutral") as Factor["effect"], why: String(f.why ?? "").slice(0, 300) }))
+    .filter((f) => f.factor.trim())
+    .slice(0, 12)
   const violations: Violation[] = (Array.isArray(raw.violations) ? raw.violations : [])
     .map((v) => v as Record<string, unknown>)
     .map((v) => ({ rule: String(v.rule ?? "").trim().toUpperCase(), quote: String(v.quote ?? "").slice(0, 300), part: String(v.part ?? "").slice(0, 200), why: String(v.why ?? "").slice(0, 500) }))
@@ -184,6 +198,7 @@ function readJudgement(raw: Record<string, unknown>, known: Set<string>): Omit<J
     confidence,
     aiArtSuspected: raw.aiArtSuspected === true,
     aiArtWhy: String(raw.aiArtWhy ?? "").slice(0, 400),
+    factors,
   }
 }
 
@@ -199,16 +214,18 @@ type Subject = {
   checkAiArt?: boolean
   /** True when the artist already labelled it as AI. */
   labelledAi?: boolean
+  /** What surrounds it: the post a comment is on, earlier messages in a conversation, the poster's history… */
+  context?: string
 }
 
-/** STEP 1 — look: a factual description of the image and text, with no rules involved. */
-async function describe(subject: Subject, image: string | null, fields: [string, unknown][], model: string): Promise<string> {
+/** STEP 1 — look: a factual description of the image and text, with no rules involved. Uses the team's corrections about what things are. */
+async function describe(subject: Subject, image: string | null, fields: [string, unknown][], model: string, lessons = ""): Promise<string> {
   const content: Part[] = [{
     type: "text",
     text: `Describe this ${subject.label} factually and precisely. Do NOT judge it or mention any rules.
 ${image ? `For the image, cover: who is in it (apparent age: child / teen / adult), what they wear and how much is covered, what they are doing, objects (weapons, drugs, money, symbols), any blood or injuries, ANY words or symbols written in the image (quote them exactly), the setting, and the art style (photo / painting / drawing / 3D / pixel art) with any signs of AI generation (warped hands or text, inconsistent details).` : ""}
 ${fields.length ? `Then restate what the text says and who it is aimed at:\n${fields.map(([k, v]) => `${k}: """${String(v).slice(0, 2000)}"""`).join("\n")}` : ""}
-Plain sentences, at most 150 words.`,
+${lessons ? `\nThe moderation team has corrected earlier descriptions; keep these in mind about what things really are (but describe only what is actually in THIS item):\n${lessons}\n` : ""}Plain sentences, at most 150 words.`,
   }]
   if (image) content.unshift({ type: "image_url", image_url: { url: image } })
   return (await askOpenRouter(content, model, 400)).slice(0, 1500)
@@ -225,6 +242,7 @@ How to judge:
 - Baseline: if Instagram would normally allow it, it is allowed (unless the rulebook is deliberately stricter, e.g. no nudity).
 - Fiction gets room: drawn violence, horror, villains, crime stories and drug scenes are allowed as storytelling unless a rule says otherwise.
 - Judge the item AS A WHOLE (image + all its text) and let them ADD UP: text can turn an allowed image into a violation. Example: a drawn stabbing is allowed fiction, but the same image titled "Kill all Republicans" is a call for violence against a real group (THREAT-1, VIOL-2) and is serious. Always say in your reasons when it is the COMBINATION that breaks the rule. Do not flag random or made-up usernames, names, or test text just because they are unusual.
+- Decide from CONTEXT, never from one detail. First list the context factors you weigh (style: drawn/photo/fiction; who is targeted; the text and how it changes the image; where it appears; the surrounding conversation or post; the poster's history), each marked worse/better/neutral with why. Then decide.
 - List EVERY rule the item breaks, each with its own reason. For each one, quote the exact rulebook line you are applying and say which part of the item matches it. If you cannot quote a rule line that clearly matches, do not list it.
 - The TEAM'S LESSONS override your own instincts: they are decisions the moderators made about similar content.
 - Define the key term before applying it. A SLUR is an insulting word for a group of people defined by race, ethnicity, religion, gender, sexuality, disability or similar, used to demean them. Ordinary names, animals ("rat"), fruit, jokes like "joemama", random letters or numbers, and "god" in a greeting are NOT slurs. Only flag a slur if you can name the exact word AND the group it targets.
@@ -241,18 +259,19 @@ ${lessons || "(none yet)"}
 ===== END OF LESSONS =====
 
 ITEM: a ${subject.label}. Where it appears: ${subject.where}.
-WHAT IS IN IT (careful description made before judging):
+${subject.context ? `SURROUNDING CONTEXT (use it: it can make the item worse or better):\n${subject.context}\n` : ""}WHAT IS IN IT (careful description made before judging):
 ${description}
 ${fields.length ? `ORIGINAL TEXT:\n${fields.map(([k, v]) => `${k}: """${String(v).slice(0, 2000)}"""`).join("\n")}` : ""}
 ${image ? "The original image is attached too; check the description against it." : subject.image ? "(The image could not be loaded.)" : ""}
 ${subject.checkAiArt ? `AI ART: the artist ${subject.labelledAi ? "HAS labelled this as AI, so set aiArtSuspected=false" : "has NOT labelled it as AI. Set aiArtSuspected=true only if you see concrete signs of AI generation, and say which"}.` : "Set aiArtSuspected=false."}
 
 Reply with ONLY one JSON object:
-{"violations":[{"rule":"CODE-N","quote":"exact rulebook line","part":"which part of the item","why":"why that part breaks that rule"}],"severity":"NONE|CHECK|REVIEW|SEVERE|URGENT|ZERO","confidence":"low|medium|high","allowedBecause":"if nothing is broken, one sentence on why it's allowed","aiArtSuspected":false,"aiArtWhy":""}
+{"factors":[{"factor":"short name, e.g. 'drawn fictional style' or 'title targets a real group'","effect":"worse|better|neutral","why":"one sentence"}],"violations":[{"rule":"CODE-N","quote":"exact rulebook line","part":"which part of the item","why":"why that part breaks that rule"}],"severity":"NONE|CHECK|REVIEW|SEVERE|URGENT|ZERO","confidence":"low|medium|high","allowedBecause":"if nothing is broken, why it's allowed (can be several reasons)","aiArtSuspected":false,"aiArtWhy":""}
+Give at least 2 factors for every item.
 Use "violations":[] and "severity":"NONE" when nothing is broken. Severity is the most serious violation's level (ZERO/URGENT/SEVERE/REVIEW/CHECK as defined in the rulebook).`,
   }]
   if (image) content.unshift({ type: "image_url", image_url: { url: image } })
-  return readJudgement(firstJsonObject(await askOpenRouter(content, model, 1200)), known)
+  return readJudgement(firstJsonObject(await askOpenRouter(content, model, 4000)), known)
 }
 
 /** Asks the AI to judge one item against the rulebook: look first, then judge, then (optionally) a second opinion. */
@@ -267,7 +286,7 @@ export async function judgeContent(prisma: PrismaClient, subject: Subject, model
   const image = subject.image ? await imageForAi(subject.image) : null
   const lessons = await getLessons(prisma, image ? "IMAGE" : "TEXT")
 
-  const description = await describe(subject, image, fields, mainModel)
+  const description = await describe(subject, image, fields, mainModel, image ? lessons : "")
   let result = await judge(subject, image, fields, description, rules, lessons, known, mainModel)
   let secondOpinion: string | undefined
 
@@ -353,6 +372,7 @@ export async function scanPost(prisma: PrismaClient, postId: string, _userId?: s
   })
   if (!post) return
   const text = [post.title, post.description, ...post.hashtags.map((h) => `#${h.tag}`)].join(" ")
+  const history = await posterHistory(prisma, post.userId)
   const j = await scan(prisma, "POST", postId, {
     label: post.isCommission ? "commission artwork post" : "post",
     where: "public feed, profiles and Explore",
@@ -360,6 +380,7 @@ export async function scanPost(prisma: PrismaClient, postId: string, _userId?: s
     image: imageOverride ?? post.image,
     checkAiArt: true,
     labelledAi: post.isAiGenerated || mentionsAi(text),
+    context: history,
   })
   if (j) await prisma.post.update({ where: { id: postId }, data: { aiVerdict: j.flagged ? j.severity : "SAFE", aiScores: j as object } }).catch(() => {})
   if (j?.aiArtSuspected && notify) await sendAiArtNotice(prisma, post.userId, "post")
@@ -410,28 +431,66 @@ export async function scanProfileText(prisma: PrismaClient, userId: string): Pro
   })
 }
 
-/** A comment on a post. */
+/** A comment on a post — judged with the post, the comment it replies to, and the rest of the thread. */
 export async function scanComment(prisma: PrismaClient, commentId: string): Promise<void> {
-  const c = await prisma.comment.findUnique({ where: { id: commentId }, select: { text: true, post: { select: { title: true, description: true } } } })
+  const c = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: {
+      text: true, userId: true, createdAt: true,
+      user: { select: { username: true } },
+      parent: { select: { text: true, user: { select: { username: true } } } },
+      post: { select: { id: true, title: true, description: true, user: { select: { username: true } } } },
+    },
+  })
   if (!c) return
+  const thread = await prisma.comment.findMany({
+    where: { postId: c.post.id, id: { not: commentId }, createdAt: { lte: c.createdAt } },
+    orderBy: { createdAt: "desc" }, take: 6,
+    select: { text: true, user: { select: { username: true } } },
+  })
+  const context = [
+    `The post (by @${c.post.user.username}): "${(c.post.title || c.post.description || "untitled").slice(0, 300)}"`,
+    c.parent ? `This comment REPLIES TO @${c.parent.user.username}: "${c.parent.text.slice(0, 300)}"` : "",
+    thread.length ? `Earlier comments on the post (newest first):\n${thread.map((t) => `  @${t.user.username}: "${t.text.slice(0, 200)}"`).join("\n")}` : "",
+    await posterHistory(prisma, c.userId),
+  ].filter(Boolean).join("\n")
   await scan(prisma, "COMMENT", commentId, {
-    label: "public comment",
+    label: `public comment by @${c.user.username}`,
     where: "under a post, visible to everyone",
-    text: { comment: c.text, "post it was left on": c.post.title || c.post.description },
+    text: { comment: c.text },
+    context,
   })
 }
 
-/** A direct message or commission chat message. */
+/** A direct message or commission chat message — judged with the conversation that led up to it. */
 export async function scanChatMessage(prisma: PrismaClient, kind: "DM" | "COMMISSION", messageId: string): Promise<void> {
   const m = kind === "DM"
-    ? await prisma.directMessage.findUnique({ where: { id: messageId }, select: { text: true } })
-    : await prisma.professionalMessage.findUnique({ where: { id: messageId }, select: { text: true } })
+    ? await prisma.directMessage.findUnique({ where: { id: messageId }, select: { text: true, createdAt: true, senderId: true, conversationId: true, sender: { select: { username: true } } } })
+    : await prisma.professionalMessage.findUnique({ where: { id: messageId }, select: { text: true, createdAt: true, senderId: true, commissionId: true, sender: { select: { username: true } } } })
   if (!m?.text?.trim()) return
+  const earlier = "conversationId" in m
+    ? await prisma.directMessage.findMany({ where: { conversationId: m.conversationId, createdAt: { lt: m.createdAt } }, orderBy: { createdAt: "desc" }, take: 8, select: { text: true, sender: { select: { username: true } } } })
+    : await prisma.professionalMessage.findMany({ where: { commissionId: m.commissionId, createdAt: { lt: m.createdAt }, isSystem: false }, orderBy: { createdAt: "desc" }, take: 8, select: { text: true, sender: { select: { username: true } } } })
+  const context = [
+    earlier.length ? `The conversation just before this message (oldest first):\n${earlier.reverse().map((e) => `  @${e.sender.username}: "${(e.text ?? "").slice(0, 200)}"`).join("\n")}` : "This is the first message in the conversation.",
+    await posterHistory(prisma, m.senderId),
+  ].filter(Boolean).join("\n")
   await scan(prisma, kind === "DM" ? "DM_MESSAGE" : "COMMISSION_MESSAGE", messageId, {
-    label: kind === "DM" ? "private direct message" : "message in a commission chat between buyer and artist",
+    label: kind === "DM" ? `private direct message from @${m.sender.username}` : `message from @${m.sender.username} in a commission chat between buyer and artist`,
     where: "private conversation between two users (same rules, but allow normal friendly conversation)",
     text: { message: m.text },
+    context,
   })
+}
+
+/** The poster's track record, for context: confirmed past violations and active strikes (never used on its own to flag). */
+async function posterHistory(prisma: PrismaClient, userId: string): Promise<string> {
+  const [strikes, removed] = await Promise.all([
+    prisma.strike.count({ where: { userId, reversed: false } }).catch(() => 0),
+    prisma.post.count({ where: { userId, status: "REMOVED" } }).catch(() => 0),
+  ])
+  if (!strikes && !removed) return "The poster has no past violations."
+  return `The poster's history: ${strikes} active strike(s), ${removed} removed post(s). History alone never makes an item a violation, but it can make a borderline item more likely to be intentional.`
 }
 
 /** The description a buyer writes when requesting a commission. */

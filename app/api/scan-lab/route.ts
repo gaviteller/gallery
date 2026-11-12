@@ -13,6 +13,7 @@ const bodySchema = z.object({
   text: z.string().max(4000).optional(),
   kind: z.enum(["post", "comment", "message", "profile photo", "shop listing", "story"]).default("post"),
   labelledAi: z.boolean().default(false),
+  context: z.string().max(4000).optional(),
   model: z.string().max(120).optional(),
   reviewModel: z.string().max(120).optional(),
 })
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
       image: b.image ?? null,
       checkAiArt: b.kind === "post" || b.kind === "shop listing",
       labelledAi: b.labelledAi,
+      context: b.context?.trim() || undefined,
     }, { model: b.model || undefined, reviewModel: b.reviewModel ?? "" })
     return NextResponse.json(judgement)
   } catch (err) {
