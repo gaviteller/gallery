@@ -5,6 +5,8 @@
  * every query (filtered on `expiresAt`); nothing deletes them.
  */
 import { z } from "zod"
+import { scanStory } from "@/lib/ai-scan"
+import { after } from "next/server"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 
@@ -25,13 +27,16 @@ export const storyRouter = router({
   create: protectedProcedure
     .input(z.object({ image: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.story.create({
+      const story = await ctx.prisma.story.create({
         data: {
           userId: ctx.session.user.id,
           image: input.image,
           expiresAt: new Date(Date.now() + STORY_LIFETIME_MS),
         },
       })
+      const prisma = ctx.prisma
+      after(() => scanStory(prisma, story.id))
+      return story
     }),
 
   /**

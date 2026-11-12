@@ -11,10 +11,11 @@
  *   OWN_ACCOUNT_FIELDS    → the logged-in user's own settings
  */
 import { z } from "zod"
+import { after } from "next/server"
 import bcrypt from "bcryptjs"
 import { router, publicProcedure, protectedProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
-import { scanAvatar } from "@/lib/ai-scan"
+import { scanAvatar, scanProfileText } from "@/lib/ai-scan"
 import { getBlockedUserIds, excludeIds } from "@/server/lib/blocks"
 import { REMOVAL_GRACE_CUTOFF } from "@/lib/removal"
 
@@ -177,11 +178,14 @@ export const userRouter = router({
       if (owner && owner.id !== viewerId) {
         throw new TRPCError({ code: "CONFLICT", message: "Username is already taken." })
       }
-      return ctx.prisma.user.update({
+      const renamed = await ctx.prisma.user.update({
         where: { id: viewerId },
         data: { username: input.username },
         select: OWN_ACCOUNT_FIELDS,
       })
+      const prisma = ctx.prisma
+      after(() => scanProfileText(prisma, viewerId))
+      return renamed
     }),
 
   /** Changes the password after checking the current one. Not available for Google-only accounts. */
@@ -341,6 +345,7 @@ export const userRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const viewerId = ctx.session.user.id
+      const previous = await ctx.prisma.user.findUnique({ where: { id: viewerId }, select: { image: true, bannerImage: true } })
       const updatedAccount = await ctx.prisma.user.update({
         where: { id: viewerId },
         data: {
@@ -355,8 +360,14 @@ export const userRouter = router({
         },
         select: OWN_ACCOUNT_FIELDS,
       })
-      if (input.image) await scanAvatar(ctx.prisma, viewerId, "image", input.image)
-      if (input.bannerImage) await scanAvatar(ctx.prisma, viewerId, "bannerImage", input.bannerImage)
+      // AI only informs: check the profile text, and any picture that actually changed, after replying.
+      const prisma = ctx.prisma
+      const before = previous
+      after(async () => {
+        await scanProfileText(prisma, viewerId)
+        if (input.image && input.image !== before?.image) await scanAvatar(prisma, viewerId, "image", input.image)
+        if (input.bannerImage && input.bannerImage !== before?.bannerImage) await scanAvatar(prisma, viewerId, "bannerImage", input.bannerImage)
+      })
 
       return updatedAccount
     }),

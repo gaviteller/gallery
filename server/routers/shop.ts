@@ -14,6 +14,7 @@
  * Only ACTIVE listings are visible to anyone other than the seller.
  */
 import { z } from "zod"
+import { after } from "next/server"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import type { PrismaClient } from "@prisma/client"
@@ -192,7 +193,8 @@ export const shopRouter = router({
         },
       })
 
-      await scanShopItem(ctx.prisma, listing.id, sellerId, input.image)
+      const prisma = ctx.prisma
+      after(() => scanShopItem(prisma, listing.id, sellerId, input.image))
 
       return listing
     }),
@@ -231,7 +233,9 @@ export const shopRouter = router({
         },
       })
 
-      if (changes.image !== undefined) await scanShopItem(ctx.prisma, listingId, sellerId, changes.image)
+      // Re-check after any edit (text or image): the whole listing is judged together.
+      const prismaForScan = ctx.prisma
+      after(() => scanShopItem(prismaForScan, listingId, sellerId, changes.image ?? undefined))
 
       return updatedListing
     }),

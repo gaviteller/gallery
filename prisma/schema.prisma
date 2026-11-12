@@ -669,3 +669,27 @@ model AiChatMessage {
 
   @@index([chatId, createdAt])
 }
+
+/// A rule the team taught the moderation AI (admin → Ask the AI → "Save as lesson", or Lessons page).
+/// Active lessons are added to the scanner's instructions in lib/ai-scan.ts. appliesTo: IMAGE | TEXT | ALL.
+model AiLesson {
+  id          String   @id @default(cuid())
+  text        String
+  appliesTo   String   @default("ALL")
+  active      Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([active])
+}
+
+/// The content rulebook the moderation AI follows (lib/ai-scan.ts reads the newest version).
+/// Edited in the admin panel (Moderation → Rulebook); every save is a new version, so changes are tracked.
+model ModerationPolicy {
+  id          String   @id @default(cuid())
+  version     Int      @unique
+  text        String
+  note        String?
+  createdById String?
+  createdAt   DateTime @default(now())
+}

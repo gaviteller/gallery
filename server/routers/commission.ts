@@ -19,6 +19,7 @@
  * lifecycle actions · ratings & portfolio · trust score · browse feeds.
  */
 import { z } from "zod"
+import { after } from "next/server"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { TRPCError } from "@trpc/server"
 import { Prisma, type PrismaClient } from "@prisma/client"
@@ -27,7 +28,7 @@ import { sendPushToUser } from "@/lib/sendPush"
 import { checkNotBanned } from "@/server/lib/ban"
 import { applyAutomaticBan } from "@/server/lib/autoBan"
 import { getBlockedUserIds, excludeIds } from "@/server/lib/blocks"
-import { scanPost } from "@/lib/ai-scan"
+import { scanPost, scanCommissionRequest } from "@/lib/ai-scan"
 import {
   sendCommissionRequestEmail,
   sendCommissionAcceptedEmail,
@@ -326,6 +327,8 @@ export const commissionRouter = router({
       await ctx.prisma.notification.create({
         data: { userId: commission.artistId, fromUserId: buyerId, type: `commission_request:${commission.id}` },
       })
+      const prismaForScan = ctx.prisma
+      after(() => scanCommissionRequest(prismaForScan, commission.id))
       if (artist.email) {
         const buyer = await ctx.prisma.user.findUnique({ where: { id: buyerId }, select: { username: true } })
         await sendCommissionRequestEmail(artist.email, {

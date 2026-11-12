@@ -89,7 +89,9 @@ export const postRouter = router({
         },
       })
 
-      await scanPost(ctx.prisma, post.id, authorId, input.image)
+      // AI only informs, so scan after replying instead of making the poster wait.
+      const prisma = ctx.prisma
+      after(() => scanPost(prisma, post.id, authorId, input.image))
 
       return post
     }),

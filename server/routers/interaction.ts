@@ -6,6 +6,7 @@
  * (lib/ai-scan.ts) and post owners get a push notification for likes/comments.
  */
 import { z } from "zod"
+import { after } from "next/server"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
 import { checkNotBanned } from "@/server/lib/ban"
 import { scanComment } from "@/lib/ai-scan"
@@ -155,7 +156,8 @@ export const interactionRouter = router({
         },
         select: { id: true },
       })
-      await scanComment(ctx.prisma, comment.id)
+      const prismaForScan = ctx.prisma
+      after(() => scanComment(prismaForScan, comment.id))
       await notifyPostOwner(ctx.prisma, input.postId, viewerId, (commenterName) => ({
         title: "New comment",
         body: `${commenterName}: ${input.text.slice(0, 80)}`,
