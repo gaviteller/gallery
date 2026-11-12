@@ -74,6 +74,7 @@ async function askOpenRouter(content: Part[]): Promise<string> {
     // temperature 0 → the same item gets the same answer every time
     body: JSON.stringify({ model: AI_MODEL, temperature: 0, max_tokens: 700, messages: [{ role: "user", content }] }),
   })
+  if (response.status === 402) throw new Error("OpenRouter 402: the AI account is out of credit (add credit at openrouter.ai)")
   if (!response.ok) throw new Error(`OpenRouter ${response.status}`)
   const body = await response.json()
   return (body.choices?.[0]?.message?.content ?? "").trim()
@@ -159,7 +160,7 @@ ${rulebook.text}
 ITEM TO JUDGE: a ${subject.label}. Where it appears: ${subject.where}.
 ${fields.length ? fields.map(([k, v]) => `${k}: """${String(v).slice(0, 2000)}"""`).join("\n") : "(no text)"}
 ${image ? "The image is attached." : subject.image ? "(The image could not be loaded — judge the text only and say so.)" : "(no image)"}
-${subject.checkAiArt ? `Also judge whether the artwork looks AI-generated. The artist ${subject.labelledAi ? "HAS labelled it as AI" : "has NOT labelled it as AI"}. Only set aiArtSuspected=true if it is NOT labelled and you see real signs of AI generation.` : "Set aiArtSuspected=false."}
+${subject.checkAiArt ? `Also judge whether the artwork looks AI-generated. The artist ${subject.labelledAi ? "HAS labelled it as AI (by the AI switch or in the caption/hashtags)" : "has NOT labelled it as AI anywhere"}. Only set aiArtSuspected=true if it is NOT labelled and you see real signs of AI generation.` : "Set aiArtSuspected=false."}
 
 Reply with ONLY one JSON object, no markdown:
 {"severity":"NONE|CHECK|REVIEW|SEVERE|URGENT|ZERO","rules":["RULE-CODES from the rulebook that apply, e.g. HATE-3"],"saw":"plain description of what you saw and read","why":"which rule matches which part of the item, or why it is allowed","confidence":"low|medium|high","aiArtSuspected":false,"aiArtWhy":""}
@@ -221,6 +222,15 @@ async function sendAiArtNotice(prisma: PrismaClient, userId: string, what: strin
   }).catch(() => {})
 }
 
+/**
+ * True when the artist's own words label the work as AI: #ai / #aiart hashtags, "AI art",
+ * "AI generated", "made with Midjourney" and similar. Counts the same as the post's AI switch.
+ */
+export function mentionsAi(text: string): boolean {
+  return /(^|[^a-z0-9])#?ai(art|artwork|generated|gen|assisted|illustration)?([^a-z0-9]|$)/i.test(text)
+    || /\b(ai[- ]?(generated|assisted|made|art)|made (with|using) ai|midjourney|stable ?diffusion|dall[- ]?e|niji(journey)?|novelai|leonardo\.?ai)\b/i.test(text)
+}
+
 // ── What gets scanned ────────────────────────────────────────────────────
 /** A post (or delivered commission piece). `notify` = send the AI-art notice (new uploads, not sweeps). */
 export async function scanPost(prisma: PrismaClient, postId: string, _userId?: string, imageOverride?: string, notify = true): Promise<void> {
@@ -229,13 +239,14 @@ export async function scanPost(prisma: PrismaClient, postId: string, _userId?: s
     select: { image: true, title: true, description: true, isAiGenerated: true, isCommission: true, userId: true, hashtags: { select: { tag: true } } },
   })
   if (!post) return
+  const text = [post.title, post.description, ...post.hashtags.map((h) => `#${h.tag}`)].join(" ")
   const j = await scan(prisma, "POST", postId, {
     label: post.isCommission ? "commission artwork post" : "post",
     where: "public feed, profiles and Explore",
     text: { title: post.title, caption: post.description, hashtags: post.hashtags.map((h) => `#${h.tag}`).join(" ") },
     image: imageOverride ?? post.image,
     checkAiArt: true,
-    labelledAi: post.isAiGenerated,
+    labelledAi: post.isAiGenerated || mentionsAi(text),
   })
   if (j) await prisma.post.update({ where: { id: postId }, data: { aiVerdict: j.flagged ? j.severity : "SAFE", aiScores: j as object } }).catch(() => {})
   if (j?.aiArtSuspected && notify) await sendAiArtNotice(prisma, post.userId, "post")
@@ -245,12 +256,14 @@ export async function scanPost(prisma: PrismaClient, postId: string, _userId?: s
 export async function scanShopItem(prisma: PrismaClient, itemId: string, _userId?: string, imageOverride?: string, notify = true): Promise<void> {
   const item = await prisma.shopItem.findUnique({ where: { id: itemId }, select: { image: true, title: true, description: true, tags: true, userId: true } })
   if (!item) return
+  const itemText = [item.title, item.description, ...item.tags].join(" ")
   const j = await scan(prisma, "SHOP_ITEM", itemId, {
     label: "shop listing (artwork for sale)",
     where: "public shop; its thumbnail appears across the site",
     text: { title: item.title, description: item.description, tags: item.tags.join(", ") },
     image: imageOverride ?? item.image,
     checkAiArt: true,
+    labelledAi: mentionsAi(itemText),
   })
   if (j) await prisma.shopItem.update({ where: { id: itemId }, data: { aiVerdict: j.flagged ? j.severity : "SAFE", aiScores: j as object } }).catch(() => {})
   if (j?.aiArtSuspected && notify) await sendAiArtNotice(prisma, item.userId, "shop listing")
