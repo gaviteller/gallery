@@ -307,7 +307,7 @@ export default function TermsContent() {
       {/* 7 */}
       <section id="section-7">
         <SectionTitle n="7" title="Moderation & Strikes" />
-        <Sub title="7.1 The Three-Layer Moderation System">
+        <Sub title="7.1 The Four-Layer Moderation System">
           <BulletList items={[
             "Layer 1 — Automated checks: posts, stories, shop listings, profile pictures and bios, comments, and the text of direct messages and commission chats are checked automatically by an AI system. The AI only flags possible rule breaks for Gallery's moderators; it never removes content, issues strikes or bans accounts on its own",
             "Layer 2 — Community reports: users can report any post, comment, message or account",
@@ -332,8 +332,8 @@ export default function TermsContent() {
             <tbody>
               {[
                 ["1", "Minor", "6 strikes within 30 days → 3-day temp ban", "Spam, low-level harassment, glorifying self-harm, unlabelled AI art (repeat)"],
-                ["2", "Moderate", "4 strikes within 30 days → 14-day temp ban", "Targeted harassment, hate speech, explicit NSFW, gratuitous gore, support for terrorist organisations"],
-                ["3", "Severe", "1 strike → 30-day temp ban; 2 strikes ever → permanent ban", "Unlabelled AI art (repeat serious), work theft, doxxing, credible threats, coordinated harassment"],
+                ["2", "Moderate", "4 strikes within 30 days → 14-day temp ban", "Targeted harassment, hate speech, nudity or sexual content, gratuitous gore, support for terrorist organisations"],
+                ["3", "Severe", "1 strike → 30-day temp ban; 2 strikes ever → permanent ban", "AI art that steals another artist's style or work, work theft, doxxing, credible threats, coordinated harassment"],
                 ["4", "Zero Tolerance", "Instant permanent ban", "CSAM, predatory behaviour, unsolicited explicit content, blackmail, impersonation, gore/violence involving children"],
               ].map(([level, name, trigger, examples], i) => (
                 <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
@@ -347,7 +347,7 @@ export default function TermsContent() {
           </table>
         </Sub>
         <Sub title="7.4 Content Involving Minors">
-          Any violation involving minors is automatically elevated one full severity level. Any sexual or gore content involving minors, whether fictional or not, is a Zero Tolerance violation.
+          Any violation involving minors is automatically elevated one full severity level. Any sexual or gore content involving minors, whether fictional or real, is a Zero Tolerance violation resulting in immediate permanent ban and reporting to relevant authorities (see Section 3.8).
         </Sub>
         <Sub title="7.5 Appeals">
           All moderation decisions, including permanent bans, are appealable. Artists may challenge any content removal or account action. A human reviewer separate from the original moderation decision assesses all appeals within 5 business days. If the appeal is upheld, content is restored and no strike is recorded. All decisions are communicated with a clear reason.
