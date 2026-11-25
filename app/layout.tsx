@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import "./gallery-feed.css"
 import "./gallery-final.css"
@@ -13,8 +12,8 @@ import PageViewTracker from "@/components/PageViewTracker"
 import { Suspense } from "react"
 import Link from "next/link"
 
-const inter = Inter({ subsets: ["latin"] })
-const playfair = Playfair_Display({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-playfair" })
+// Fonts load straight from Google Fonts. (next/font/google broke on Google's current font addresses.)
+const FONTS_URL = "https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Playfair+Display:wght@400;700&display=swap"
 
 export const metadata: Metadata = {
   title: "Gallery",
@@ -28,7 +27,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${playfair.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link rel="stylesheet" href={FONTS_URL} />
+      </head>
+      <body style={{ fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" }}>
         <Providers>
           <BanBanner />
           <CookieConsent />
