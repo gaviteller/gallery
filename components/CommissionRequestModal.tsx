@@ -75,7 +75,7 @@ export default function CommissionRequestModal({ artistId, artistUsername, categ
       const processed = await Promise.all(files.map(f => processImage(f)))
       const urls = await Promise.all(processed.map(b64 => uploadImage(b64, "commissions")))
       setRefPhotos(prev => [...prev, ...urls])
-    } catch (err) {
+    } catch {
       setError("Failed to upload image. Please try a different file.")
     } finally {
       setUploading(false)

@@ -19,6 +19,8 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
     markAllRead.mutate(undefined, {
       onSuccess: () => utils.notification.unreadCount.invalidate(),
     })
+    // Only once, when the notifications panel opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -144,7 +146,6 @@ export default function Navbar() {
   if (status === "loading" || status === "unauthenticated") return null
 
   const username = session?.user?.username
-  const isFeedHome = pathname === "/"
   const usesNewGalleryHeader = !pathname.startsWith("/commissions")
 
   return (

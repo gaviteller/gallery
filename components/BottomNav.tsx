@@ -21,6 +21,8 @@ function DesktopNotifPanel({ onClose }: { onClose: () => void }) {
     markAllRead.mutate(undefined, {
       onSuccess: () => utils.notification.unreadCount.invalidate(),
     })
+    // Only once, when the notifications panel opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function getText(n: NonNullable<typeof notifications>[number]): string {

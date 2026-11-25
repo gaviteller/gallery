@@ -109,7 +109,7 @@ export default function StoryUpload({ onClose, onSuccess }: { onClose: () => voi
                   try {
                     const url = await uploadImage(preview, "stories")
                     createStory.mutate({ image: url })
-                  } catch (err) {
+                  } catch {
                     setError("Failed to upload story image. Please try again.")
                   } finally {
                     setUploading(false)

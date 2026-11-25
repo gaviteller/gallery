@@ -142,7 +142,7 @@ function AppealPageInner() {
       {/* Appeal form or pending state */}
       {pendingAppeal ? (
         <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14 }}>Your appeal is under review. You'll be notified of the decision.</p>
+          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 14 }}>Your appeal is under review. You&apos;ll be notified of the decision.</p>
           <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 6 }}>
             Submitted {new Date(pendingAppeal.createdAt).toLocaleDateString()}
           </p>

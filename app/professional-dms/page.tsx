@@ -78,7 +78,7 @@ function CommissionRow({ commission, otherParty, role }: {
 }
 
 export default function ProfessionalDMsPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
 
   useEffect(() => {

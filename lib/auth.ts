@@ -130,9 +130,10 @@ export const authOptions: NextAuthOptions = {
       }
       if (user) {
         token.id = user.id
-        token.username = (user as any).username ?? null
-        token.sellingEnabled = (user as any).sellingEnabled ?? false
-        token.onboardingComplete = (user as any).onboardingComplete ?? false
+        const account = user as { username?: string | null; sellingEnabled?: boolean; onboardingComplete?: boolean }
+        token.username = account.username ?? null
+        token.sellingEnabled = account.sellingEnabled ?? false
+        token.onboardingComplete = account.onboardingComplete ?? false
         // Fetch ban status at sign-in time
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub! },

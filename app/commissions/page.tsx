@@ -162,7 +162,7 @@ function Lightbox({ images, startIndex, artist, onClose, onRequest }: {
 
 // ── For You card ──────────────────────────────────────────────────────────────
 
-function ForYouCard({ artist, onRequest, onLightbox, isActive }: {
+function ForYouCard({ artist, onRequest, onLightbox }: {
   artist: DiscoveryUser
   onRequest: (a: DiscoveryUser) => void
   onLightbox: (a: DiscoveryUser, i: number) => void
@@ -341,12 +341,11 @@ function ForYouFeed({ onRequest, onLightbox }: {
   const [cursor, setCursor] = useState(0)
   const [allArtists, setAllArtists] = useState<DiscoveryUser[]>([])
   const [hasMore, setHasMore] = useState(true)
-  const [loading, setLoading] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const { data, isFetching } = trpc.commission.getForYouFeed.useQuery(
     { cursor },
-    { enabled: hasMore && !loading }
+    { enabled: hasMore }
   )
 
   useEffect(() => {

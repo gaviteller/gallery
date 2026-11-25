@@ -31,6 +31,8 @@ export default function StoryViewer({ user, onClose }: { user: StoryUser; onClos
   // Mark viewed whenever the story changes
   useEffect(() => {
     if (story) markViewed.mutate({ storyId: story.id })
+    // Once per story, not on every render of the mutation object.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.id])
 
   // Auto-advance timer — resets on index change
@@ -57,6 +59,8 @@ export default function StoryViewer({ user, onClose }: { user: StoryUser; onClos
 
     rafRef.current = requestAnimationFrame(tick)
     return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current) }
+    // The timer restarts per story; onClose identity changing must not restart it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, user.stories.length])
 
   function prev(e: React.MouseEvent) {

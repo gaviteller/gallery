@@ -48,8 +48,6 @@ const priceRangeSchema = z.array(z.object({
 
 /** After this many paid-commission cancellations in one month, an artist's commissions are switched off. */
 const MONTHLY_ARTIST_CANCEL_LIMIT = 5
-const AUTO_RELEASE_AFTER_MS = 5 * 24 * 60 * 60 * 1000
-const DEADLINE_WARNING_WINDOW_MS = 48 * 60 * 60 * 1000
 
 /**
  * The commission columns the actions below need. Deliberately leaves out

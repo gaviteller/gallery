@@ -119,7 +119,7 @@ export default function PrivacyPage() {
           <p style={bodyStyle}>Your likes, follows, and browsing history are used to surface artists and content relevant to your taste. This is a core part of how Gallery works and cannot be opted out of while using the platform.</p>
 
           <p style={{ ...bodyStyle, fontWeight: 500, color: "var(--text)", marginBottom: 4, marginTop: 12 }}>Content moderation</p>
-          <p style={bodyStyle}>Flagged content may be reviewed by Gallery's moderation team and used to improve our automated moderation tools. These tools detect Terms of Service violations — they do not generate art.</p>
+          <p style={bodyStyle}>Flagged content may be reviewed by Gallery&apos;s moderation team and used to improve our automated moderation tools. These tools detect Terms of Service violations — they do not generate art.</p>
           <div style={highlightStyle}>Gallery never uses your artwork to train AI models that generate new art. Your work is yours.</div>
 
           <p style={{ ...bodyStyle, fontWeight: 500, color: "var(--text)", marginBottom: 4, marginTop: 12 }}>Platform safety</p>
@@ -174,9 +174,9 @@ export default function PrivacyPage() {
           <p style={{ ...bodyStyle, marginTop: 8 }}>To exercise any of these rights, contact us at <strong style={{ color: "var(--text)" }}>hello@gallery.app</strong>. We will respond within 45 days. If we need more time, we may extend this by an additional 45 days and will notify you of the extension.</p>
         </div>
 
-        {/* 9. Children's privacy */}
+        {/* 9. Children&apos;s privacy */}
         <div style={sectionStyle}>
-          <p style={headingStyle}>9. Children's privacy</p>
+          <p style={headingStyle}>9. Children&apos;s privacy</p>
           <p style={bodyStyle}>Gallery is not intended for users under the age of 13. If we discover an account belongs to someone under 13, we will delete that account and all associated data. If you believe a child under 13 has created a Gallery account, contact us at <strong style={{ color: "var(--text)" }}>hello@gallery.app</strong>.</p>
         </div>
 

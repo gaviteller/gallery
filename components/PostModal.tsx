@@ -56,7 +56,6 @@ type CommentData = {
 
 function CommentRow({
   comment,
-  postId,
   sessionUsername,
   onClose,
   onReply,
@@ -166,7 +165,6 @@ export default function PostModal({
     addComment.mutate({ postId: post.id, text, parentId: replyTo?.id })
   }
 
-  const initials = (profileUser.name ?? profileUser.username ?? "?")[0].toUpperCase()
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={onClose}>

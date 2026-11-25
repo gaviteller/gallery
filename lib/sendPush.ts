@@ -40,7 +40,8 @@ export async function sendPushToUser(
           { endpoint: device.endpoint, keys: { p256dh: device.p256dh, auth: device.auth } },
           payloadJson
         )
-      } catch (err: any) {
+      } catch (caught) {
+        const err = caught as { statusCode?: number }
         // 410 Gone = subscription expired, clean it up
         if (err?.statusCode === 410 || err?.statusCode === 404) {
           await prisma.pushSubscription.deleteMany({ where: { endpoint: device.endpoint } })

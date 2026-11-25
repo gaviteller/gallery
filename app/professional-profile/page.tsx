@@ -211,9 +211,9 @@ function ProfessionalProfileInner({ username }: { username: string }) {
   const maxDay = Math.max(...salesByDay.map(d => d.total), 1)
 
   // Compute trust rating from completed commissions
-  const completedWithRating = (myCommissions?.asArtist ?? []).filter(c => c.status === "COMPLETE" && (c as any).rating != null)
+  const completedWithRating = (myCommissions?.asArtist ?? []).filter(c => c.status === "COMPLETE" && c.buyerRating != null)
   const avgRating = completedWithRating.length > 0
-    ? (completedWithRating.reduce((s, c) => s + ((c as any).rating ?? 0), 0) / completedWithRating.length).toFixed(1)
+    ? (completedWithRating.reduce((s, c) => s + (c.buyerRating ?? 0), 0) / completedWithRating.length).toFixed(1)
     : null
 
   // Active commissions (artist side, non-terminal)

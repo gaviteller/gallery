@@ -170,9 +170,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ username:
 
         {/* Caption zone */}
         <div style={{ padding: "13px 14px 11px", borderBottom: "1px solid var(--border)" }}>
-          {(post as any).title && (
+          {post.title && (
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 14, fontWeight: 700, color: "var(--text)", lineHeight: 1.3, marginBottom: 4 }}>
-              {(post as any).title}
+              {post.title}
             </div>
           )}
           {post.description && (
