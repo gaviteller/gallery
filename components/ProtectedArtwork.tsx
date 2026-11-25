@@ -16,7 +16,7 @@ export default function ProtectedArtwork({ src, alt = "", style, className, onCl
       style={{ position: "relative", lineHeight: 0 }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <img
+      <img loading="lazy" decoding="async"
         src={src}
         alt={alt}
         draggable={false}

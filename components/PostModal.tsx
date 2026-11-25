@@ -24,7 +24,7 @@ type ProfileUser = {
 }
 
 function Avatar({ image, name, username, size = 8 }: { image?: string | null; name?: string | null; username?: string | null; size?: number }) {
-  if (image) return <img src={image} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} alt="" />
+  if (image) return <img loading="lazy" decoding="async" src={image} className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`} alt="" />
   return (
     <div className={`w-${size} h-${size} rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0`}>
       {(name ?? username ?? "?")[0].toUpperCase()}

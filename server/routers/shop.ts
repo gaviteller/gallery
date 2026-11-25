@@ -13,6 +13,7 @@
  *   REMOVED         → removed by moderation
  * Only ACTIVE listings are visible to anyone other than the seller.
  */
+import { toStoredImage } from "@/lib/image-links"
 import { z } from "zod"
 import { after } from "next/server"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
@@ -224,7 +225,7 @@ export const shopRouter = router({
       const updatedListing = await ctx.prisma.shopItem.update({
         where: { id: listingId },
         data: {
-          ...(changes.image !== undefined && { image: changes.image }),
+          ...(changes.image !== undefined && { image: await toStoredImage(ctx.prisma, changes.image) }),
           ...(changes.fileUrl !== undefined && { fileUrl: changes.fileUrl }),
           ...(changes.title !== undefined && { title: changes.title }),
           ...(changes.description !== undefined && { description: changes.description }),

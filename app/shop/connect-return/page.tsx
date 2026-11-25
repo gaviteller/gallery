@@ -2,10 +2,16 @@
 
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { trpc } from "@/components/providers"
 
+// Reads the address bar, so it renders inside Suspense (lets the page be pre-built).
 export default function ConnectReturnPage() {
+  return <Suspense fallback={null}><ConnectReturn /></Suspense>
+}
+
+function ConnectReturn() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const isRefresh = searchParams.get("refresh") === "1"

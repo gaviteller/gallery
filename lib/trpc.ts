@@ -14,17 +14,30 @@
 import { initTRPC, TRPCError } from "@trpc/server"
 import superjson from "superjson"
 import { type Context } from "@/server/context"
+import { linkImages } from "@/lib/image-links"
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
 })
 
 export const router = t.router
-export const publicProcedure = t.procedure
+/**
+ * Every response has its base64 pictures swapped for cached /api/img links, so pages
+ * download kilobytes instead of megabytes (see lib/image-links.ts).
+ */
+const baseProcedure = t.procedure.use(async ({ ctx, next }) => {
+  const result = await next()
+  if (result.ok) {
+    try { (result as { data: unknown }).data = await linkImages(ctx.prisma, result.data) } catch (err) { console.error("[image-links]", err) }
+  }
+  return result
+})
+
+export const publicProcedure = baseProcedure
 export const createCallerFactory = t.createCallerFactory
 
 /** Rejects the call with UNAUTHORIZED unless someone is logged in. */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
   if (!ctx.session?.user?.id) {
     throw new TRPCError({ code: "UNAUTHORIZED" })
   }

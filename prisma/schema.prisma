@@ -693,3 +693,12 @@ model ModerationPolicy {
   createdById String?
   createdAt   DateTime @default(now())
 }
+
+/// Pictures served as real, browser-cached files at /api/img/<hash>. Filled automatically
+/// from the base64 images still stored on posts, avatars, etc., keyed by a hash of the image.
+model ImageBlob {
+  hash      String   @id
+  mime      String
+  data      Bytes
+  createdAt DateTime @default(now())
+}

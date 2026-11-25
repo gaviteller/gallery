@@ -10,6 +10,7 @@
  *   PUBLIC_PROFILE_FIELDS → safe for anyone (profile pages)
  *   OWN_ACCOUNT_FIELDS    → the logged-in user's own settings
  */
+import { toStoredImage } from "@/lib/image-links"
 import { z } from "zod"
 import { after } from "next/server"
 import bcrypt from "bcryptjs"
@@ -343,7 +344,9 @@ export const userRouter = router({
         artstationHandle: z.string().max(50).nullable(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input: raw }) => {
+      // A form re-saving the current picture sends its /api/img link; store the real image.
+      const input = { ...raw, image: await toStoredImage(ctx.prisma, raw.image), bannerImage: await toStoredImage(ctx.prisma, raw.bannerImage) }
       const viewerId = ctx.session.user.id
       const previous = await ctx.prisma.user.findUnique({ where: { id: viewerId }, select: { image: true, bannerImage: true } })
       const updatedAccount = await ctx.prisma.user.update({

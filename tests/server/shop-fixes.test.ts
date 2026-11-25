@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { createCallerFactory } from "@/lib/trpc"
 import { appRouter } from "@/server/routers/_app"
 
+// Scans run after the reply via next/server `after`; in tests just run them straight away.
+vi.mock("next/server", async (orig) => ({ ...(await orig<typeof import("next/server")>()), after: (fn: () => unknown) => { void fn() } }))
 vi.mock("@/lib/ai-scan", () => ({ scanShopItem: vi.fn().mockResolvedValue(undefined), scanPost: vi.fn(), scanComment: vi.fn(), scanAvatar: vi.fn() }))
 const checkoutCreate = vi.fn().mockResolvedValue({ url: "https://checkout.stripe.test/x" })
 vi.mock("@/lib/stripe", () => ({ stripe: { checkout: { sessions: { create: (...args: unknown[]) => checkoutCreate(...args) } } } }))
@@ -35,10 +37,10 @@ describe("shop.update", () => {
     await asViewer("seller").shop.update({ id: "i1", image: "data:image/png;base64,new" })
     expect(scanShopItem).toHaveBeenCalledWith(db, "i1", "seller", "data:image/png;base64,new")
   })
-  it("doesn't scan when only text changes", async () => {
+  it("re-checks the listing when only the text changes (text is scanned too)", async () => {
     db.shopItem.findUnique.mockResolvedValueOnce({ userId: "seller", status: "ACTIVE" })
     await asViewer("seller").shop.update({ id: "i1", title: "New title" })
-    expect(scanShopItem).not.toHaveBeenCalled()
+    expect(scanShopItem).toHaveBeenCalledWith(expect.anything(), "i1", "seller", undefined)
   })
 })
 

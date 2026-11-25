@@ -70,7 +70,7 @@ describe("discovery.trendingTags", () => {
       .mockResolvedValueOnce([{ tag: "oldtag", _count: { posts: 0 } }])
       .mockResolvedValueOnce([{ tag: "oldtag", _count: { posts: 3 } }])
 
-    const result = await getCaller().discovery.trendingTags({ limit: 6 })
+    const result = await getCaller().discovery.trendingTags({ limit: 5 })
 
     expect(result.items).toEqual([{ tag: "oldtag", count: 3 }])
     expect(mockPrisma.hashtag.findMany.mock.calls[1][0].select._count.select.posts.where.createdAt).toBeUndefined()

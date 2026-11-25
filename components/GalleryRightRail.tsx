@@ -53,7 +53,7 @@ export default function GalleryRightRail({ variant = "combined", showPromo = tru
         {(suggested?.items ?? []).slice(0, 5).map(artist => (
           <div className="gallery-suggested-person" key={artist.id}>
             <Link href={artist.username ? `/@${artist.username}` : "#"} className="gallery-suggested-avatar-link">
-              {artist.image ? <img src={artist.image} alt="" /> : <span className="gallery-suggested-avatar">{(artist.name ?? artist.username ?? "?")[0]?.toUpperCase()}</span>}
+              {artist.image ? <img loading="lazy" decoding="async" src={artist.image} alt="" /> : <span className="gallery-suggested-avatar">{(artist.name ?? artist.username ?? "?")[0]?.toUpperCase()}</span>}
             </Link>
             <Link href={artist.username ? `/@${artist.username}` : "#"} className="gallery-suggested-meta"><b>{artist.name ?? artist.username}</b><span>@{artist.username}</span></Link>
             <FollowButton username={artist.username} />

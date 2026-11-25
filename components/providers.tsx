@@ -18,7 +18,11 @@ function getBaseUrl() {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient())
+  // Show what's already loaded straight away when moving between pages, and only
+  // re-check it after 30 seconds, instead of re-downloading everything on every click.
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+  }))
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [

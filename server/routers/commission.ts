@@ -18,6 +18,7 @@
  * Sections below: artist settings · dashboard stats · request-form categories ·
  * lifecycle actions · ratings & portfolio · trust score · browse feeds.
  */
+import { toStoredImage } from "@/lib/image-links"
 import { z } from "zod"
 import { after } from "next/server"
 import { router, protectedProcedure, publicProcedure } from "@/lib/trpc"
@@ -166,7 +167,7 @@ export const commissionRouter = router({
           commissionDescription: input.commissionDescription ?? null,
           commissionTurnaround: input.commissionTurnaround ?? null,
           priceRanges: input.priceRanges ?? [],
-          ...(input.commissionCardImages !== undefined && { commissionCardImages: input.commissionCardImages }),
+          ...(input.commissionCardImages !== undefined && { commissionCardImages: await Promise.all(input.commissionCardImages.map((img) => toStoredImage(ctx.prisma, img))) }),
           ...(input.artStyles !== undefined && { artStyles: input.artStyles }),
         },
       })

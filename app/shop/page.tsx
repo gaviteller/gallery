@@ -165,7 +165,7 @@ function FeaturedCarousel({ listings, index, onIndex, onOpen }: { listings: List
       <div className="featured-banner"
         onTouchStart={(e) => { touchStart.current = e.touches[0].clientX }}
         onTouchEnd={(e) => { if (touchStart.current !== null) { const dx = e.changedTouches[0].clientX - touchStart.current; if (Math.abs(dx) > 45) move(dx < 0 ? 1 : -1); touchStart.current = null } }}>
-        <img className="featured-art" src={listing.image} alt={listing.title} draggable={false} onContextMenu={(e) => e.preventDefault()} />
+        <img loading="lazy" decoding="async" className="featured-art" src={listing.image} alt={listing.title} draggable={false} onContextMenu={(e) => e.preventDefault()} />
         <div className="featured-shade" />
         <div className="featured-copy">
           <span className="new-drop"><Star size={13} fill="currentColor" /> NEW DROP</span>
@@ -191,7 +191,7 @@ function SellerCard({ seller, onSelect }: { seller: Seller; onSelect: () => void
   const unfollow = trpc.follow.unfollow.useMutation({ onSuccess: () => setFollowing(false) })
   return (
     <article className="artist-highlight">
-      <button className="highlight-image" onClick={onSelect} aria-label={`Shop ${seller.name}`}><img src={seller.listings[0].image} alt={`${seller.name}'s artwork`} /><ArrowUpRight size={15} /></button>
+      <button className="highlight-image" onClick={onSelect} aria-label={`Shop ${seller.name}`}><img loading="lazy" decoding="async" src={seller.listings[0].image} alt={`${seller.name}'s artwork`} /><ArrowUpRight size={15} /></button>
       <div className="highlight-body">
         <Link className="highlight-name" href={`/@${seller.username}`}>@{seller.username}</Link>
         <span>{seller.listings.length} for sale</span>
@@ -248,7 +248,7 @@ function CartContent({ onBrowse }: { onBrowse: () => void }) {
         <div className="cart-items">
           {items.map((item) => (
             <article className="cart-line" key={item.id}>
-              <img src={item.image} alt={item.title} />
+              <img loading="lazy" decoding="async" src={item.image} alt={item.title} />
               <div>
                 <h3>{item.title}</h3><p>@{item.sellerUsername}</p><strong>{money(item.price)}</strong>
                 <div className="cart-line-controls"><button className="remove-item" onClick={() => dispatch({ type: "remove", id: item.id })} aria-label={`Remove ${item.title}`}><Trash2 size={14} /></button></div>

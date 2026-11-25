@@ -214,7 +214,7 @@ function ProfileBody({ username }: { username: string }) {
                 return (
                   <article className="portfolio-card" key={post.id}>
                     <Link className="artwork-button" href={removed ? "#" : `/@${username}/${post.id}`} onClick={(e) => { if (removed) e.preventDefault() }} aria-label={`View ${caption}`} style={{ position: "relative" }}>
-                      <img className="portfolio-image" src={post.image} alt={post.description ?? caption} style={{ aspectRatio: "1" }} />
+                      <img loading="lazy" decoding="async" className="portfolio-image" src={post.image} alt={post.description ?? caption} style={{ aspectRatio: "1" }} />
                       <span className="artwork-open"><ArrowUpRight size={17} /></span>
                       {post.status === "PENDING_REVIEW" && <span className="gx-post-overlay">Under review</span>}
                       {isOwn && removed && (
@@ -260,7 +260,7 @@ function ProfileBody({ username }: { username: string }) {
             <div className="portfolio-grid">
               {shopItems.map((item) => (
                 <article className="portfolio-card" key={item.id}>
-                  <Link className="artwork-button" href={`/@${profileUser.username}/shop/${item.id}`}><img className="portfolio-image" src={item.image} alt={item.title} style={{ aspectRatio: "1" }} /></Link>
+                  <Link className="artwork-button" href={`/@${profileUser.username}/shop/${item.id}`}><img loading="lazy" decoding="async" className="portfolio-image" src={item.image} alt={item.title} style={{ aspectRatio: "1" }} /></Link>
                   <div className="artwork-caption">
                     <div><h3>{item.title}</h3><p>${item.price.toFixed(2)}</p></div>
                     {isOwn
@@ -304,7 +304,7 @@ function ProfileBody({ username }: { username: string }) {
                 <>
                   <div className="portfolio-toolbar"><h2>Example work</h2></div>
                   <div className="portfolio-grid">
-                    {galleryImages.map(({ src, key }) => <article className="portfolio-card" key={key}><img className="portfolio-image" src={src} alt="Example commission work" style={{ aspectRatio: "1" }} /></article>)}
+                    {galleryImages.map(({ src, key }) => <article className="portfolio-card" key={key}><img loading="lazy" decoding="async" className="portfolio-image" src={src} alt="Example commission work" style={{ aspectRatio: "1" }} /></article>)}
                   </div>
                 </>
               ) : (

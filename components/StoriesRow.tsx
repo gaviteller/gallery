@@ -64,7 +64,7 @@ export default function StoriesRow() {
                 <span className={`gallery-story-ring${muted ? " gallery-story-ring-viewed" : ""}${!hasStory ? " gallery-story-ring-empty" : ""}`}>
                   <span className="gallery-story-photo-wrap">
                     {group.image ? (
-                      <img src={group.image} className="gallery-story-photo" alt="" />
+                      <img loading="lazy" decoding="async" src={group.image} className="gallery-story-photo" alt="" />
                     ) : (
                       <span className="gallery-story-photo gallery-story-fallback">
                         {(group.name ?? group.username ?? "?")[0].toUpperCase()}

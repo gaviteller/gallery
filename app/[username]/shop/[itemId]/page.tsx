@@ -71,7 +71,7 @@ export default function ShopItemPage({
 
         {/* Preview image */}
         <div className="rounded-2xl overflow-hidden aspect-square w-full relative mb-6" onContextMenu={(e) => e.preventDefault()}>
-          <img
+          <img loading="lazy" decoding="async"
             src={item.image}
             alt={item.title}
             draggable={false}
@@ -101,7 +101,7 @@ export default function ShopItemPage({
           {/* Artist */}
           <Link href={`/@${item.user.username ?? displayUsername}`} className="flex items-center gap-2">
             {item.user.image && (
-              <img
+              <img loading="lazy" decoding="async"
                 src={item.user.image}
                 alt=""
                 style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }}

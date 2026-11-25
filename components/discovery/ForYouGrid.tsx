@@ -29,7 +29,7 @@ export default function ForYouGrid() {
             className="aspect-square rounded-md overflow-hidden relative"
             style={{ background: "rgba(255,255,255,0.06)" }}
           >
-            <img
+            <img loading="lazy" decoding="async"
               src={post.image}
               alt={post.description ?? ""}
               className="w-full h-full object-cover"

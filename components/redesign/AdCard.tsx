@@ -79,7 +79,7 @@ export default function AdCard({ ad, variant = "card" }: { ad: AdData; variant?:
       rel={external ? (ad.preset === "PARTNER" ? "sponsored noopener noreferrer" : "noopener noreferrer") : undefined}
       onClick={() => recordClick.mutate({ id: ad.id })}
     >
-      {ad.imageUrl && <img src={ad.imageUrl} alt="" draggable={false} style={look.fit === "whole" ? { objectFit: "contain", background: "#0b0c16" } : undefined} />}
+      {ad.imageUrl && <img loading="lazy" decoding="async" src={ad.imageUrl} alt="" draggable={false} style={look.fit === "whole" ? { objectFit: "contain", background: "#0b0c16" } : undefined} />}
       <span className="gx-ad-copy">
         <span className="gx-ad-label">{LABELS[ad.preset]}</span>
         <strong style={{ fontFamily: AD_FONTS[look.font], fontSize: 15 * AD_SIZES[look.size] }}>{ad.headline}</strong>

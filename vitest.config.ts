@@ -6,6 +6,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    // Old copies of the project live in .claude/worktrees; never run their tests.
+    exclude: ["**/node_modules/**", "**/.claude/**", "**/.next/**"],
     env: Object.fromEntries(
       (() => {
         const fs = require("fs")
