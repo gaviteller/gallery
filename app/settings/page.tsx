@@ -1,687 +1,352 @@
 "use client"
-
-import { useSession, signOut } from "next-auth/react"
+/**
+ * SETTINGS (Codex redesign). Styling: app/redesign/settings.css (generated, scope .gx-settings).
+ *
+ * Sections: Edit profile (cover, photo, name, username, bio, links) · Notifications (push on this
+ * device, link to the inbox) · Privacy (real name, ad targeting, blocked accounts) · Account (selling,
+ * password, email, legal, sign out). Codex's "Interests" and "Appearance" sections are left out until
+ * there is somewhere real to save them (no fake settings).
+ *
+ * Profile fields save together with "Save changes"; switches apply straight away, as before.
+ * Open a section directly with ?section=Notifications (also accepts the old ?tab=account).
+ */
+import "@/app/redesign/settings.css"
+import "@/app/redesign/settings-extra.css"
+import "@/app/redesign/shell.css"
+import React, { Suspense, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import React, { useEffect, useState, Suspense } from "react"
+import { useSession, signOut } from "next-auth/react"
+import { Bell, Check, CircleUserRound, ImagePlus, KeyRound, LockKeyhole } from "lucide-react"
 import { trpc } from "@/components/providers"
 import { uploadImage } from "@/lib/upload"
+import RedesignShell, { GallerySidebar, Avatar } from "@/components/redesign/RedesignShell"
 
-const GRADIENT = "linear-gradient(90deg,#FF3CAC,#784BA0,#2B86C5)"
+const SECTIONS = [
+  { label: "Edit profile", icon: CircleUserRound },
+  { label: "Notifications", icon: Bell },
+  { label: "Privacy", icon: LockKeyhole },
+  { label: "Account", icon: KeyRound },
+] as const
+type Section = typeof SECTIONS[number]["label"]
 
-function SettingsForm() {
-  const { data: session, status, update } = useSession()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const utils = trpc.useUtils()
-  const { data: user, isLoading } = trpc.user.me.useQuery()
-
-  const [tab, setTab] = useState<"profile" | "account">(() =>
-    searchParams.get("tab") === "account" ? "account" : "profile"
-  )
-
-  // Account tab state
-  const [accountSection, setAccountSection] = useState<"username" | "password" | null>(null)
-  const [newUsername, setNewUsername] = useState("")
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-
-  function closeSection() {
-    setAccountSection(null)
-    setNewUsername("")
-    setCurrentPassword("")
-    setNewPassword("")
-    setConfirmPassword("")
-  }
-  const [name, setName] = useState("")
-  const [bio, setBio] = useState("")
-  const [image, setImage] = useState<string | null>(null)
-  const [websiteUrl, setWebsiteUrl] = useState("")
-  const [twitterHandle, setTwitterHandle] = useState("")
-  const [instagramHandle, setInstagramHandle] = useState("")
-  const [artstationHandle, setArtstationHandle] = useState("")
-  const [showRealName, setShowRealName] = useState(false)
-  const [adTargetingOptOut, setAdTargetingOptOut] = useState(false)
-  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("default")
-  const [notifLoading, setNotifLoading] = useState(false)
-  const [photoProcessing, setPhotoProcessing] = useState(false)
-  const [bannerImage, setBannerImage] = useState<string | null>(null)
-  const [bannerProcessing, setBannerProcessing] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
-
-  useEffect(() => {
-    if (user) {
-      setName(user.name ?? "")
-      setBio(user.bio ?? "")
-      setImage(user.image ?? null)
-      setBannerImage((user as { bannerImage?: string | null }).bannerImage ?? null)
-      setWebsiteUrl(user.websiteUrl ?? "")
-      setTwitterHandle(user.twitterHandle ?? "")
-      setInstagramHandle(user.instagramHandle ?? "")
-      setArtstationHandle(user.artstationHandle ?? "")
-      setShowRealName((user as { showRealName?: boolean }).showRealName ?? false)
-      setAdTargetingOptOut((user as { adTargetingOptOut?: boolean }).adTargetingOptOut ?? false)
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/signin")
-  }, [status, router])
-
-  const username = user?.username ?? session?.user?.username
-
-  const updateProfile = trpc.user.updateProfile.useMutation({
-    onSuccess: async () => {
-      await update()
-      router.push(username ? `/${username}` : "/")
-    },
-  })
-
-  const updateSelling = trpc.user.updateSellingEnabled.useMutation({
-    onSuccess: () => {
-      utils.user.me.invalidate()
-      update()
-    },
-  })
-
-  const updateShowRealName = trpc.user.updateShowRealName.useMutation({
-    onSuccess: () => utils.user.me.invalidate(),
-    onError: () => setShowRealName(prev => !prev),
-  })
-
-  const updateAdTargeting = trpc.user.updateAdTargetingOptOut.useMutation({
-    onError: () => setAdTargetingOptOut(prev => !prev),
-  })
-
-  const pushSubscribe = trpc.push.subscribe.useMutation()
-  const pushUnsubscribe = trpc.push.unsubscribe.useMutation()
-  const { data: vapidData } = trpc.push.getPublicKey.useQuery()
-
-  useEffect(() => {
-    if (typeof Notification === "undefined" || !("serviceWorker" in navigator)) {
-      setNotifPermission("unsupported")
-    } else {
-      setNotifPermission(Notification.permission)
-    }
-  }, [])
-
-  const changeUsername = trpc.user.changeUsername.useMutation({
-    onSuccess: async () => {
-      await update()
-      setNewUsername("")
-    },
-  })
-
-  const changePassword = trpc.user.changePassword.useMutation({
-    onSuccess: () => {
-      setCurrentPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-    },
-  })
-
-  const { data: blockedUsers = [], refetch: refetchBlocked } = trpc.block.getMyBlocked.useQuery()
-  const unblockMutation = trpc.block.toggle.useMutation({
-    onSuccess: () => refetchBlocked(),
-  })
-
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setPhotoProcessing(true)
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const img = new window.Image()
-      img.onload = () => {
-        const MAX = 400
-        let { width, height } = img
-        if (width > MAX || height > MAX) {
-          if (width > height) { height = Math.round((height * MAX) / width); width = MAX }
-          else { width = Math.round((width * MAX) / height); height = MAX }
-        }
-        const canvas = document.createElement("canvas")
-        canvas.width = width
-        canvas.height = height
-        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
-        setImage(canvas.toDataURL("image/jpeg", 0.85))
-        setPhotoProcessing(false)
-      }
-      img.src = event.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-
-  function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setBannerProcessing(true)
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const img = new window.Image()
-      img.onload = () => {
-        const MAX_W = 1200
-        const MAX_H = 400
-        let { width, height } = img
-        if (width > MAX_W) { height = Math.round((height * MAX_W) / width); width = MAX_W }
-        if (height > MAX_H) { width = Math.round((width * MAX_H) / height); height = MAX_H }
-        const canvas = document.createElement("canvas")
-        canvas.width = width
-        canvas.height = height
-        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height)
-        setBannerImage(canvas.toDataURL("image/jpeg", 0.85))
-        setBannerProcessing(false)
-      }
-      img.src = event.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-
-  async function handleSave() {
-    setSaveError(null)
-    setIsUploading(true)
-    try {
-      let imageUrl = image
-      let bannerUrl = bannerImage
-
-      if (image && image.startsWith("data:")) {
-        imageUrl = await uploadImage(image, "avatars")
-      }
-      if (bannerImage && bannerImage.startsWith("data:")) {
-        bannerUrl = await uploadImage(bannerImage, "banners")
-      }
-
-      updateProfile.mutate({
-        name: name.trim() || (user?.name ?? "Artist"),
-        bio: bio.trim() || null,
-        image: imageUrl || null,
-        bannerImage: bannerUrl || null,
-        websiteUrl: websiteUrl.trim() || null,
-        twitterHandle: twitterHandle.trim() || null,
-        instagramHandle: instagramHandle.trim() || null,
-        artstationHandle: artstationHandle.trim() || null,
-      })
-    } catch (err) {
-      console.error("[settings] image upload failed:", err)
-      setSaveError("Failed to upload image. Please try again.")
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  async function handleNotifToggle() {
-    if (notifPermission === "unsupported") return
-    setNotifLoading(true)
-    try {
-      if (notifPermission === "granted") {
-        const reg = await navigator.serviceWorker.ready
-        const sub = await reg.pushManager.getSubscription()
-        if (sub) {
-          await sub.unsubscribe()
-          await pushUnsubscribe.mutateAsync({ endpoint: sub.endpoint })
-        }
-        setNotifPermission("default")
-      } else {
-        const permission = await Notification.requestPermission()
-        setNotifPermission(permission)
-        if (permission !== "granted") return
-        const reg = await navigator.serviceWorker.register("/sw.js")
-        const publicKey = vapidData?.publicKey ?? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""
-        const sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        })
-        const json = sub.toJSON()
-        await pushSubscribe.mutateAsync({
-          endpoint: sub.endpoint,
-          p256dh: json.keys?.p256dh ?? "",
-          auth: json.keys?.auth ?? "",
-        })
-      }
-    } catch (err) {
-      console.error("[push]", err)
-    } finally {
-      setNotifLoading(false)
-    }
-  }
-
-  const initials = (name || user?.username || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
-
-  function urlBase64ToUint8Array(base64String: string) {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
-    const raw = atob(base64)
-    return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
-  }
-
-  if (status === "loading" || isLoading) {
-    return <div style={{ flex: "1 0 auto", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}><p style={{ color: "var(--muted)", fontFamily: "Inter,sans-serif", fontSize: 13 }}>Loading…</p></div>
-  }
-
-  const rowStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "120px 1fr", gap: 14, padding: "12px 0", borderBottom: "1px solid var(--border)", alignItems: "center" }
-  const rowTopStyle: React.CSSProperties = { ...rowStyle, alignItems: "flex-start", padding: "14px 0" }
-  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: "var(--muted)", lineHeight: 1.4, fontFamily: "Inter,sans-serif" }
-  const hintStyle: React.CSSProperties = { fontSize: 10, color: "rgba(107,95,136,0.65)", marginTop: 3, fontFamily: "Inter,sans-serif" }
-  const sectionLabelStyle: React.CSSProperties = { fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--muted)", padding: "14px 0 10px", fontFamily: "Inter,sans-serif" }
-  const inputStyle: React.CSSProperties = {
-    width: "100%", boxSizing: "border-box", background: "rgba(240,235,248,0.08)", border: "1px solid rgba(240,235,248,0.18)",
-    borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "var(--text)", fontFamily: "Inter,sans-serif", outline: "none",
-  }
-  const ghostBtnStyle: React.CSSProperties = {
-    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer", fontFamily: "Inter,sans-serif",
-    background: "rgba(240,235,248,0.06)", border: "1px solid var(--border)", color: "var(--muted)",
-  }
-  const gradBtnStyle: React.CSSProperties = {
-    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer", fontFamily: "Inter,sans-serif",
-    background: GRADIENT, color: "#fff", border: "none", display: "inline-block",
-  }
-  const toggleStyle = (on: boolean): React.CSSProperties => ({
-    width: 42, height: 24, borderRadius: 99, display: "flex", alignItems: "center",
-    padding: 2, flexShrink: 0, flexDirection: "row", cursor: "pointer", border: on ? "none" : "1px solid var(--border)",
-    background: on ? "linear-gradient(90deg,#FF3CAC,#784BA0)" : "rgba(240,235,248,0.1)",
-  })
-
-  return (
-    <div style={{ flex: "1 0 auto", background: "var(--bg)", paddingBottom: 80 }}>
-      {/* Sticky nav */}
-      <div style={{ position: "sticky", top: 0, zIndex: 20, background: "var(--nav)", borderBottom: "1px solid var(--border)", padding: "11px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-        <button
-          onClick={() => router.push(username ? `/@${username}` : "/")}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--muted)", display: "flex", flexShrink: 0 }}
-        >
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, background: GRADIENT, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-          Settings
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 512, margin: "0 auto", padding: "20px 16px" }}>
-
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 28, borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
-          {(["profile", "account"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                padding: "0 0 11px", marginBottom: -1, background: "none", border: "none", cursor: "pointer",
-                fontFamily: "Inter,sans-serif", fontWeight: 700, fontSize: 15, textTransform: "capitalize",
-                color: tab === t ? "var(--text)" : "var(--muted)", position: "relative",
-              }}
-            >
-              {t}
-              {tab === t && (
-                <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, borderRadius: 99, background: GRADIENT }} />
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Profile tab ─────────────────────────────────────── */}
-        {tab === "profile" && (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-
-          <p style={sectionLabelStyle}>Appearance</p>
-
-          {/* Photo row */}
-          <div style={rowStyle}>
-            <div>
-              <p style={labelStyle}>Photo</p>
-              <p style={hintStyle}>Your public avatar</p>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {image ? (
-                <img src={image} alt="Profile" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid var(--border)" }} />
-              ) : (
-                <div style={{ width: 48, height: 48, borderRadius: "50%", flexShrink: 0, background: GRADIENT, padding: 2 }}>
-                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "#2A1838", color: "rgba(240,235,248,0.6)", fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 16 }}>{initials}</div>
-                </div>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={gradBtnStyle}>
-                  {photoProcessing ? "Processing…" : "Upload photo"}
-                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoChange} disabled={photoProcessing} />
-                </label>
-                {image && (
-                  <button onClick={() => setImage(null)} style={ghostBtnStyle}>Remove</button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Banner row */}
-          <div style={rowTopStyle}>
-            <div>
-              <p style={labelStyle}>Banner</p>
-              <p style={hintStyle}>Top of your profile</p>
-            </div>
-            <div>
-              {bannerImage ? (
-                <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", marginBottom: 8, height: 52 }}>
-                  <img src={bannerImage} alt="Banner" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                </div>
-              ) : (
-                <div style={{ borderRadius: 10, marginBottom: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, height: 56, border: "1px dashed var(--border)", color: "var(--muted)", background: "rgba(240,235,248,0.02)", fontFamily: "Inter,sans-serif" }}>
-                  No banner — gradient will be used
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 8 }}>
-                <label style={gradBtnStyle}>
-                  {bannerProcessing ? "Processing…" : "Upload banner"}
-                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleBannerChange} disabled={bannerProcessing} />
-                </label>
-                {bannerImage && (
-                  <button onClick={() => setBannerImage(null)} style={ghostBtnStyle}>Remove</button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <p style={sectionLabelStyle}>Identity</p>
-
-          {/* Display name row */}
-          <div style={rowStyle}>
-            <p style={labelStyle}>Display name</p>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={100}
-              style={inputStyle}
-            />
-          </div>
-
-          {/* Show real name toggle */}
-          {user?.name && (
-            <div style={rowStyle}>
-              <div>
-                <p style={labelStyle}>Show real name</p>
-                <p style={hintStyle}>On your public profile</p>
-              </div>
-              <button
-                onClick={() => { const next = !showRealName; setShowRealName(next); updateShowRealName.mutate({ showRealName: next }) }}
-                disabled={updateShowRealName.isPending}
-                style={toggleStyle(showRealName)}
-                role="switch" aria-checked={showRealName}
-              >
-                <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: showRealName ? "auto" : 0 }} />
-              </button>
-            </div>
-          )}
-
-          {/* Bio row */}
-          <div style={rowTopStyle}>
-            <div>
-              <p style={labelStyle}>Bio</p>
-              <p style={hintStyle}>Up to 160 chars</p>
-            </div>
-            <div>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                maxLength={160}
-                rows={3}
-                placeholder="Tell people about your work…"
-                style={{ ...inputStyle, height: 72, resize: "none" }}
-              />
-              <p style={{ fontSize: 12, textAlign: "right", marginTop: 4, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>{bio.length}/160</p>
-            </div>
-          </div>
-
-          <p style={sectionLabelStyle}>Links</p>
-
-          {(
-            [
-              { icon: "🌐", label: "Website",    placeholder: "https://yoursite.com", value: websiteUrl,       set: setWebsiteUrl },
-              { icon: "𝕏",  label: "Twitter / X", placeholder: "@handle",             value: twitterHandle,   set: setTwitterHandle },
-              { icon: "📸", label: "Instagram",   placeholder: "@handle",             value: instagramHandle, set: setInstagramHandle },
-              { icon: "🎨", label: "ArtStation",  placeholder: "username",            value: artstationHandle, set: setArtstationHandle },
-            ] as const
-          ).map(({ icon, label, placeholder, value, set }) => (
-            <div key={label} style={rowStyle}>
-              <p style={labelStyle}>{label}</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ fontSize: 16, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
-                <input
-                  type="text"
-                  value={value}
-                  onChange={(e) => (set as (v: string) => void)(e.target.value)}
-                  placeholder={placeholder}
-                  style={{ ...inputStyle, fontSize: 14, flex: 1 }}
-                />
-              </div>
-            </div>
-          ))}
-
-          {updateProfile.error && (
-            <p style={{ fontSize: 13, color: "#f87171", marginTop: 14, fontFamily: "Inter,sans-serif" }}>{updateProfile.error.message}</p>
-          )}
-          {saveError && (
-            <p style={{ fontSize: 13, color: "#f87171", marginTop: 14, fontFamily: "Inter,sans-serif" }}>{saveError}</p>
-          )}
-
-          <button
-            onClick={handleSave}
-            disabled={updateProfile.isPending || photoProcessing || bannerProcessing || isUploading}
-            style={{ width: "100%", padding: "11px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, marginTop: 20, border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", background: GRADIENT, color: "#fff", opacity: (updateProfile.isPending || photoProcessing || bannerProcessing || isUploading) ? 0.5 : 1 }}
-          >
-            {isUploading ? "Uploading…" : updateProfile.isPending ? "Saving…" : "Save changes"}
-          </button>
-        </div>
-        )}
-
-        {/* ── Account tab ─────────────────────────────────────── */}
-        {tab === "account" && (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-
-          <p style={sectionLabelStyle}>Preferences</p>
-
-          {/* Commissions toggle */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Commissions</div>
-              <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>
-                {user?.sellingEnabled ? "Visible on your profile" : "Not shown on your profile"}
-              </div>
-            </div>
-            <button
-              onClick={() => updateSelling.mutate({ enabled: !user?.sellingEnabled })}
-              disabled={updateSelling.isPending}
-              style={toggleStyle(!!user?.sellingEnabled)}
-              role="switch" aria-checked={user?.sellingEnabled}
-            >
-              <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: user?.sellingEnabled ? "auto" : 0 }} />
-            </button>
-          </div>
-
-          {/* Ad targeting toggle */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Location-based ad targeting</div>
-              <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>Opt out to disable location ads</div>
-            </div>
-            <button
-              onClick={() => { const next = !adTargetingOptOut; setAdTargetingOptOut(next); updateAdTargeting.mutate({ optOut: next }) }}
-              disabled={updateAdTargeting.isPending}
-              style={toggleStyle(adTargetingOptOut)}
-              role="switch" aria-checked={adTargetingOptOut}
-            >
-              <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: adTargetingOptOut ? "auto" : 0 }} />
-            </button>
-          </div>
-
-          {/* Push notifications toggle */}
-          {notifPermission !== "unsupported" && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Push notifications</div>
-                <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>
-                  {notifPermission === "denied" ? "Blocked by browser — allow in browser settings" : notifPermission === "granted" ? "Enabled for likes, comments, follows, DMs" : "Get notified for likes, comments, follows, DMs"}
-                </div>
-              </div>
-              {notifPermission !== "denied" && (
-                <button
-                  onClick={handleNotifToggle}
-                  disabled={notifLoading}
-                  style={{ ...toggleStyle(notifPermission === "granted"), opacity: notifLoading ? 0.5 : 1 }}
-                  role="switch" aria-checked={notifPermission === "granted"}
-                >
-                  <span style={{ width: 20, height: 20, borderRadius: "50%", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,.4)", marginLeft: notifPermission === "granted" ? "auto" : 0 }} />
-                </button>
-              )}
-            </div>
-          )}
-
-          <p style={sectionLabelStyle}>Account</p>
-
-          {/* Change username */}
-          <div style={{ borderBottom: "1px solid var(--border)" }}>
-            {accountSection !== "username" ? (
-              <button
-                onClick={() => setAccountSection("username")}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Username</div>
-                  <div style={{ fontSize: 11, marginTop: 3, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>@{user?.username}</div>
-                </div>
-                <span style={{ fontSize: 17, color: "var(--muted)" }}>›</span>
-              </button>
-            ) : (
-              <div style={{ padding: "14px 0", display: "flex", flexDirection: "column", gap: 10 }}>
-                <button onClick={closeSection} style={{ fontSize: 11, textAlign: "left", color: "var(--muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", padding: 0 }}>← Back</button>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Change username</div>
-                <input
-                  type="text"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder={`Current: @${user?.username}`}
-                  maxLength={30}
-                  style={inputStyle}
-                />
-                {changeUsername.error && <p style={{ fontSize: 13, color: "#f87171", fontFamily: "Inter,sans-serif" }}>{changeUsername.error.message}</p>}
-                {changeUsername.isSuccess && <p style={{ fontSize: 13, color: "#4ade80", fontFamily: "Inter,sans-serif" }}>Username updated!</p>}
-                <button
-                  onClick={() => changeUsername.mutate({ username: newUsername.trim() })}
-                  disabled={changeUsername.isPending || !newUsername.trim()}
-                  style={{ width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", background: GRADIENT, color: "#fff", opacity: (changeUsername.isPending || !newUsername.trim()) ? 0.5 : 1 }}
-                >
-                  {changeUsername.isPending ? "Saving…" : "Save username"}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Change password */}
-          <div style={{ borderBottom: "1px solid var(--border)" }}>
-            {accountSection !== "password" ? (
-              <button
-                onClick={() => setAccountSection("password")}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Password</div>
-                <span style={{ fontSize: 17, color: "var(--muted)" }}>›</span>
-              </button>
-            ) : (
-              <div style={{ padding: "14px 0", display: "flex", flexDirection: "column", gap: 10 }}>
-                <button onClick={closeSection} style={{ fontSize: 11, textAlign: "left", color: "var(--muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", padding: 0 }}>← Back</button>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Change password</div>
-                {[
-                  { value: currentPassword, set: setCurrentPassword, placeholder: "Current password", type: "password" },
-                  { value: newPassword, set: setNewPassword, placeholder: "New password (min 8 characters)", type: "password" },
-                  { value: confirmPassword, set: setConfirmPassword, placeholder: "Confirm new password", type: "password" },
-                ].map(({ value, set, placeholder, type }) => (
-                  <input key={placeholder} type={type} value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
-                    style={inputStyle} />
-                ))}
-                {confirmPassword && newPassword !== confirmPassword && (
-                  <p style={{ fontSize: 13, color: "#f87171", fontFamily: "Inter,sans-serif" }}>Passwords don&apos;t match.</p>
-                )}
-                {changePassword.error && <p style={{ fontSize: 13, color: "#f87171", fontFamily: "Inter,sans-serif" }}>{changePassword.error.message}</p>}
-                {changePassword.isSuccess && <p style={{ fontSize: 13, color: "#4ade80", fontFamily: "Inter,sans-serif" }}>Password updated!</p>}
-                <button
-                  onClick={() => changePassword.mutate({ currentPassword, newPassword })}
-                  disabled={changePassword.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword}
-                  style={{ width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", background: GRADIENT, color: "#fff", opacity: (changePassword.isPending || !currentPassword || !newPassword || newPassword !== confirmPassword) ? 0.5 : 1 }}
-                >
-                  {changePassword.isPending ? "Saving…" : "Update password"}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Email */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", borderBottom: "1px solid var(--border)" }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Email</div>
-            <div style={{ fontSize: 12, color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>{user?.email}</div>
-          </div>
-
-          {/* Blocked accounts */}
-          <p style={sectionLabelStyle}>Blocked accounts</p>
-          {blockedUsers.length === 0 ? (
-            <p style={{ fontSize: 12, padding: "8px 0", color: "var(--muted)", fontFamily: "Inter,sans-serif" }}>You haven&apos;t blocked anyone.</p>
-          ) : (
-            <div>
-              {blockedUsers.map((u) => (
-                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
-                  {u.image ? (
-                    <img src={u.image} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>
-                      {(u.name ?? u.username ?? "?")[0].toUpperCase()}
-                    </div>
-                  )}
-                  <span style={{ flex: 1, fontSize: 12, color: "var(--text)", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>@{u.username}</span>
-                  <button
-                    onClick={() => unblockMutation.mutate({ username: u.username! })}
-                    disabled={unblockMutation.isPending && unblockMutation.variables?.username === u.username}
-                    style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", background: "rgba(240,235,248,0.04)", color: "var(--muted)", cursor: "pointer", fontFamily: "Inter,sans-serif", opacity: (unblockMutation.isPending && unblockMutation.variables?.username === u.username) ? 0.3 : 1 }}
-                  >
-                    Unblock
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Legal */}
-          <p style={sectionLabelStyle}>Legal</p>
-          <div style={{ borderBottom: "1px solid var(--border)" }}>
-            <button
-              onClick={() => router.push("/privacy")}
-              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)", fontFamily: "Inter,sans-serif" }}>Privacy Policy</div>
-              <span style={{ fontSize: 17, color: "var(--muted)" }}>›</span>
-            </button>
-          </div>
-
-          {/* Sign out */}
-          <div style={{ paddingTop: 24 }}>
-            <button
-              onClick={() => signOut({ callbackUrl: "/signin" })}
-              style={{ fontSize: 13, fontWeight: 600, color: "#f87171", background: "none", border: "none", cursor: "pointer", fontFamily: "Inter,sans-serif", padding: 0 }}
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-        )}
-      </div>
-    </div>
-  )
+type Profile = {
+  name: string; handle: string; bio: string; image: string | null; banner: string | null
+  website: string; twitter: string; instagram: string; artstation: string
 }
 
 export default function SettingsPage() {
   return (
-    <Suspense>
-      <SettingsForm />
-    </Suspense>
+    <RedesignShell wrapperClass="gx-settings">
+      <Suspense fallback={null}><SettingsView /></Suspense>
+    </RedesignShell>
+  )
+}
+
+/** Shrinks a chosen picture in the browser before upload (avatars 400px, covers 1200×400). */
+function resizeImage(file: File, maxW: number, maxH: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error("read"))
+    reader.onload = () => {
+      const img = new window.Image()
+      img.onerror = () => reject(new Error("decode"))
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width, maxH / img.height)
+        const canvas = document.createElement("canvas")
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL("image/jpeg", 0.85))
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+  const raw = atob((base64String + padding).replace(/-/g, "+").replace(/_/g, "/"))
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
+}
+
+function SettingsView() {
+  const { status, update } = useSession()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const utils = trpc.useUtils()
+  const { data: user } = trpc.user.me.useQuery(undefined, { enabled: status === "authenticated" })
+
+  const initialSection = (): Section => {
+    const asked = searchParams.get("section") ?? (searchParams.get("tab") === "account" ? "Account" : "")
+    return SECTIONS.find((s) => s.label.toLowerCase() === asked.toLowerCase())?.label ?? "Edit profile"
+  }
+  const [section, setSection] = useState<Section>(initialSection)
+  const [saved, setSaved] = useState<Profile | null>(null)
+  const [draft, setDraft] = useState<Profile | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [readingPhoto, setReadingPhoto] = useState(false)
+  const [notice, setNotice] = useState("")
+  const [error, setError] = useState("")
+
+  useEffect(() => { if (status === "unauthenticated") router.push("/signin") }, [status, router])
+
+  // Fill the form once the account loads (and again after a save refreshes it).
+  useEffect(() => {
+    if (!user) return
+    const profile: Profile = {
+      name: user.name ?? "", handle: user.username ?? "", bio: user.bio ?? "",
+      image: user.image ?? null, banner: user.bannerImage ?? null,
+      website: user.websiteUrl ?? "", twitter: user.twitterHandle ?? "",
+      instagram: user.instagramHandle ?? "", artstation: user.artstationHandle ?? "",
+    }
+    setSaved(profile)
+    setDraft(profile)
+  }, [user])
+
+  const updateProfile = trpc.user.updateProfile.useMutation()
+  const changeUsername = trpc.user.changeUsername.useMutation()
+
+  if (!draft || !saved || !user) {
+    return <div className="desktop-layout settings-layout"><GallerySidebar /><main className="settings-main"><p className="settings-loading">Loading your settings…</p></main></div>
+  }
+
+  const changed = JSON.stringify(draft) !== JSON.stringify(saved)
+  const change = <K extends keyof Profile>(key: K, value: Profile[K]) => {
+    setDraft((d) => d && { ...d, [key]: value })
+    setNotice(""); setError("")
+  }
+
+  async function pickPhoto(file: File | undefined, field: "image" | "banner") {
+    if (!file) return
+    if (!file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) { setError("Choose an image up to 10 MB."); return }
+    setReadingPhoto(true)
+    try { change(field, field === "image" ? await resizeImage(file, 400, 400) : await resizeImage(file, 1200, 400)) }
+    catch { setError("That photo couldn't be opened. Try another image.") }
+    finally { setReadingPhoto(false) }
+  }
+
+  async function save() {
+    if (!draft || !saved) return
+    const name = draft.name.trim()
+    const handle = draft.handle.trim().replace(/^@/, "")
+    const website = draft.website.trim()
+    if (!name) { setError("Enter a display name."); setSection("Edit profile"); return }
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(handle)) { setError("Use 3 to 30 letters, numbers or underscores for your username."); setSection("Edit profile"); return }
+    if (website) {
+      try { const url = new URL(website); if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error() }
+      catch { setError("Enter a website starting with https:// or http://."); setSection("Edit profile"); return }
+    }
+    setBusy(true); setError("")
+    try {
+      if (handle !== saved.handle) await changeUsername.mutateAsync({ username: handle })
+      const image = draft.image?.startsWith("data:") ? await uploadImage(draft.image, "avatars") : draft.image
+      const banner = draft.banner?.startsWith("data:") ? await uploadImage(draft.banner, "banners") : draft.banner
+      await updateProfile.mutateAsync({
+        name, bio: draft.bio.trim() || null, image: image || null, bannerImage: banner || null,
+        websiteUrl: website || null, twitterHandle: draft.twitter.trim() || null,
+        instagramHandle: draft.instagram.trim() || null, artstationHandle: draft.artstation.trim() || null,
+      })
+      await Promise.all([update(), utils.user.me.invalidate()])
+      setNotice("Settings saved.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Your settings couldn't be saved. Please try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="desktop-layout settings-layout">
+      <GallerySidebar />
+      <main className="settings-main" style={{ "--settings-gradient": "linear-gradient(115deg, #dc4aa1, #8756d8, #50bddd)" } as React.CSSProperties}>
+        <header className="settings-hero">
+          <div aria-hidden="true" className="settings-art"><span /></div>
+          <h1>Settings</h1>
+          <Link className="settings-profile-link" href={`/@${user.username}`}>View profile</Link>
+        </header>
+        <div className="settings-grid">
+          <div className="settings-menu">
+            <nav aria-label="Settings sections">
+              {SECTIONS.map(({ label, icon: Icon }) => (
+                <button key={label} aria-pressed={section === label} onClick={() => { setSection(label); setNotice(""); setError("") }}><Icon size={17} />{label}</button>
+              ))}
+            </nav>
+            <aside className="settings-preview" aria-label="Profile preview">
+              <Avatar src={draft.image} name={draft.name || "You"} />
+              <strong>{draft.name || "Your name"}</strong>
+              <span>@{draft.handle || "username"}</span>
+              {draft.bio && <p>{draft.bio}</p>}
+            </aside>
+          </div>
+
+          {section === "Edit profile" ? (
+            <form className="settings-card" onSubmit={(e) => { e.preventDefault(); void save() }} noValidate>
+              <h2>Edit profile</h2>
+              <section className="cover-editor" aria-labelledby="cover-heading">
+                <h3 id="cover-heading">Profile cover</h3>
+                <div className="cover-preview">
+                  {draft.banner ? <img src={draft.banner} alt="Profile cover preview" /> : <div aria-hidden="true" className="settings-art"><span /></div>}
+                </div>
+                <div className="cover-actions">
+                  <label className="photo-upload"><ImagePlus size={16} /> Change cover<input type="file" accept="image/*" disabled={readingPhoto || busy} onChange={(e) => { void pickPhoto(e.target.files?.[0], "banner"); e.target.value = "" }} /></label>
+                  {draft.banner && <button type="button" className="settings-text-button" disabled={readingPhoto || busy} onClick={() => change("banner", null)}>Use default cover</button>}
+                </div>
+                <small>A wide image works best. Shown at the top of your profile.</small>
+              </section>
+              <div className="profile-photo">
+                <Avatar src={draft.image} name={draft.name || "You"} />
+                <div>
+                  <label className="photo-upload"><ImagePlus size={16} /> Change photo<input type="file" accept="image/*" disabled={readingPhoto || busy} onChange={(e) => { void pickPhoto(e.target.files?.[0], "image"); e.target.value = "" }} /></label>
+                  <small>Your public avatar</small>
+                </div>
+                {draft.image && <button type="button" className="settings-text-button" disabled={busy} onClick={() => change("image", null)}>Remove</button>}
+              </div>
+              <div className="settings-fields">
+                <label>Display name<input value={draft.name} maxLength={100} required onChange={(e) => change("name", e.target.value)} /></label>
+                <label>Username<input value={draft.handle} maxLength={30} required onChange={(e) => change("handle", e.target.value)} /></label>
+                <label className="wide-field">Bio<textarea rows={3} maxLength={160} value={draft.bio} placeholder="Tell people about your work…" onChange={(e) => change("bio", e.target.value)} /><small>{draft.bio.length}/160</small></label>
+                <label>Website<input type="url" value={draft.website} maxLength={240} placeholder="https://your-portfolio.com" onChange={(e) => change("website", e.target.value)} /></label>
+                <label>Instagram<input value={draft.instagram} maxLength={50} placeholder="@handle" onChange={(e) => change("instagram", e.target.value)} /></label>
+                <label>X / Twitter<input value={draft.twitter} maxLength={50} placeholder="@handle" onChange={(e) => change("twitter", e.target.value)} /></label>
+                <label>ArtStation<input value={draft.artstation} maxLength={50} placeholder="handle" onChange={(e) => change("artstation", e.target.value)} /></label>
+              </div>
+              {error && <p className="settings-error" role="alert">{error}</p>}
+              <div className="settings-footer">
+                <p role="status">{notice ? <><Check size={15} />{notice}</> : changed ? "You have unsaved changes." : "Your profile is up to date."}</p>
+                <div>
+                  <button type="button" className="settings-secondary" disabled={!changed || busy || readingPhoto} onClick={() => { setDraft(saved); setError(""); setNotice("") }}>Discard</button>
+                  <button className="settings-primary" disabled={!changed || busy || readingPhoto}>{busy ? "Saving…" : "Save changes"}</button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            <div className="settings-card">
+              <h2>{section}</h2>
+              {section === "Notifications" && <NotificationSettings />}
+              {section === "Privacy" && <PrivacySettings showRealName={!!user.showRealName} adOptOut={!!user.adTargetingOptOut} />}
+              {section === "Account" && <AccountSettings email={user.email} sellingEnabled={!!user.sellingEnabled} />}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+/** A labelled switch in Codex's style. */
+function Toggle({ label, description, checked, disabled, onChange }: { label: string; description: string; checked: boolean; disabled?: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="setting-toggle">
+      <span><strong>{label}</strong><small>{description}</small></span>
+      <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+    </label>
+  )
+}
+
+function NotificationSettings() {
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const subscribe = trpc.push.subscribe.useMutation()
+  const unsubscribe = trpc.push.unsubscribe.useMutation()
+  const { data: vapid } = trpc.push.getPublicKey.useQuery()
+
+  useEffect(() => {
+    setPermission(typeof Notification === "undefined" || !("serviceWorker" in navigator) ? "unsupported" : Notification.permission)
+  }, [])
+
+  async function toggle(on: boolean) {
+    setBusy(true); setError("")
+    try {
+      if (!on) {
+        const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription()
+        if (sub) { await sub.unsubscribe(); await unsubscribe.mutateAsync({ endpoint: sub.endpoint }) }
+        setPermission("default")
+        return
+      }
+      const result = await Notification.requestPermission()
+      setPermission(result)
+      if (result !== "granted") { setError("Your browser blocked notifications. Allow them in the browser's site settings."); return }
+      const reg = await navigator.serviceWorker.register("/sw.js")
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapid?.publicKey ?? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "") })
+      const json = sub.toJSON()
+      await subscribe.mutateAsync({ endpoint: sub.endpoint, p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "" })
+    } catch (err) {
+      console.error("[push]", err)
+      setError("Notifications couldn't be switched. Please try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="settings-toggles">
+      <Toggle label="Push notifications on this device" description={permission === "unsupported" ? "This browser doesn't support push notifications." : "Likes, follows, messages and commission updates, even when Gallery is closed."}
+        checked={permission === "granted"} disabled={busy || permission === "unsupported"} onChange={(on) => void toggle(on)} />
+      {error && <p className="settings-error" role="alert">{error}</p>}
+      <p className="settings-note">See everything that happened in your <Link href="/notifications">notifications inbox</Link>.</p>
+    </div>
+  )
+}
+
+function PrivacySettings({ showRealName, adOptOut }: { showRealName: boolean; adOptOut: boolean }) {
+  const utils = trpc.useUtils()
+  const refresh = () => utils.user.me.invalidate()
+  const setRealName = trpc.user.updateShowRealName.useMutation({ onSuccess: refresh })
+  const setAdOptOut = trpc.user.updateAdTargetingOptOut.useMutation({ onSuccess: refresh })
+  const { data: blocked = [], refetch } = trpc.block.getMyBlocked.useQuery()
+  const unblock = trpc.block.toggle.useMutation({ onSuccess: () => refetch() })
+
+  return (
+    <div className="settings-toggles">
+      <Toggle label="Show real name" description="Show your display name on your public profile." checked={showRealName} disabled={setRealName.isPending}
+        onChange={(on) => setRealName.mutate({ showRealName: on })} />
+      <Toggle label="Location-based ad targeting" description="Turn off to stop ads chosen by your location." checked={!adOptOut} disabled={setAdOptOut.isPending}
+        onChange={(on) => setAdOptOut.mutate({ optOut: !on })} />
+      <h3 className="settings-subheading">Blocked accounts</h3>
+      {!blocked.length && <p className="settings-note">You haven&apos;t blocked anyone.</p>}
+      {blocked.map((u) => (
+        <div className="settings-blocked" key={u.id}>
+          <Avatar src={u.image} name={u.name ?? u.username ?? "?"} />
+          <span><strong>{u.name ?? u.username}</strong><small>@{u.username}</small></span>
+          <button type="button" className="settings-secondary" disabled={unblock.isPending} onClick={() => u.username && unblock.mutate({ username: u.username })}>Unblock</button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function AccountSettings({ email, sellingEnabled }: { email: string | null; sellingEnabled: boolean }) {
+  const { update } = useSession()
+  const utils = trpc.useUtils()
+  const setSelling = trpc.user.updateSellingEnabled.useMutation({ onSuccess: () => { void utils.user.me.invalidate(); void update() } })
+  const [current, setCurrent] = useState("")
+  const [next, setNext] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const changePassword = trpc.user.changePassword.useMutation({ onSuccess: () => { setCurrent(""); setNext(""); setConfirm("") } })
+  const mismatch = !!confirm && next !== confirm
+
+  return (
+    <div className="settings-toggles">
+      <Toggle label="Commissions" description={sellingEnabled ? "Shown on your profile — people can request work." : "Not shown on your profile."}
+        checked={sellingEnabled} disabled={setSelling.isPending} onChange={(on) => setSelling.mutate({ enabled: on })} />
+      <h3 className="settings-subheading">Email</h3>
+      <p className="settings-note">{email ?? "No email on this account."}</p>
+      <h3 className="settings-subheading">Change password</h3>
+      <form className="settings-fields" onSubmit={(e) => { e.preventDefault(); if (!mismatch && next.length >= 8) changePassword.mutate({ currentPassword: current, newPassword: next }) }}>
+        <label className="wide-field">Current password<input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></label>
+        <label>New password<input type="password" autoComplete="new-password" minLength={8} value={next} onChange={(e) => setNext(e.target.value)} /></label>
+        <label>Confirm new password<input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></label>
+        {mismatch && <p className="settings-error wide-field" role="alert">Passwords don&apos;t match.</p>}
+        {changePassword.error && <p className="settings-error wide-field" role="alert">{changePassword.error.message}</p>}
+        {changePassword.isSuccess && <p className="settings-note wide-field" role="status"><Check size={14} /> Password updated.</p>}
+        <div className="wide-field"><button className="settings-primary" disabled={!current || next.length < 8 || mismatch || changePassword.isPending}>{changePassword.isPending ? "Updating…" : "Update password"}</button></div>
+      </form>
+      <h3 className="settings-subheading">Legal</h3>
+      <p className="settings-note"><Link href="/terms">Terms of Service</Link> · <Link href="/privacy">Privacy Policy</Link> · <Link href="/dmca">DMCA / Copyright</Link></p>
+      <div><button type="button" className="settings-secondary" onClick={() => signOut({ callbackUrl: "/signin" })}>Sign out</button></div>
+    </div>
   )
 }

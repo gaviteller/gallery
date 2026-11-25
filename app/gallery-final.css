@@ -442,6 +442,8 @@ body { overflow-x: hidden; }
   .gallery-shell-notification-head strong { font-family:"Playfair Display",Georgia,serif;font-size:15px; }
   .gallery-shell-notification-head button { border:0;background:none;color:var(--gallery-muted);font-size:23px;cursor:pointer; }
   .gallery-shell-notification-list { max-height: calc(100vh - 232px); overflow-y:auto; }
+  .gallery-shell-notification-all { display:block;padding:12px 14px;text-align:center;font-size:12px;font-weight:600;color:var(--gallery-text);border-top:1px solid #1d1b2a; }
+  .gallery-shell-notification-all:hover { background:rgba(255,255,255,.04); }
   .gallery-shell-notification-list > p { padding:28px 14px;text-align:center;color:var(--gallery-muted);font-size:12px; }
   .gallery-shell-notification-list > button { width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;border:0;border-bottom:1px solid #1d1b2a;background:transparent;color:var(--gallery-text);text-align:left;cursor:pointer; }
   .gallery-shell-notification-list > button.is-unread { background:rgba(131,77,178,.1); }

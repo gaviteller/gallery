@@ -1,0 +1,16 @@
+/* Hand-written additions to the generated settings.css (which must not be edited by hand):
+   pieces the real Settings page needs that Codex's prototype didn't have. */
+.gx-settings .settings-preview .gx-avatar-fallback,
+.gx-settings .profile-photo .gx-avatar-fallback {
+  width: 62px; height: 62px; border-radius: 50%; border: 2px solid #c382bb;
+  display: grid; place-items: center; font: 700 22px Georgia, serif; color: #f2e5f7; background: #2b1f38; margin: 0;
+}
+.gx-settings .settings-loading { padding: 40px 24px; color: #c7add5; font-size: 13px; }
+.gx-settings .settings-note { color: #c7add5; font-size: 12px; line-height: 1.5; margin: 12px 0 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.gx-settings .settings-note a { color: #f2e5f7; text-decoration: underline; text-underline-offset: 3px; }
+.gx-settings .settings-subheading { margin: 22px 0 4px; font: 400 16px Georgia, serif; color: #f2e5f7; }
+.gx-settings .settings-blocked { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #4b3556; }
+.gx-settings .settings-blocked img, .gx-settings .settings-blocked .gx-avatar-fallback { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #2b1f38; }
+.gx-settings .settings-blocked > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gx-settings .settings-blocked small { color: #c7add5; font-size: 11px; }
+.gx-settings .settings-toggles > div:last-child { margin-top: 22px; }
